@@ -6,18 +6,18 @@ from uuid import uuid4
 import pytest
 from fastapi import HTTPException
 
-from planning_agent_core.agent_platform.agents.base import (
+from agent_core.agent_platform.agents.base import (
     AgentNextAction,
     AgentResult,
     AgentRunStatus,
 )
-from planning_agent_core.agent_platform.agents.coding import CodingAgentRequest
-from planning_agent_core.agent_platform.agents.planning import PlanningAgentRequest
-from planning_agent_core.agent_platform.adapters.openproject import (
+from agent_core.agent_platform.agents.coding import CodingAgentRequest
+from agent_core.agent_platform.agents.planning import PlanningAgentRequest
+from agent_core.agent_platform.adapters.openproject import (
     ManagedWorkPackageGateway,
 )
-from planning_agent_core.agent_platform.config import AgentConfig
-from planning_agent_core.agent_platform.orchestration import (
+from agent_core.agent_platform.config import AgentConfig
+from agent_core.agent_platform.orchestration import (
     AgentFlowApproval,
     AgentFlowLeaseConflictError,
     AgentFlowVersionConflictError,
@@ -25,7 +25,7 @@ from planning_agent_core.agent_platform.orchestration import (
     AgentRouteDecision,
     PersistedAgentResult,
 )
-from planning_agent_core.api.agents import (
+from agent_core.api.agents import (
     AgentExecutePayload,
     AgentFlowHeartbeatPayload,
     AgentFlowRecoveryPayload,
@@ -43,10 +43,10 @@ from planning_agent_core.api.agents import (
     resume_agent_flow,
     start_agent_flow,
 )
-from planning_agent_core.domain.coding import CodingAttemptRequest, FileChange
-from planning_agent_core.domain.enums import ApprovalDecision
-from planning_agent_core.persistence.agent_flows import SqlAlchemyAgentFlowStore
-from planning_agent_core.services.agent_transition_resolver import (
+from agent_core.domain.coding import CodingAttemptRequest, FileChange
+from agent_core.domain.enums import ApprovalDecision
+from agent_core.persistence.agent_flows import SqlAlchemyAgentFlowStore
+from agent_core.services.agent_transition_resolver import (
     ApplicationAgentTransitionResolver,
 )
 
@@ -200,7 +200,7 @@ def test_database_platform_service_accepts_injected_work_package_gateway():
 async def test_execute_agent_uses_default_config_and_service(monkeypatch):
     fake_service = FakeAgentPlatformService()
     monkeypatch.setattr(
-        "planning_agent_core.api.agents.create_agent_platform_service_for_db",
+        "agent_core.api.agents.create_agent_platform_service_for_db",
         lambda db: fake_service,
     )
     payload = AgentExecutePayload(
@@ -225,7 +225,7 @@ async def test_execute_agent_uses_default_config_and_service(monkeypatch):
 @pytest.mark.asyncio
 async def test_execute_agent_rejects_mismatched_config(monkeypatch):
     monkeypatch.setattr(
-        "planning_agent_core.api.agents.create_agent_platform_service_for_db",
+        "agent_core.api.agents.create_agent_platform_service_for_db",
         lambda db: FakeAgentPlatformService(),
     )
     payload = AgentExecutePayload(
@@ -256,7 +256,7 @@ async def test_execute_agent_rejects_mismatched_config(monkeypatch):
 async def test_start_agent_flow_builds_typed_execution_request(monkeypatch):
     fake_service = FakeFlowService()
     monkeypatch.setattr(
-        "planning_agent_core.api.agents.create_agent_platform_service_for_db",
+        "agent_core.api.agents.create_agent_platform_service_for_db",
         lambda db: fake_service,
     )
     payload = AgentFlowStartPayload(
@@ -283,7 +283,7 @@ async def test_start_agent_flow_builds_typed_execution_request(monkeypatch):
 async def test_enqueue_agent_flow_builds_typed_execution_request(monkeypatch):
     fake_service = FakeFlowService()
     monkeypatch.setattr(
-        "planning_agent_core.api.agents.create_agent_platform_service_for_db",
+        "agent_core.api.agents.create_agent_platform_service_for_db",
         lambda db: fake_service,
     )
     payload = AgentFlowStartPayload(
@@ -311,7 +311,7 @@ async def test_enqueue_agent_flow_builds_typed_execution_request(monkeypatch):
 async def test_resume_agent_flow_uses_stored_workflow_identity(monkeypatch):
     fake_service = FakeFlowService()
     monkeypatch.setattr(
-        "planning_agent_core.api.agents.create_agent_platform_service_for_db",
+        "agent_core.api.agents.create_agent_platform_service_for_db",
         lambda db: fake_service,
     )
     flow_id = uuid4()
@@ -345,7 +345,7 @@ async def test_resume_agent_flow_uses_stored_workflow_identity(monkeypatch):
 async def test_override_agent_verification_passes_typed_audit_command(monkeypatch):
     fake_service = FakeFlowService()
     monkeypatch.setattr(
-        "planning_agent_core.api.agents.create_agent_platform_service_for_db",
+        "agent_core.api.agents.create_agent_platform_service_for_db",
         lambda db: fake_service,
     )
     flow_id = uuid4()
@@ -378,7 +378,7 @@ async def test_start_agent_flow_maps_version_conflict_to_http_409(monkeypatch):
             raise AgentFlowVersionConflictError("workflow already exists")
 
     monkeypatch.setattr(
-        "planning_agent_core.api.agents.create_agent_platform_service_for_db",
+        "agent_core.api.agents.create_agent_platform_service_for_db",
         lambda db: ConflictingFlowService(),
     )
     payload = AgentFlowStartPayload(
@@ -399,7 +399,7 @@ async def test_start_agent_flow_maps_version_conflict_to_http_409(monkeypatch):
 async def test_get_agent_flow_by_workflow_uses_project_identity(monkeypatch):
     fake_service = FakeFlowService()
     monkeypatch.setattr(
-        "planning_agent_core.api.agents.create_agent_platform_service_for_db",
+        "agent_core.api.agents.create_agent_platform_service_for_db",
         lambda db: fake_service,
     )
 
@@ -420,7 +420,7 @@ async def test_get_agent_flow_by_workflow_uses_project_identity(monkeypatch):
 async def test_heartbeat_agent_flow_passes_lease_claim(monkeypatch):
     fake_service = FakeFlowService()
     monkeypatch.setattr(
-        "planning_agent_core.api.agents.create_agent_platform_service_for_db",
+        "agent_core.api.agents.create_agent_platform_service_for_db",
         lambda db: fake_service,
     )
     flow_id = uuid4()
@@ -448,7 +448,7 @@ async def test_heartbeat_agent_flow_passes_lease_claim(monkeypatch):
 async def test_recover_agent_flow_reuses_persisted_config_and_identity(monkeypatch):
     fake_service = FakeFlowService()
     monkeypatch.setattr(
-        "planning_agent_core.api.agents.create_agent_platform_service_for_db",
+        "agent_core.api.agents.create_agent_platform_service_for_db",
         lambda db: fake_service,
     )
     flow_id = uuid4()
@@ -486,7 +486,7 @@ async def test_heartbeat_maps_active_lease_conflict_to_http_409(monkeypatch):
             raise AgentFlowLeaseConflictError("lease token does not match")
 
     monkeypatch.setattr(
-        "planning_agent_core.api.agents.create_agent_platform_service_for_db",
+        "agent_core.api.agents.create_agent_platform_service_for_db",
         lambda db: ConflictingLeaseService(),
     )
 
@@ -506,7 +506,7 @@ async def test_heartbeat_maps_active_lease_conflict_to_http_409(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_event_orchestrate_endpoint_uses_agent_platform_service(monkeypatch):
-    from planning_agent_core.api.events import orchestrate_event
+    from agent_core.api.events import orchestrate_event
 
     captured = {}
     fake_service = object()
@@ -520,19 +520,19 @@ async def test_event_orchestrate_endpoint_uses_agent_platform_service(monkeypatc
             return SimpleNamespace(as_dict=lambda: {"event_id": event_id, "ok": True})
 
     monkeypatch.setattr(
-        "planning_agent_core.api.events.create_agent_platform_service_for_db",
+        "agent_core.api.events.create_agent_platform_service_for_db",
         lambda db: fake_service,
     )
     monkeypatch.setattr(
-        "planning_agent_core.api.events.SqlAlchemyEventInbox",
+        "agent_core.api.events.SqlAlchemyEventInbox",
         lambda db: "inbox",
     )
     monkeypatch.setattr(
-        "planning_agent_core.api.events.SqlAlchemyAgentExecutionRecorder",
+        "agent_core.api.events.SqlAlchemyAgentExecutionRecorder",
         lambda db: "recorder",
     )
     monkeypatch.setattr(
-        "planning_agent_core.api.events.ProjectEventOrchestrator",
+        "agent_core.api.events.ProjectEventOrchestrator",
         FakeProjectEventOrchestrator,
     )
 

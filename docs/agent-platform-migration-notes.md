@@ -1,19 +1,19 @@
 # Agent Platform Migration Notes
 
-The platform refactor is additive. The current APIs, service classes, workflow modules, persistence models, adapters, and tests remain available while callers migrate to `planning_agent_core.agent_platform`.
+The platform refactor is additive. The current APIs, service classes, workflow modules, persistence models, adapters, and tests remain available while callers migrate to `agent_core.agent_platform`.
 
 ## Migration Map
 
 Current planning runtime:
 
-- Keep `planning_agent_core/workflow/*` as the existing LangGraph planning workflow.
+- Keep `agent_core/workflow/*` as the existing LangGraph planning workflow.
 - New platform requests run through the independent Planning Agent graph. It can still use the
   injected legacy `planning_service` for session-based plan generation.
-- Keep planning skills in `planning_agent_core/skills/*`; agent-specific planning modules compose them rather than copying logic.
+- Keep planning skills in `agent_core/skills/*`; agent-specific planning modules compose them rather than copying logic.
 
 Current coding runtime:
 
-- Keep `planning_agent_core/services/coding_service.py` as the bounded write and quality-command executor.
+- Keep `agent_core/services/coding_service.py` as the bounded write and quality-command executor.
 - Use `CodingAgent` as the lifecycle wrapper around one approved `CodingAttemptRequest`.
 - Continue persisting attempts through the existing coding-attempt repository and migration.
 
@@ -33,40 +33,40 @@ Current verification behavior:
 
 Current repository analysis:
 
-- Keep concrete Tree-sitter and LSP adapters in `planning_agent_core/adapters/*`.
+- Keep concrete Tree-sitter and LSP adapters in `agent_core/adapters/*`.
 - Expose platform-facing interfaces through `agent_platform/adapters/git`.
 - Continue repository binding and indexing through existing repository services until orchestration endpoints are migrated.
 
 Current infrastructure ports:
 
-- Reuse `planning_agent_core/ports/*` as the source of truth for dependency inversion.
+- Reuse `agent_core/ports/*` as the source of truth for dependency inversion.
 - Re-export platform-facing adapter interfaces under `agent_platform/adapters/*` for discoverability.
 - Do not import concrete clients in agent business logic.
 
 ## Files Added
 
-- `planning_agent_core/planning_agent_core/agent_platform/agents/base/*`
-- `planning_agent_core/planning_agent_core/agent_platform/agents/planning/*`
-- `planning_agent_core/planning_agent_core/agent_platform/agents/coding/*`
-- `planning_agent_core/planning_agent_core/agent_platform/agents/verification/*`
-- `planning_agent_core/planning_agent_core/agent_platform/factory/*`
-- `planning_agent_core/planning_agent_core/agent_platform/orchestration/*`
-- `planning_agent_core/planning_agent_core/agent_platform/runtime/*`
-- `planning_agent_core/planning_agent_core/agent_platform/config/*`
-- `planning_agent_core/planning_agent_core/agent_platform/adapters/*`
-- `planning_agent_core/planning_agent_core/api/agents.py`
-- `planning_agent_core/planning_agent_core/services/agent_platform_service.py`
-- `planning_agent_core/planning_agent_core/persistence/agent_platform.py`
-- `planning_agent_core/planning_agent_core/persistence/agent_flows.py`
-- `planning_agent_core/agent-platform.example.json`
-- `planning_agent_core/alembic/versions/0011_agent_platform_persistence.py`
-- `planning_agent_core/alembic/versions/0012_agent_platform_flows.py`
-- `planning_agent_core/alembic/versions/0013_agent_flow_recovery_leases.py`
-- `planning_agent_core/alembic/versions/0014_queued_agent_flows.py`
-- `planning_agent_core/planning_agent_core/workers/agent_flow_worker.py`
-- `planning_agent_core/planning_agent_core/services/agent_execution_codec.py`
-- `planning_agent_core/planning_agent_core/services/agent_platform_composition.py`
-- `planning_agent_core/planning_agent_core/agent_platform/agents/base/workflow.py`
+- `agent_core/agent_core/agent_platform/agents/base/*`
+- `agent_core/agent_core/agent_platform/agents/planning/*`
+- `agent_core/agent_core/agent_platform/agents/coding/*`
+- `agent_core/agent_core/agent_platform/agents/verification/*`
+- `agent_core/agent_core/agent_platform/factory/*`
+- `agent_core/agent_core/agent_platform/orchestration/*`
+- `agent_core/agent_core/agent_platform/runtime/*`
+- `agent_core/agent_core/agent_platform/config/*`
+- `agent_core/agent_core/agent_platform/adapters/*`
+- `agent_core/agent_core/api/agents.py`
+- `agent_core/agent_core/services/agent_platform_service.py`
+- `agent_core/agent_core/persistence/agent_platform.py`
+- `agent_core/agent_core/persistence/agent_flows.py`
+- `agent_core/agent-platform.example.json`
+- `agent_core/alembic/versions/0011_agent_platform_persistence.py`
+- `agent_core/alembic/versions/0012_agent_platform_flows.py`
+- `agent_core/alembic/versions/0013_agent_flow_recovery_leases.py`
+- `agent_core/alembic/versions/0014_queued_agent_flows.py`
+- `agent_core/agent_core/workers/agent_flow_worker.py`
+- `agent_core/agent_core/services/agent_execution_codec.py`
+- `agent_core/agent_core/services/agent_platform_composition.py`
+- `agent_core/agent_core/agent_platform/agents/base/workflow.py`
 - `tests/test_agent_internal_workflows.py`
 - `tests/test_agent_platform.py`
 - `tests/test_agent_flow_persistence.py`
@@ -76,19 +76,19 @@ Current infrastructure ports:
 
 ## Files Modified
 
-- `planning_agent_core/planning_agent_core/skills/__init__.py` now lazy-loads skill implementations to avoid environment-dependent imports when individual skill submodules are imported.
+- `agent_core/agent_core/skills/__init__.py` now lazy-loads skill implementations to avoid environment-dependent imports when individual skill submodules are imported.
 - `tests/test_import_smoke.py` now covers the new agent-platform package.
 - `docs/refactoring-implementation-plan.md` references this platform milestone.
-- `planning_agent_core/planning_agent_core/models.py` now includes platform checkpoint, result, and
+- `agent_core/agent_core/models.py` now includes platform checkpoint, result, and
   aggregate flow records.
-- `planning_agent_core/planning_agent_core/main.py` now includes the agents router.
-- `planning_agent_core/planning_agent_core/application/project_orchestrator.py` can route resumable planning events through `AgentPlatformService`.
+- `agent_core/agent_core/main.py` now includes the agents router.
+- `agent_core/agent_core/application/project_orchestrator.py` can route resumable planning events through `AgentPlatformService`.
 - Planning, Coding, and Verification `workflow.py` modules now compile independent LangGraph state
   machines; their `agent.py` modules retain lifecycle, validation, and builder responsibilities.
 
 ## Compatibility Risks
 
-- Some callers may have relied on importing skill classes directly from `planning_agent_core.skills`. Current repository tests only import `build_skill_registry` from that package root. If external callers require root-level skill class imports, add explicit lazy accessors or compatibility exports.
+- Some callers may have relied on importing skill classes directly from `agent_core.skills`. Current repository tests only import `build_skill_registry` from that package root. If external callers require root-level skill class imports, add explicit lazy accessors or compatibility exports.
 - `PlanningAgent` can wrap the legacy planning service, but the existing planning workflow remains the richer production path until all planning skills are wired into the agent workflow.
 - Platform checkpoints persist the latest completed graph phase rather than native LangGraph
   channel snapshots. Adopt native per-agent checkpointers only when interrupts or node replay are
@@ -134,12 +134,12 @@ Current infrastructure ports:
 ## Example Flow
 
 ```python
-from planning_agent_core.agent_platform import AgentDependencyContainer
-from planning_agent_core.agent_platform.factory import create_default_agent_factory
-from planning_agent_core.agent_platform.orchestration import AgentExecutionRequest
-from planning_agent_core.services.agent_platform_service import AgentPlatformService
+from agent_core.agent_platform import AgentDependencyContainer
+from agent_core.agent_platform.factory import create_default_agent_factory
+from agent_core.agent_platform.orchestration import AgentExecutionRequest
+from agent_core.services.agent_platform_service import AgentPlatformService
 
-config = load_agent_platform_config("planning_agent_core/agent-platform.example.json")
+config = load_agent_platform_config("agent_core/agent-platform.example.json")
 dependencies = AgentDependencyContainer(
     coding_service=coding_service,
     planning_service=planning_service,

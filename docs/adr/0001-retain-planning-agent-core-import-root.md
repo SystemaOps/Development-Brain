@@ -1,4 +1,4 @@
-# ADR 0001: Retain `planning_agent_core` Import Root
+# ADR 0001: Retain `agent_core` Import Root
 
 ## Status
 
@@ -6,11 +6,11 @@ Accepted
 
 ## Context
 
-The README describes a system that will eventually contain planning, coding, and verification agents. The existing newer implementation already uses the Python package and distribution name `planning_agent_core`. Renaming it now would add import churn before stable boundaries, tests, and migrations exist.
+The README describes a system that will eventually contain planning, coding, and verification agents. The existing newer implementation already uses the Python package and distribution name `agent_core`. Renaming it now would add import churn before stable boundaries, tests, and migrations exist.
 
 ## Decision
 
-Keep the package and import root `planning_agent_core` for the initial migration. Add subpackages for domain, ports, adapters, workflows, agents, and policies under that root.
+Keep the package and import root `agent_core` for the initial migration. Add subpackages for domain, ports, adapters, workflows, agents, and policies under that root.
 
 ## Consequences
 

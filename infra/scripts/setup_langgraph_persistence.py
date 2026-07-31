@@ -11,7 +11,7 @@ from urllib.parse import urlsplit, urlunsplit
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-PACKAGE_ROOT = REPO_ROOT / "planning_agent_core"
+PACKAGE_ROOT = REPO_ROOT / "agent_core"
 DEFAULT_ENV_FILE = REPO_ROOT / ".env"
 
 
@@ -92,13 +92,13 @@ async def run(args: argparse.Namespace) -> None:
 
     database_uri = args.database_url.strip()
     if not database_uri:
-        from planning_agent_core.workflow.checkpointer import get_checkpoint_database_url
+        from agent_core.workflow.checkpointer import get_checkpoint_database_url
 
         database_uri = get_checkpoint_database_url()
 
     database_uri = normalize_database_uri(database_uri)
 
-    from planning_agent_core.workflow.persistence_setup import initialize_langgraph_persistence
+    from agent_core.workflow.persistence_setup import initialize_langgraph_persistence
 
     result = await initialize_langgraph_persistence(
         database_uri,

@@ -30,7 +30,7 @@ response has:
 
 ## Worker Lifecycle
 
-`planning_agent_core.workers.agent_flow_worker.AgentFlowWorker`:
+`agent_core.workers.agent_flow_worker.AgentFlowWorker`:
 
 1. Opens a short PostgreSQL session and claims one queued or recoverable row.
 2. Uses oldest-first `SELECT ... FOR UPDATE SKIP LOCKED` so concurrent workers claim different
@@ -95,7 +95,7 @@ agent-flow-worker
 It runs:
 
 ```text
-python -m planning_agent_core.workers.agent_flow_worker
+python -m agent_core.workers.agent_flow_worker
 ```
 
 `WORKER_CONCURRENCY` controls local worker slots and `FLOW_WORKER_ID` identifies lease ownership.

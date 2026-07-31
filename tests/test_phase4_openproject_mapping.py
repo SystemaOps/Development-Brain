@@ -2,15 +2,15 @@ from __future__ import annotations
 
 import pytest
 
-from planning_agent_core.application.openproject_feedback import OpenProjectFeedbackIntent
-from planning_agent_core.application.openproject_mapping import (
+from agent_core.application.openproject_feedback import OpenProjectFeedbackIntent
+from agent_core.application.openproject_mapping import (
     OpenProjectApprovalState,
     OpenProjectMappingError,
     OpenProjectResourceCatalog,
     OpenProjectSemanticMapper,
     OpenProjectSemanticStatus,
 )
-from planning_agent_core.domain.enums import (
+from agent_core.domain.enums import (
     PlanNodeKind,
     PlanningSessionStatus,
     PlanVersionStatus,

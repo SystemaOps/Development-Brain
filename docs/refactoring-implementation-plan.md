@@ -6,12 +6,12 @@ This plan is based on `README.md` and a first pass through the current repositor
 
 ### Existing Modules And Responsibilities
 
-- `planning_agent_core/planning_agent_core/main.py` exposes the current FastAPI application and initializes SQLAlchemy schema creation plus LangGraph Postgres checkpoint setup.
-- `planning_agent_core/planning_agent_core/models.py` contains SQLAlchemy ORM tables for projects, planning sessions, documents, chunks, clarification questions, plan versions, plan nodes, provisioning jobs, external artifacts, and context capsules.
-- `planning_agent_core/planning_agent_core/services/` contains application services for project planning, document ingestion, context capsules, and provisioning jobs.
-- `planning_agent_core/planning_agent_core/skills/` contains a small skill abstraction and several early planning-related skill implementations. The active runtime registry currently registers only `ambiguity_assessment` and `planning_decomposition`.
-- `planning_agent_core/planning_agent_core/workflow/` contains an initial LangGraph planning workflow with skill routing, question persistence, plan persistence, and context capsule creation.
-- `planning_agent_core/planning_agent_core/adapters/` contains early OpenProject, Neo4j, and Weaviate adapters, but these are not yet isolated behind formal port interfaces.
+- `agent_core/agent_core/main.py` exposes the current FastAPI application and initializes SQLAlchemy schema creation plus LangGraph Postgres checkpoint setup.
+- `agent_core/agent_core/models.py` contains SQLAlchemy ORM tables for projects, planning sessions, documents, chunks, clarification questions, plan versions, plan nodes, provisioning jobs, external artifacts, and context capsules.
+- `agent_core/agent_core/services/` contains application services for project planning, document ingestion, context capsules, and provisioning jobs.
+- `agent_core/agent_core/skills/` contains a small skill abstraction and several early planning-related skill implementations. The active runtime registry currently registers only `ambiguity_assessment` and `planning_decomposition`.
+- `agent_core/agent_core/workflow/` contains an initial LangGraph planning workflow with skill routing, question persistence, plan persistence, and context capsule creation.
+- `agent_core/agent_core/adapters/` contains early OpenProject, Neo4j, and Weaviate adapters, but these are not yet isolated behind formal port interfaces.
 - `infra/agent_trigger/app/` contains the OpenProject webhook receiver, event normalization, HMAC verification, synchronous PostgreSQL event storage, Redis queue push, worker loop, OpenProject fetch logic, and a coding-agent placeholder.
 - `infra/postgres/init/01-agent-schema.sql` creates webhook inbox, job, and OpenProject context snapshot tables directly at container initialization.
 - `src/` contains the older Ada agent implementation with parser, analyzer, generator, executor, and simple code graph experiments.
@@ -19,7 +19,7 @@ This plan is based on `README.md` and a first pass through the current repositor
 
 ### Code Already Usable
 
-- FastAPI route composition and health endpoint in `planning_agent_core`.
+- FastAPI route composition and health endpoint in `agent_core`.
 - Basic planning data model for projects, sessions, documents, plan versions, plan nodes, relations, and context capsules.
 - Markdown document upload and chunking.
 - Pydantic plan hierarchy validation for Vision to Capability to Epic to Story to Task.
@@ -33,16 +33,16 @@ This plan is based on `README.md` and a first pass through the current repositor
 ### Code To Move Or Wrap
 
 - Wrap `infra/agent_trigger/app/storage.py` behind a webhook inbox port, then migrate it to async SQLAlchemy repositories and Alembic migrations.
-- Wrap `infra/agent_trigger/app/openproject_client.py` and `planning_agent_core/adapters/openproject.py` behind a single OpenProject port before expanding behavior.
-- Move reusable `src/parser` repository-analysis logic into a new repository analysis adapter under `planning_agent_core`, keeping the old `src` path as compatibility or fixture code until callers are migrated.
+- Wrap `infra/agent_trigger/app/openproject_client.py` and `agent_core/adapters/openproject.py` behind a single OpenProject port before expanding behavior.
+- Move reusable `src/parser` repository-analysis logic into a new repository analysis adapter under `agent_core`, keeping the old `src` path as compatibility or fixture code until callers are migrated.
 - Move ad hoc status and event parsing logic into typed domain event models and deterministic event classification services.
 - Wrap `StructuredLLM` behind an LLM port so skills depend on typed generation capabilities rather than a concrete HTTP client.
 - Introduce explicit repository path and command policies before any code-writing workflow uses `src/execution` or shell execution logic.
 
 ### Duplicate Or Obsolete Implementations
 
-- `src/agent/core.py` and `planning_agent_core` represent separate agent designs. Treat `src/` as legacy/reference code, not the future application root.
-- There are two OpenProject client directions: the webhook worker client under `infra/agent_trigger/app/` and the async adapter under `planning_agent_core/adapters/`. These should converge behind one normalized adapter.
+- `src/agent/core.py` and `agent_core` represent separate agent designs. Treat `src/` as legacy/reference code, not the future application root.
+- There are two OpenProject client directions: the webhook worker client under `infra/agent_trigger/app/` and the async adapter under `agent_core/adapters/`. These should converge behind one normalized adapter.
 - Database schema creation is split between direct SQL initialization and SQLAlchemy `create_all()`. This should become Alembic-managed migrations.
 - Planning logic exists both as service methods using direct LLM calls and as LangGraph skill nodes. Consolidate into workflow plus skills while preserving public API behavior.
 - The README mentions docs and migration artifacts that are not present yet.
@@ -74,7 +74,7 @@ This plan is based on `README.md` and a first pass through the current repositor
 
 ## Refactoring Principles
 
-- Keep the Python distribution and import root as `planning_agent_core` for the first migration.
+- Keep the Python distribution and import root as `agent_core` for the first migration.
 - Preserve the current planning API behavior until replacement workflows are covered by tests.
 - Add ports and wrappers before moving implementations.
 - Convert database state to migrations before adding more tables.
@@ -89,10 +89,10 @@ Objective: document the current state and establish a reliable baseline before r
 Tasks:
 
 - Add `docs/current-state-assessment.md` using the assessment in this plan as the starting point.
-- Add ADRs for keeping `planning_agent_core`, introducing ports/adapters, migrating to Alembic, and enforcing mounted repository boundaries.
-- Record current startup expectations for `docker-compose.yml`, `planning_agent_core`, and `infra/agent_trigger`.
+- Add ADRs for keeping `agent_core`, introducing ports/adapters, migrating to Alembic, and enforcing mounted repository boundaries.
+- Record current startup expectations for `docker-compose.yml`, `agent_core`, and `infra/agent_trigger`.
 - Run the legacy smoke script and any available pytest discovery; record failures and environment requirements.
-- Add import smoke tests for `planning_agent_core.main`, `models`, `schemas`, `skills`, and `workflow`.
+- Add import smoke tests for `agent_core.main`, `models`, `schemas`, `skills`, and `workflow`.
 - Add a migration map from `src/`, `infra/agent_trigger`, and current adapters into the target package layout.
 - Remove no modules in this phase.
 
@@ -100,7 +100,7 @@ Acceptance criteria:
 
 - Existing behavior is documented.
 - Current tests or smoke checks are recorded with pass/fail status.
-- `planning_agent_core` imports compile in the intended environment.
+- `agent_core` imports compile in the intended environment.
 - Refactor risks have owners and mitigation notes.
 
 ## Phase 1: Domain Foundation And Configuration
@@ -109,8 +109,8 @@ Objective: create stable typed boundaries that the rest of the system can use.
 
 Tasks:
 
-- Create `planning_agent_core/domain/` for enums, identifiers, projects, requirements, plans, tasks, feedback, evidence, verification, and events.
-- Create `planning_agent_core/ports/` for project repository, event inbox, checkpoint, OpenProject, graph store, vector store, repository filesystem, command runner, artifact store, and LLM generation.
+- Create `agent_core/domain/` for enums, identifiers, projects, requirements, plans, tasks, feedback, evidence, verification, and events.
+- Create `agent_core/ports/` for project repository, event inbox, checkpoint, OpenProject, graph store, vector store, repository filesystem, command runner, artifact store, and LLM generation.
 - Split `config.py` into `config/settings.py`, logging configuration, and agent definition loading.
 - Add `.env.example` matching the README variables and map existing Compose environment names to settings.
 - Replace `BaseSettings` field names that diverge from the README, or add compatibility aliases during migration.
@@ -147,14 +147,14 @@ Acceptance criteria:
 
 ### Agent Platform Foundation Update
 
-The general agent platform foundation has been added under `planning_agent_core/planning_agent_core/agent_platform/`.
+The general agent platform foundation has been added under `agent_core/agent_core/agent_platform/`.
 
 - Common lifecycle and request/result contracts are in `agent_platform/agents/base/`.
 - Planning, coding, and verification agents now have independent config, state, workflow, request, and result modules.
 - Agent creation uses the registry-backed `AgentFactory`; default builders are registered without factory conditionals.
 - `AgentOrchestrator` coordinates lifecycle, persistence, structured events, approval gates, and high-level transitions without agent-specific business logic.
 - Platform adapter namespaces expose infrastructure-facing interfaces over the existing ports.
-- Example configuration is in `planning_agent_core/agent-platform.example.json`.
+- Example configuration is in `agent_core/agent-platform.example.json`.
 - Detailed architecture is documented in `docs/agent-platform-architecture.md`.
 - Migration notes are documented in `docs/agent-platform-migration-notes.md`.
 - Implementation results are recorded in `docs/agent-platform-implementation-results.md`.
@@ -356,7 +356,7 @@ Acceptance criteria:
 - Create `docs/current-state-assessment.md`.
 - Create ADR directory and initial ADRs.
 - Add pytest import smoke tests for the current core package.
-- Add Alembic scaffolding for `planning_agent_core`.
+- Add Alembic scaffolding for `agent_core`.
 - Add domain and port package skeletons with no adapter dependencies.
 - Add skill manifest format and registry validation.
 - Add event idempotency fingerprint for OpenProject webhook payloads.

@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from planning_agent_core.domain.code_analysis import (
+from agent_core.domain.code_analysis import (
     CodeRelationship,
     CodeRelationshipKind,
     CodeSymbol,
@@ -14,8 +14,8 @@ from planning_agent_core.domain.code_analysis import (
     RepositoryIndex,
     SyntaxExtractionResult,
 )
-from planning_agent_core.domain.enums import RepositoryAccessMode
-from planning_agent_core.domain.repositories import (
+from agent_core.domain.enums import RepositoryAccessMode
+from agent_core.domain.repositories import (
     RepositoryAccessDenied,
     RepositoryBinding,
     RepositoryPathError,
@@ -131,7 +131,7 @@ def test_repository_command_allowlist_uses_executable_names(tmp_path: Path):
 
 @pytest.mark.asyncio
 async def test_local_repository_filesystem_reads_only_inside_binding(tmp_path: Path):
-    from planning_agent_core.adapters.repository_filesystem import LocalRepositoryFilesystem
+    from agent_core.adapters.repository_filesystem import LocalRepositoryFilesystem
 
     repo = tmp_path / "repo"
     repo.mkdir()
@@ -162,7 +162,7 @@ async def test_local_repository_filesystem_reads_only_inside_binding(tmp_path: P
 
 @pytest.mark.asyncio
 async def test_python_ast_repository_analyzer_indexes_sample_project():
-    from planning_agent_core.adapters.repository_analysis import PythonAstRepositoryAnalyzer
+    from agent_core.adapters.repository_analysis import PythonAstRepositoryAnalyzer
 
     repo_root = Path(__file__).resolve().parents[1]
     sample_project = repo_root / "sample_project"
@@ -199,7 +199,7 @@ async def test_python_ast_repository_analyzer_indexes_sample_project():
 
 
 def test_tree_sitter_extractor_reports_unavailable_without_hard_dependency(tmp_path: Path):
-    from planning_agent_core.adapters.tree_sitter_analysis import TreeSitterPythonExtractor
+    from agent_core.adapters.tree_sitter_analysis import TreeSitterPythonExtractor
 
     path = tmp_path / "main.py"
     path.write_text("def hello():\n    return 'world'\n", encoding="utf-8")
@@ -217,7 +217,7 @@ def test_tree_sitter_extractor_reports_unavailable_without_hard_dependency(tmp_p
 
 @pytest.mark.asyncio
 async def test_lsp_lookup_reports_unavailable_without_starting_server(tmp_path: Path):
-    from planning_agent_core.adapters.lsp import LegacyPythonLspLookup
+    from agent_core.adapters.lsp import LegacyPythonLspLookup
 
     repo = tmp_path / "repo"
     repo.mkdir()
@@ -239,7 +239,7 @@ async def test_lsp_lookup_reports_unavailable_without_starting_server(tmp_path: 
 
 @pytest.mark.asyncio
 async def test_python_ast_analyzer_records_tree_sitter_metadata_from_extractor(tmp_path: Path):
-    from planning_agent_core.adapters.repository_analysis import PythonAstRepositoryAnalyzer
+    from agent_core.adapters.repository_analysis import PythonAstRepositoryAnalyzer
 
     class FakeTreeSitterExtractor:
         def extract_python_file(self, *, repository_key, relative_path, absolute_path):
@@ -271,7 +271,7 @@ async def test_python_ast_analyzer_records_tree_sitter_metadata_from_extractor(t
 async def test_repository_projectors_write_to_graph_and_vector_ports():
     from uuid import uuid4
 
-    from planning_agent_core.services.repository_projection_service import (
+    from agent_core.services.repository_projection_service import (
         REPOSITORY_CONTEXT_COLLECTION,
         RepositoryNeo4jProjector,
         RepositoryVectorProjector,
@@ -367,7 +367,7 @@ async def test_repository_projectors_write_to_graph_and_vector_ports():
 
 
 def test_repository_api_router_exposes_binding_index_and_query_routes():
-    from planning_agent_core.api.repositories import router
+    from agent_core.api.repositories import router
 
     paths = {route.path for route in router.routes}
 
@@ -380,8 +380,8 @@ def test_repository_api_router_exposes_binding_index_and_query_routes():
 
 
 def test_repository_projection_adapters_match_async_ports():
-    from planning_agent_core.adapters.neo4j_store import Neo4jProjectionStore
-    from planning_agent_core.adapters.weaviate_store import WeaviateSchemaStore
+    from agent_core.adapters.neo4j_store import Neo4jProjectionStore
+    from agent_core.adapters.weaviate_store import WeaviateSchemaStore
 
     assert inspect.iscoroutinefunction(Neo4jProjectionStore.ensure_schema)
     assert inspect.iscoroutinefunction(Neo4jProjectionStore.upsert_node)
@@ -392,7 +392,7 @@ def test_repository_projection_adapters_match_async_ports():
 
 
 def test_repository_binding_model_and_migration_contract():
-    from planning_agent_core.models import (
+    from agent_core.models import (
         RepositoryBindingRecord,
         RepositoryRelationshipRecord,
         RepositorySymbolRecord,

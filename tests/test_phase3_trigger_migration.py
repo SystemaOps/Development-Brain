@@ -7,8 +7,8 @@ from typing import Any
 
 from fastapi.testclient import TestClient
 
-from planning_agent_core.application.event_classification import normalize_openproject_event
-from planning_agent_core.domain.enums import RetryCategory
+from agent_core.application.event_classification import normalize_openproject_event
+from agent_core.domain.enums import RetryCategory
 
 
 def _import_trigger_module(monkeypatch, module_name: str):
@@ -37,7 +37,7 @@ def test_trigger_event_parser_idempotency_matches_core(monkeypatch):
     assert trigger_event["external_project_id"] == core_event.external_project_id
     assert trigger_event["external_work_package_id"] == core_event.external_work_package_id
     assert trigger_event["idempotency_key"] == core_event.idempotency_key
-    assert trigger_parser.find_work_package_id.__module__.startswith("planning_agent_core.")
+    assert trigger_parser.find_work_package_id.__module__.startswith("agent_core.")
 
 
 def test_trigger_retry_policy_reexports_core_policy(monkeypatch):
@@ -51,7 +51,7 @@ def test_trigger_retry_policy_reexports_core_policy(monkeypatch):
         base_seconds=3,
         max_seconds=60,
     ) == 6
-    assert trigger_retry_policy.classify_exception.__module__.startswith("planning_agent_core.")
+    assert trigger_retry_policy.classify_exception.__module__.startswith("agent_core.")
 
 
 def test_trigger_docker_build_copies_core_package_for_shared_imports():
@@ -61,7 +61,7 @@ def test_trigger_docker_build_copies_core_package_for_shared_imports():
     )
     compose = (repo_root / "docker-compose.yml").read_text(encoding="utf-8")
 
-    assert "COPY planning_agent_core/planning_agent_core ./planning_agent_core" in dockerfile
+    assert "COPY agent_core/agent_core ./agent_core" in dockerfile
     assert "dockerfile: infra/agent_trigger/Dockerfile" in compose
     assert "PLANNING_AGENT_CORE_URL: http://planning-agent-core:8000" in compose
     assert "planning-agent-core:\n        condition: service_started" in compose

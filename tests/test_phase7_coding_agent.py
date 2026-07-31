@@ -7,9 +7,9 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from planning_agent_core.domain.coding import CodingAttemptRequest, FileChange, QualityCommand
-from planning_agent_core.domain.enums import CodingAttemptStatus, RepositoryAccessMode
-from planning_agent_core.domain.repositories import RepositoryBinding
+from agent_core.domain.coding import CodingAttemptRequest, FileChange, QualityCommand
+from agent_core.domain.enums import CodingAttemptStatus, RepositoryAccessMode
+from agent_core.domain.repositories import RepositoryBinding
 
 
 def _init_git_repo(repo: Path) -> None:
@@ -24,7 +24,7 @@ def _init_git_repo(repo: Path) -> None:
 
 @pytest.mark.asyncio
 async def test_safe_command_runner_redacts_and_truncates_output(tmp_path: Path):
-    from planning_agent_core.adapters.command_runner import SafeSubprocessCommandRunner
+    from agent_core.adapters.command_runner import SafeSubprocessCommandRunner
 
     result = await SafeSubprocessCommandRunner(secrets=("secret-token",)).run(
         command=[sys.executable, "-c", "print('secret-token-' + 'x' * 2000)"],
@@ -41,9 +41,9 @@ async def test_safe_command_runner_redacts_and_truncates_output(tmp_path: Path):
 
 @pytest.mark.asyncio
 async def test_coding_attempt_runner_applies_allowed_write_and_quality_command(tmp_path: Path):
-    from planning_agent_core.adapters.command_runner import SafeSubprocessCommandRunner
-    from planning_agent_core.adapters.repository_filesystem import LocalRepositoryFilesystem
-    from planning_agent_core.services.coding_service import CodingAttemptRunner
+    from agent_core.adapters.command_runner import SafeSubprocessCommandRunner
+    from agent_core.adapters.repository_filesystem import LocalRepositoryFilesystem
+    from agent_core.services.coding_service import CodingAttemptRunner
 
     repo = tmp_path / "repo"
     src = repo / "src"
@@ -88,9 +88,9 @@ async def test_coding_attempt_runner_applies_allowed_write_and_quality_command(t
 
 @pytest.mark.asyncio
 async def test_coding_attempt_runner_blocks_write_outside_allowlist(tmp_path: Path):
-    from planning_agent_core.adapters.command_runner import SafeSubprocessCommandRunner
-    from planning_agent_core.adapters.repository_filesystem import LocalRepositoryFilesystem
-    from planning_agent_core.services.coding_service import CodingAttemptRunner
+    from agent_core.adapters.command_runner import SafeSubprocessCommandRunner
+    from agent_core.adapters.repository_filesystem import LocalRepositoryFilesystem
+    from agent_core.services.coding_service import CodingAttemptRunner
 
     repo = tmp_path / "repo"
     repo.mkdir()
@@ -122,9 +122,9 @@ async def test_coding_attempt_runner_blocks_write_outside_allowlist(tmp_path: Pa
 
 @pytest.mark.asyncio
 async def test_coding_attempt_runner_marks_failed_quality_command(tmp_path: Path):
-    from planning_agent_core.adapters.command_runner import SafeSubprocessCommandRunner
-    from planning_agent_core.adapters.repository_filesystem import LocalRepositoryFilesystem
-    from planning_agent_core.services.coding_service import CodingAttemptRunner
+    from agent_core.adapters.command_runner import SafeSubprocessCommandRunner
+    from agent_core.adapters.repository_filesystem import LocalRepositoryFilesystem
+    from agent_core.services.coding_service import CodingAttemptRunner
 
     repo = tmp_path / "repo"
     src = repo / "src"
@@ -162,7 +162,7 @@ def test_quality_command_rejects_shell_strings():
 
 
 def test_coding_attempt_model_and_migration_contract():
-    from planning_agent_core.models import CodingAttemptRecord
+    from agent_core.models import CodingAttemptRecord
 
     assert CodingAttemptRecord.__tablename__ == "coding_attempts"
     columns = CodingAttemptRecord.__table__.columns

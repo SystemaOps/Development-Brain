@@ -151,8 +151,8 @@ POST /v1/events/{event_id}/orchestrate
 The active implementation point is now the core workflow layer under:
 
 ```text
-planning_agent_core/planning_agent_core/workflow/
-planning_agent_core/planning_agent_core/application/
+agent_core/agent_core/workflow/
+agent_core/agent_core/application/
 ```
 
 `infra/agent_trigger/app/agent_bridge.py` is legacy reference code and is no longer called by `agent-worker`.

@@ -5,31 +5,31 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from planning_agent_core.agent_platform.agents.coding import CodingAgentRequest
-from planning_agent_core.agent_platform.agents.planning import PlanningAgentRequest
-from planning_agent_core.agent_platform.agents.verification import (
+from agent_core.agent_platform.agents.coding import CodingAgentRequest
+from agent_core.agent_platform.agents.planning import PlanningAgentRequest
+from agent_core.agent_platform.agents.verification import (
     VerificationAgentRequest,
     VerificationVerdict,
 )
-from planning_agent_core.agent_platform.config import AgentConfig
-from planning_agent_core.agent_platform.factory import create_default_agent_factory
-from planning_agent_core.agent_platform.orchestration import (
+from agent_core.agent_platform.config import AgentConfig
+from agent_core.agent_platform.factory import create_default_agent_factory
+from agent_core.agent_platform.orchestration import (
     AgentExecutionRequest,
     AgentOrchestrator,
 )
-from planning_agent_core.agent_platform.runtime import (
+from agent_core.agent_platform.runtime import (
     AgentDependencyContainer,
     AgentExecutionContext,
     CheckpointIdentity,
     InMemoryCheckpointStore,
 )
-from planning_agent_core.domain.coding import (
+from agent_core.domain.coding import (
     CodingAttemptRequest,
     CodingAttemptResult,
     FileChange,
     RollbackPlan,
 )
-from planning_agent_core.domain.enums import CodingAttemptStatus
+from agent_core.domain.enums import CodingAttemptStatus
 
 
 class RecordingCheckpointStore(InMemoryCheckpointStore):

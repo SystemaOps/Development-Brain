@@ -5,7 +5,7 @@ Baseline date: 2026-07-20
 ## Scope Completed
 
 - Added `SkillManifest` contracts and built-in manifest loading.
-- Added one manifest per required planning skill under `planning_agent_core/planning_agent_core/skills/manifests`.
+- Added one manifest per required planning skill under `agent_core/agent_core/skills/manifests`.
 - Marked currently runnable skills as `implemented`:
 - `ambiguity_assessment`
 - `planning_decomposition`
@@ -68,7 +68,7 @@ Warnings:
 Alembic history sanity check:
 
 ```powershell
-cd planning_agent_core
+cd agent_core
 ..\.venv\Scripts\python.exe -m alembic -c alembic.ini history
 ```
 

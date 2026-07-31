@@ -3,22 +3,22 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from planning_agent_core.agent_platform.agents.base import AgentNextAction, AgentRequest, AgentResult, AgentRunStatus, BaseAgent
-from planning_agent_core.agent_platform.agents.base.errors import AgentValidationError
-from planning_agent_core.agent_platform.agents.coding import CodingAgentRequest, CodingAgentResult
-from planning_agent_core.agent_platform.agents.planning import PlanningAgentRequest, PlanningAgentResult
-from planning_agent_core.agent_platform.agents.verification import (
+from agent_core.agent_platform.agents.base import AgentNextAction, AgentRequest, AgentResult, AgentRunStatus, BaseAgent
+from agent_core.agent_platform.agents.base.errors import AgentValidationError
+from agent_core.agent_platform.agents.coding import CodingAgentRequest, CodingAgentResult
+from agent_core.agent_platform.agents.planning import PlanningAgentRequest, PlanningAgentResult
+from agent_core.agent_platform.agents.verification import (
     VerificationAgentRequest,
     VerificationAgentResult,
     VerificationVerdict,
 )
-from planning_agent_core.agent_platform.config import AgentConfig
-from planning_agent_core.agent_platform.factory import AgentBuilderRegistry, AgentFactory, create_default_agent_factory
-from planning_agent_core.agent_platform.orchestration import AgentExecutionRequest, AgentOrchestrator
-from planning_agent_core.agent_platform.runtime import AgentDependencyContainer, CheckpointIdentity, InMemoryAgentEventBus, InMemoryCheckpointStore
-from planning_agent_core.domain.coding import CodingAttemptRequest, CodingAttemptResult, FileChange, RollbackPlan
-from planning_agent_core.domain.enums import CodingAttemptStatus, PlanNodeKind
-from planning_agent_core.schemas import AcceptanceCriterionSpec, PlanNodeSpec, ProjectPlanSpec
+from agent_core.agent_platform.config import AgentConfig
+from agent_core.agent_platform.factory import AgentBuilderRegistry, AgentFactory, create_default_agent_factory
+from agent_core.agent_platform.orchestration import AgentExecutionRequest, AgentOrchestrator
+from agent_core.agent_platform.runtime import AgentDependencyContainer, CheckpointIdentity, InMemoryAgentEventBus, InMemoryCheckpointStore
+from agent_core.domain.coding import CodingAttemptRequest, CodingAttemptResult, FileChange, RollbackPlan
+from agent_core.domain.enums import CodingAttemptStatus, PlanNodeKind
+from agent_core.schemas import AcceptanceCriterionSpec, PlanNodeSpec, ProjectPlanSpec
 
 
 class FakeCodingService:
@@ -36,7 +36,7 @@ class CapturingResultStore:
         self.results: list[AgentResult] = []
 
     async def persist(self, result: AgentResult):
-        from planning_agent_core.agent_platform.orchestration import PersistedAgentResult
+        from agent_core.agent_platform.orchestration import PersistedAgentResult
 
         self.results.append(result)
         return PersistedAgentResult(result=result)
@@ -152,7 +152,7 @@ def _coding_result(status: CodingAttemptStatus = CodingAttemptStatus.SUCCEEDED, 
 
 
 def _context(agent_type: str, execution_id, checkpoint_store: InMemoryCheckpointStore | None = None):
-    from planning_agent_core.agent_platform.runtime import AgentExecutionContext
+    from agent_core.agent_platform.runtime import AgentExecutionContext
 
     checkpoint = CheckpointIdentity(
         project_id="demo",
@@ -220,7 +220,7 @@ def test_agent_request_contract_rejects_missing_required_fields():
 
 
 def test_platform_persistence_models_are_registered():
-    from planning_agent_core.models import AgentPlatformCheckpointRecord, AgentPlatformResultRecord
+    from agent_core.models import AgentPlatformCheckpointRecord, AgentPlatformResultRecord
 
     checkpoint_columns = AgentPlatformCheckpointRecord.__table__.columns
     result_columns = AgentPlatformResultRecord.__table__.columns

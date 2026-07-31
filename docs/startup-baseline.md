@@ -5,16 +5,16 @@ This document records the startup expectations observed during Phase 0. It is de
 ## Repository Entrypoints
 
 - `main.py` runs the legacy Ada agent demo from the root package layout.
-- `planning_agent_core/planning_agent_core/main.py` runs the newer FastAPI planning core.
+- `agent_core/agent_core/main.py` runs the newer FastAPI planning core.
 - `infra/agent_trigger/app/main.py` runs the OpenProject webhook receiver.
 - `infra/agent_trigger/app/worker.py` runs the Redis worker that claims queued webhook jobs and delegates event orchestration to `planning-agent-core`.
 
 ## Package Layout
 
 - There is no root `pyproject.toml`.
-- `planning_agent_core/pyproject.toml` defines the newer core package.
+- `agent_core/pyproject.toml` defines the newer core package.
 - Root `requirements.txt` applies to the legacy Ada agent.
-- `planning_agent_core/requirements.txt` applies to the planning core container/dev environment.
+- `agent_core/requirements.txt` applies to the planning core container/dev environment.
 - `infra/agent_trigger/requirements.txt` applies to the webhook receiver and worker image.
 
 ## Makefile
@@ -40,7 +40,7 @@ This document records the startup expectations observed during Phase 0. It is de
 Expected command from Compose:
 
 ```bash
-uvicorn planning_agent_core.main:app --host 0.0.0.0 --port 8000
+uvicorn agent_core.main:app --host 0.0.0.0 --port 8000
 ```
 
 Required environment variables for import/startup include:
@@ -56,7 +56,7 @@ Required environment variables for import/startup include:
 
 Startup behavior:
 
-- Imports `planning_agent_core.models` for table registration.
+- Imports `agent_core.models` for table registration.
 - Calls `create_schema()` during FastAPI lifespan startup.
 - Initializes LangGraph Postgres checkpoint tables during lifespan startup.
 - Uses an in-memory LangGraph store for development.

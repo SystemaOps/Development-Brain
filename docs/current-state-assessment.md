@@ -4,15 +4,15 @@ This assessment is the Phase 0 baseline for refactoring the repository toward th
 
 ## Existing Modules And Responsibilities
 
-- `planning_agent_core/planning_agent_core/main.py` defines the current FastAPI application, includes route modules, creates SQLAlchemy tables on startup, and sets up LangGraph Postgres checkpoint tables.
-- `planning_agent_core/planning_agent_core/config.py` loads required environment settings at import time through Pydantic Settings.
-- `planning_agent_core/planning_agent_core/db.py` owns the SQLAlchemy async engine, session factory, declarative base, and development-style `create_schema()` helper.
-- `planning_agent_core/planning_agent_core/models.py` defines ORM tables for projects, planning sessions, documents, document chunks, clarification questions, plan versions, plan nodes, plan relations, external artifacts, provisioning jobs, and context capsules.
-- `planning_agent_core/planning_agent_core/schemas.py` defines API-facing Pydantic models and plan hierarchy validation.
-- `planning_agent_core/planning_agent_core/services/` contains application services for project planning, document ingestion, context capsule creation, and provisioning jobs.
-- `planning_agent_core/planning_agent_core/skills/` contains the current skill abstraction, registry, router, and several planning-related skills. The active registry currently registers only `ambiguity_assessment` and `planning_decomposition`.
-- `planning_agent_core/planning_agent_core/workflow/` contains an initial LangGraph planning workflow and in-memory store setup.
-- `planning_agent_core/planning_agent_core/adapters/` contains early OpenProject, Neo4j, and Weaviate adapters.
+- `agent_core/agent_core/main.py` defines the current FastAPI application, includes route modules, creates SQLAlchemy tables on startup, and sets up LangGraph Postgres checkpoint tables.
+- `agent_core/agent_core/config.py` loads required environment settings at import time through Pydantic Settings.
+- `agent_core/agent_core/db.py` owns the SQLAlchemy async engine, session factory, declarative base, and development-style `create_schema()` helper.
+- `agent_core/agent_core/models.py` defines ORM tables for projects, planning sessions, documents, document chunks, clarification questions, plan versions, plan nodes, plan relations, external artifacts, provisioning jobs, and context capsules.
+- `agent_core/agent_core/schemas.py` defines API-facing Pydantic models and plan hierarchy validation.
+- `agent_core/agent_core/services/` contains application services for project planning, document ingestion, context capsule creation, and provisioning jobs.
+- `agent_core/agent_core/skills/` contains the current skill abstraction, registry, router, and several planning-related skills. The active registry currently registers only `ambiguity_assessment` and `planning_decomposition`.
+- `agent_core/agent_core/workflow/` contains an initial LangGraph planning workflow and in-memory store setup.
+- `agent_core/agent_core/adapters/` contains early OpenProject, Neo4j, and Weaviate adapters.
 - `infra/agent_trigger/app/` contains a separate webhook service with OpenProject event normalization, HMAC signature verification, PostgreSQL event storage, Redis queue push, worker processing, OpenProject API fetches, and a coding-agent placeholder.
 - `infra/postgres/init/01-agent-schema.sql` creates webhook inbox, job, and context snapshot tables directly during container initialization.
 - `infra/openproject/provision/ensure_agent_bot_token_webhook.rb` provisions an OpenProject bot token and webhook.
@@ -21,7 +21,7 @@ This assessment is the Phase 0 baseline for refactoring the repository toward th
 
 ## Code Already Usable
 
-- FastAPI route composition and health endpoint in `planning_agent_core`.
+- FastAPI route composition and health endpoint in `agent_core`.
 - Basic planning API routes for project creation, document upload, planning sessions, clarification answers, plan drafting, approval, provisioning, and context capsules.
 - SQLAlchemy models for much of the existing planning MVP state.
 - Markdown upload and chunking.
@@ -37,7 +37,7 @@ This assessment is the Phase 0 baseline for refactoring the repository toward th
 
 - Wrap `infra/agent_trigger/app/storage.py` behind a webhook inbox port before migrating it to the core package.
 - Wrap both OpenProject clients behind one normalized OpenProject port before changing outbound behavior.
-- Wrap `planning_agent_core/llm.py` behind an LLM generation port so skills depend on typed generation rather than the concrete HTTP client.
+- Wrap `agent_core/llm.py` behind an LLM generation port so skills depend on typed generation rather than the concrete HTTP client.
 - Move or wrap reusable code from `src/parser/` into a repository analysis adapter after repository binding and path policy exist.
 - Move event parsing and status mapping into deterministic domain services.
 - Move database creation from `create_all()` and container init SQL to Alembic migrations.
@@ -45,11 +45,11 @@ This assessment is the Phase 0 baseline for refactoring the repository toward th
 
 ## Duplicate Or Obsolete Implementations
 
-- `src/agent/core.py` and `planning_agent_core` are separate agent designs. `planning_agent_core` should remain the target import root; `src/` should be treated as legacy/reference until migrated.
-- Two OpenProject clients exist: a synchronous worker client under `infra/agent_trigger/app/` and an async adapter under `planning_agent_core/adapters/`.
+- `src/agent/core.py` and `agent_core` are separate agent designs. `agent_core` should remain the target import root; `src/` should be treated as legacy/reference until migrated.
+- Two OpenProject clients exist: a synchronous worker client under `infra/agent_trigger/app/` and an async adapter under `agent_core/adapters/`.
 - Database schema handling is split between SQLAlchemy `create_all()` and direct SQL files in `infra/postgres/init`.
 - Planning execution exists both as direct service methods and as a LangGraph workflow.
-- `planning_agent_core/api/planning.py` currently defines `POST /v1/planning/sessions/{session_id}/run` twice. The second definition appears to use an obsolete `PlanningWorkflowRunner(db)` constructor.
+- `agent_core/api/planning.py` currently defines `POST /v1/planning/sessions/{session_id}/run` twice. The second definition appears to use an obsolete `PlanningWorkflowRunner(db)` constructor.
 - The Makefile and Compose file expose a local llama.cpp profile, while the target README states the application should use an externally hosted LLM.
 
 ## Existing Database And Webhook Contracts

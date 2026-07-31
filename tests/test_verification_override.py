@@ -5,11 +5,11 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
-from planning_agent_core.agent_platform.agents.base import (
+from agent_core.agent_platform.agents.base import (
     AgentNextAction,
     AgentRunStatus,
 )
-from planning_agent_core.agent_platform.agents.verification import (
+from agent_core.agent_platform.agents.verification import (
     VerificationAgentConfig,
     VerificationAgentRequest,
     VerificationOverrideCommand,
@@ -18,8 +18,8 @@ from planning_agent_core.agent_platform.agents.verification import (
     VerificationVerdict,
     assess_verification_override,
 )
-from planning_agent_core.agent_platform.config import AgentConfig
-from planning_agent_core.agent_platform.orchestration import (
+from agent_core.agent_platform.config import AgentConfig
+from agent_core.agent_platform.orchestration import (
     AgentExecutionRequest,
     AgentFlowOverrideRecord,
     AgentFlowPersistenceError,
@@ -27,11 +27,11 @@ from planning_agent_core.agent_platform.orchestration import (
     AgentFlowVersionConflictError,
     InMemoryAgentFlowStore,
 )
-from planning_agent_core.agent_platform.runtime import AgentDependencyContainer
-from planning_agent_core.domain.coding import CodingAttemptResult, RollbackPlan
-from planning_agent_core.domain.enums import CodingAttemptStatus
-from planning_agent_core.schemas import AcceptanceCriterionSpec
-from planning_agent_core.services.agent_platform_service import (
+from agent_core.agent_platform.runtime import AgentDependencyContainer
+from agent_core.domain.coding import CodingAttemptResult, RollbackPlan
+from agent_core.domain.enums import CodingAttemptStatus
+from agent_core.schemas import AcceptanceCriterionSpec
+from agent_core.services.agent_platform_service import (
     create_agent_platform_service,
 )
 

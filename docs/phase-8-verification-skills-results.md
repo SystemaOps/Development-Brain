@@ -14,7 +14,7 @@ unmet acceptance criteria, and detected high-severity security defects request c
 ## Skill Boundary
 
 The agent-local skills are under
-`planning_agent_core/agent_platform/agents/verification/skills`:
+`agent_core/agent_platform/agents/verification/skills`:
 
 | Skill | Typed output | Responsibility |
 | --- | --- | --- |
@@ -91,7 +91,7 @@ object:
 | `large_change_line_threshold` | `500` | Adds a warning when the changed-line threshold is met. |
 | `large_change_file_threshold` | `20` | Adds a warning when the changed-file threshold is met. |
 
-The expanded settings are recorded in `planning_agent_core/agent-platform.example.json`.
+The expanded settings are recorded in `agent_core/agent-platform.example.json`.
 
 ## Compatibility
 
@@ -120,7 +120,7 @@ Commands:
 
 ```powershell
 .venv/Scripts/python.exe -m ruff check <changed Python files>
-.venv/Scripts/python.exe -m json.tool planning_agent_core/agent-platform.example.json
+.venv/Scripts/python.exe -m json.tool agent_core/agent-platform.example.json
 .venv/Scripts/python.exe -m pytest -q tests/test_verification_skills.py tests/test_agent_platform.py tests/test_agent_internal_workflows.py tests/test_agent_transition_resolver.py
 .venv/Scripts/python.exe -m pytest -q
 ```

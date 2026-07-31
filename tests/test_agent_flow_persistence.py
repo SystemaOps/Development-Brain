@@ -5,15 +5,15 @@ from uuid import uuid4
 
 import pytest
 
-from planning_agent_core.agent_platform.agents.base import (
+from agent_core.agent_platform.agents.base import (
     AgentNextAction,
     AgentRequest,
     AgentResult,
     AgentRunStatus,
 )
-from planning_agent_core.agent_platform.agents.base.errors import AgentValidationError
-from planning_agent_core.agent_platform.config import AgentConfig
-from planning_agent_core.agent_platform.orchestration import (
+from agent_core.agent_platform.agents.base.errors import AgentValidationError
+from agent_core.agent_platform.config import AgentConfig
+from agent_core.agent_platform.orchestration import (
     AgentExecutionRequest,
     AgentFlowApproval,
     AgentFlowLeaseConflictError,
@@ -27,9 +27,9 @@ from planning_agent_core.agent_platform.orchestration import (
     InMemoryAgentFlowStore,
     PersistedAgentResult,
 )
-from planning_agent_core.agent_platform.runtime import AgentDependencyContainer
-from planning_agent_core.domain.enums import ApprovalDecision
-from planning_agent_core.services.agent_platform_service import AgentPlatformService
+from agent_core.agent_platform.runtime import AgentDependencyContainer
+from agent_core.domain.enums import ApprovalDecision
+from agent_core.services.agent_platform_service import AgentPlatformService
 
 
 class ScriptedStepOrchestrator:

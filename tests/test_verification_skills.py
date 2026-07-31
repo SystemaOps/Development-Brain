@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import pytest
 
-from planning_agent_core.agent_platform.agents.verification import (
+from agent_core.agent_platform.agents.verification import (
     AcceptanceCriterionOutcome,
     RegressionRiskLevel,
     VerificationAgentRequest,
     VerificationVerdict,
 )
-from planning_agent_core.agent_platform.agents.verification.skills import (
+from agent_core.agent_platform.agents.verification.skills import (
     AcceptanceEvaluationInput,
     AcceptanceEvaluationSkill,
     AcceptanceEvidence,
@@ -21,20 +21,20 @@ from planning_agent_core.agent_platform.agents.verification.skills import (
     TestAdequacyInput as AdequacyInput,
     TestAdequacySkill as AdequacySkill,
 )
-from planning_agent_core.agent_platform.config import AgentConfig
-from planning_agent_core.agent_platform.factory import create_default_agent_factory
-from planning_agent_core.agent_platform.runtime import (
+from agent_core.agent_platform.config import AgentConfig
+from agent_core.agent_platform.factory import create_default_agent_factory
+from agent_core.agent_platform.runtime import (
     AgentDependencyContainer,
     AgentExecutionContext,
     CheckpointIdentity,
 )
-from planning_agent_core.domain.coding import (
+from agent_core.domain.coding import (
     CodingAttemptResult,
     CommandExecutionRecord,
     RollbackPlan,
 )
-from planning_agent_core.domain.enums import CodingAttemptStatus
-from planning_agent_core.schemas import AcceptanceCriterionSpec
+from agent_core.domain.enums import CodingAttemptStatus
+from agent_core.schemas import AcceptanceCriterionSpec
 
 
 def _coding_result(

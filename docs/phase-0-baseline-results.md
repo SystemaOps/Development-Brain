@@ -9,7 +9,7 @@ Environment:
 - Active shell: PowerShell
 - The checked-in `.venv` points to a missing Python 3.12 executable and was not used.
 - A temporary verification environment was created outside the repository at `%TEMP%\ada-codex-phase0-venv-py311`.
-- Planning-core dependencies were installed from `planning_agent_core/requirements.txt` into that temporary environment.
+- Planning-core dependencies were installed from `agent_core/requirements.txt` into that temporary environment.
 
 ## Commands Run
 
@@ -131,7 +131,7 @@ Warnings:
 Command:
 
 ```powershell
-$env:PYTHONPATH='C:\repo_gitlab\Ada\planning_agent_core'
+$env:PYTHONPATH='C:\repo_gitlab\Ada\agent_core'
 $env:DATABASE_URL='postgresql+asyncpg://coding_agent:change-me@localhost:5432/coding_agent'
 $env:LLM_BASE_URL='http://localhost:8080/v1'
 $env:LLM_MODEL='local-coding-model'
@@ -142,7 +142,7 @@ $env:NEO4J_URI='bolt://localhost:7687'
 $env:NEO4J_USER='neo4j'
 $env:NEO4J_PASSWORD='change-me'
 $env:NEO4J_DATABASE='neo4j'
-python -c "import importlib; modules=['planning_agent_core.main','planning_agent_core.models','planning_agent_core.schemas','planning_agent_core.skills','planning_agent_core.workflow.graph','planning_agent_core.workflow.runner','planning_agent_core.workflow.state']; [importlib.import_module(m) for m in modules]; print('core import probe passed')"
+python -c "import importlib; modules=['agent_core.main','agent_core.models','agent_core.schemas','agent_core.skills','agent_core.workflow.graph','agent_core.workflow.runner','agent_core.workflow.state']; [importlib.import_module(m) for m in modules]; print('core import probe passed')"
 ```
 
 Initial result before dependency setup: failed.
@@ -158,8 +158,8 @@ Interpretation:
 - The import probe is now documented and represented as `tests/test_import_smoke.py`.
 - It could not pass in the active Python environment until planning-core dependencies were installed.
 - After dependency setup, the import smoke test exposed two source issues that have been fixed:
-- `planning_agent_core/planning_agent_core/workflow/__init__.py` contained invalid stray text.
-- `planning_agent_core/planning_agent_core/workflow/routing.py` did not define the `route_after_skill` function imported by `workflow/graph.py`.
+- `agent_core/agent_core/workflow/__init__.py` contained invalid stray text.
+- `agent_core/agent_core/workflow/routing.py` did not define the `route_after_skill` function imported by `workflow/graph.py`.
 
 ## Phase 0 Baseline Status
 

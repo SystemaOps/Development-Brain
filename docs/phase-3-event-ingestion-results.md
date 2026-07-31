@@ -6,7 +6,7 @@ Baseline date: 2026-07-21
 
 - Added typed event processing and job statuses to the domain event layer.
 - Added deterministic event idempotency key generation based on canonical event fields and payload.
-- Added core OpenProject event normalization under `planning_agent_core.application.event_classification`.
+- Added core OpenProject event normalization under `agent_core.application.event_classification`.
 - Added SQLAlchemy ORM models for the existing webhook tables: `pm_webhook_events`, `agent_jobs`, and `pm_context_snapshots`.
 - Added `idempotency_key` and `retry_at` to `pm_webhook_events`.
 - Added job lease, retry, attempt-count, and terminal error fields to `agent_jobs`: `attempt_count`, `retry_at`, `lease_owner`, `lease_expires_at`, and `last_error`.
@@ -23,7 +23,7 @@ Baseline date: 2026-07-21
 - Migrated `infra/agent_trigger` webhook parsing to compute the same idempotency key as the core event classifier.
 - Migrated `infra/agent_trigger` storage to persist duplicate-safe webhook events with `ON CONFLICT (idempotency_key) DO NOTHING`.
 - Updated `infra/agent_trigger` webhook response behavior so duplicate deliveries return `status: duplicate` and do not enqueue another Redis item.
-- Replaced trigger-local parser and retry-policy implementations with thin wrappers around shared `planning_agent_core` code.
+- Replaced trigger-local parser and retry-policy implementations with thin wrappers around shared `agent_core` code.
 - Changed `agent-webhook` and `agent-worker` Docker build context so the trigger image copies the shared core package.
 - Added trigger worker lease acquisition before event processing.
 - Added bounded retry scheduling with durable `retry_at` and recoverable job re-enqueue scanning.
@@ -108,7 +108,7 @@ passed
 Alembic history sanity check:
 
 ```powershell
-cd planning_agent_core
+cd agent_core
 ..\.venv\Scripts\python.exe -m alembic -c alembic.ini history
 ```
 

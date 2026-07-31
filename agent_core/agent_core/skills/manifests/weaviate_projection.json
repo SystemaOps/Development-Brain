@@ -1,0 +1,10 @@
+{
+  "name": "weaviate_projection",
+  "version": "1.0.0",
+  "description": "Builds vector upsert specs for semantic planning memory and context.",
+  "input_schema": "agent_core.skills.weaviate_projection.WeaviateProjectionInput",
+  "output_schema": "agent_core.skills.weaviate_projection.WeaviateProjectionOutput",
+  "side_effects": false,
+  "required_tools": [],
+  "status": "implemented"
+}

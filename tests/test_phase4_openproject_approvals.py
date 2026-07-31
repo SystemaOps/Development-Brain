@@ -6,14 +6,14 @@ from uuid import uuid4
 import pytest
 from sqlalchemy.dialects import postgresql
 
-from planning_agent_core.application.openproject_approvals import (
+from agent_core.application.openproject_approvals import (
     classify_openproject_approval,
 )
-from planning_agent_core.domain.enums import ApprovalDecision, ApprovalScope
-from planning_agent_core.domain.events import EventEnvelope
-from planning_agent_core.models import ApprovalRecord
-from planning_agent_core.persistence.approvals import SqlAlchemyApprovalRecordStore
-from planning_agent_core.ports.approvals import ApprovalRecordInput
+from agent_core.domain.enums import ApprovalDecision, ApprovalScope
+from agent_core.domain.events import EventEnvelope
+from agent_core.models import ApprovalRecord
+from agent_core.persistence.approvals import SqlAlchemyApprovalRecordStore
+from agent_core.ports.approvals import ApprovalRecordInput
 
 
 def test_approval_record_model_tracks_planning_and_task_completion_decisions():

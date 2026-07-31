@@ -1,0 +1,10 @@
+{
+  "name": "context_capsule",
+  "version": "1.0.0",
+  "description": "Assembles bounded task-specific context capsules from plan and evidence state.",
+  "input_schema": "agent_core.skills.context_capsule.ContextCapsuleInput",
+  "output_schema": "agent_core.skills.context_capsule.ContextCapsuleOutput",
+  "side_effects": false,
+  "required_tools": [],
+  "status": "implemented"
+}

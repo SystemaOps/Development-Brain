@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from planning_agent_core.application.event_classification import (
+from agent_core.application.event_classification import (
     find_comment_id,
     find_first_key,
     find_project_id,
@@ -10,7 +10,7 @@ from planning_agent_core.application.event_classification import (
     infer_event_type,
     normalize_openproject_event as normalize_openproject_event_envelope,
 )
-from planning_agent_core.domain.events import (
+from agent_core.domain.events import (
     calculate_event_idempotency_key,
     canonical_json,
 )

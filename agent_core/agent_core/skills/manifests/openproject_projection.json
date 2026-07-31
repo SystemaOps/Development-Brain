@@ -1,0 +1,10 @@
+{
+  "name": "openproject_projection",
+  "version": "1.0.0",
+  "description": "Builds idempotent OpenProject projection operation specs for epics, stories, and tasks.",
+  "input_schema": "agent_core.skills.openproject_projection.OpenProjectProjectionInput",
+  "output_schema": "agent_core.skills.openproject_projection.OpenProjectProjectionOutput",
+  "side_effects": false,
+  "required_tools": [],
+  "status": "implemented"
+}

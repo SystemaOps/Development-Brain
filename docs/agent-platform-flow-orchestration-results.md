@@ -66,7 +66,7 @@ Detailed implementation and validation are recorded in
 Commands run:
 
 ```powershell
-.venv/Scripts/python.exe -m ruff check planning_agent_core/planning_agent_core/agent_platform/orchestration planning_agent_core/planning_agent_core/services/agent_platform_service.py tests/test_agent_platform_flow.py
+.venv/Scripts/python.exe -m ruff check agent_core/agent_core/agent_platform/orchestration agent_core/agent_core/services/agent_platform_service.py tests/test_agent_platform_flow.py
 .venv/Scripts/python.exe -m pytest -q tests/test_agent_flow_persistence.py tests/test_agent_platform_api.py tests/test_agent_platform_flow.py
 .venv/Scripts/python.exe -m pytest -q
 ```

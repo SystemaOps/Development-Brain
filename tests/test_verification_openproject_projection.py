@@ -5,21 +5,21 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from planning_agent_core.agent_platform.adapters.openproject import (
+from agent_core.agent_platform.adapters.openproject import (
     ManagedWorkPackageGateway,
 )
-from planning_agent_core.agent_platform.agents.base import (
+from agent_core.agent_platform.agents.base import (
     AgentNextAction,
     AgentRunStatus,
     ArtifactReference,
 )
-from planning_agent_core.agent_platform.agents.verification import (
+from agent_core.agent_platform.agents.verification import (
     VerificationAgentRequest,
     VerificationAgentResult,
     VerificationOverrideCommand,
     VerificationVerdict,
 )
-from planning_agent_core.agent_platform.agents.verification.contracts import (
+from agent_core.agent_platform.agents.verification.contracts import (
     AcceptanceCoverageAssessment,
     AcceptanceCriterionAssessment,
     AcceptanceCriterionOutcome,
@@ -27,25 +27,25 @@ from planning_agent_core.agent_platform.agents.verification.contracts import (
     VerificationEvidenceSummary,
     VerificationFinding,
 )
-from planning_agent_core.agent_platform.config import AgentConfig
-from planning_agent_core.agent_platform.orchestration import (
+from agent_core.agent_platform.config import AgentConfig
+from agent_core.agent_platform.orchestration import (
     AgentExecutionRequest,
     AgentOrchestrationResult,
     AgentRouteDecision,
     InMemoryAgentFlowStore,
     PersistedAgentResult,
 )
-from planning_agent_core.agent_platform.runtime import AgentDependencyContainer
-from planning_agent_core.application.openproject_mapping import (
+from agent_core.agent_platform.runtime import AgentDependencyContainer
+from agent_core.application.openproject_mapping import (
     OpenProjectResourceCatalog,
 )
-from planning_agent_core.domain.coding import CodingAttemptResult, RollbackPlan
-from planning_agent_core.domain.enums import CodingAttemptStatus
-from planning_agent_core.schemas import AcceptanceCriterionSpec
-from planning_agent_core.services.agent_platform_service import (
+from agent_core.domain.coding import CodingAttemptResult, RollbackPlan
+from agent_core.domain.enums import CodingAttemptStatus
+from agent_core.schemas import AcceptanceCriterionSpec
+from agent_core.services.agent_platform_service import (
     create_agent_platform_service,
 )
-from planning_agent_core.services.verification_projection_service import (
+from agent_core.services.verification_projection_service import (
     VerificationOpenProjectProjectionService,
     VerificationProjectionError,
 )

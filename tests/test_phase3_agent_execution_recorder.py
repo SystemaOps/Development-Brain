@@ -4,9 +4,9 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from planning_agent_core.domain.enums import AgentExecutionStatus
-from planning_agent_core.models import AgentExecution
-from planning_agent_core.persistence.executions import SqlAlchemyAgentExecutionRecorder
+from agent_core.domain.enums import AgentExecutionStatus
+from agent_core.models import AgentExecution
+from agent_core.persistence.executions import SqlAlchemyAgentExecutionRecorder
 
 
 class FakeExecutionSession:

@@ -5,14 +5,14 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
-from planning_agent_core.agent_platform.agents.base import (
+from agent_core.agent_platform.agents.base import (
     AgentNextAction,
     AgentRequest,
     AgentResult,
     AgentRunStatus,
 )
-from planning_agent_core.agent_platform.config import AgentConfig
-from planning_agent_core.agent_platform.orchestration import (
+from agent_core.agent_platform.config import AgentConfig
+from agent_core.agent_platform.orchestration import (
     AgentExecutionRequest,
     AgentFlowOrchestrator,
     AgentFlowStatus,
@@ -23,8 +23,8 @@ from planning_agent_core.agent_platform.orchestration import (
     PersistedAgentResult,
     route_transition,
 )
-from planning_agent_core.agent_platform.runtime import AgentDependencyContainer
-from planning_agent_core.services.agent_platform_service import AgentPlatformService
+from agent_core.agent_platform.runtime import AgentDependencyContainer
+from agent_core.services.agent_platform_service import AgentPlatformService
 
 
 class ScriptedStepOrchestrator:

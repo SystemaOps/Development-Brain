@@ -41,7 +41,7 @@ Added a modular `agent_platform` package that generalizes the existing planning-
 - Verification failures can optionally pause for a typed human override. Durable flow state
   preserves the original result and appends a PostgreSQL-backed override audit record.
 - JSON configuration models, default config, loader, and example config.
-- Lazy `planning_agent_core.skills` package initialization so platform imports do not require LLM environment settings.
+- Lazy `agent_core.skills` package initialization so platform imports do not require LLM environment settings.
 - Contract, factory, orchestration, and checkpoint tests using fake dependencies.
 - Architecture and migration documentation, including an example fourth-agent registration.
 
@@ -58,7 +58,7 @@ Added a modular `agent_platform` package that generalizes the existing planning-
 Commands run:
 
 ```powershell
-.venv/Scripts/python.exe -m ruff check planning_agent_core/planning_agent_core/agent_platform planning_agent_core/planning_agent_core/skills/__init__.py tests/test_agent_platform.py tests/test_agent_platform_flow.py
+.venv/Scripts/python.exe -m ruff check agent_core/agent_core/agent_platform agent_core/agent_core/skills/__init__.py tests/test_agent_platform.py tests/test_agent_platform_flow.py
 .venv/Scripts/python.exe -m pytest -q tests/test_agent_platform_flow.py tests/test_agent_platform.py tests/test_agent_platform_api.py tests/test_import_smoke.py
 .venv/Scripts/python.exe -m pytest -q
 ```

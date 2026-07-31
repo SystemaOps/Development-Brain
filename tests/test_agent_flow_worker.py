@@ -8,18 +8,18 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
-from planning_agent_core.agent_platform.agents.base import (
+from agent_core.agent_platform.agents.base import (
     AgentNextAction,
     AgentResult,
     AgentRunStatus,
 )
-from planning_agent_core.agent_platform.agents.planning import PlanningAgentRequest
-from planning_agent_core.agent_platform.config import (
+from agent_core.agent_platform.agents.planning import PlanningAgentRequest
+from agent_core.agent_platform.config import (
     AgentConfig,
     AgentFlowRuntimeConfig,
     load_agent_platform_config,
 )
-from planning_agent_core.agent_platform.orchestration import (
+from agent_core.agent_platform.orchestration import (
     AgentExecutionRequest,
     AgentFlowStatus,
     AgentOrchestrationResult,
@@ -27,14 +27,14 @@ from planning_agent_core.agent_platform.orchestration import (
     InMemoryAgentFlowStore,
     PersistedAgentResult,
 )
-from planning_agent_core.agent_platform.runtime import AgentDependencyContainer
-from planning_agent_core.services.agent_execution_codec import (
+from agent_core.agent_platform.runtime import AgentDependencyContainer
+from agent_core.services.agent_execution_codec import (
     AgentExecutionCodecError,
     AgentExecutionRequestCodec,
     create_default_agent_execution_codec,
 )
-from planning_agent_core.services.agent_platform_service import AgentPlatformService
-from planning_agent_core.workers.agent_flow_worker import AgentFlowWorker
+from agent_core.services.agent_platform_service import AgentPlatformService
+from agent_core.workers.agent_flow_worker import AgentFlowWorker
 
 
 def _execution() -> AgentExecutionRequest:

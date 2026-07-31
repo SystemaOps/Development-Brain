@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-The repository already contains concrete integrations for OpenProject, Neo4j, Weaviate, PostgreSQL, Redis, LangGraph, and an OpenAI-compatible LLM endpoint. Some implementations are duplicated between `planning_agent_core` and `infra/agent_trigger`.
+The repository already contains concrete integrations for OpenProject, Neo4j, Weaviate, PostgreSQL, Redis, LangGraph, and an OpenAI-compatible LLM endpoint. Some implementations are duplicated between `agent_core` and `infra/agent_trigger`.
 
 ## Decision
 

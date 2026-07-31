@@ -7,33 +7,33 @@ from uuid import uuid4
 import pytest
 from sqlalchemy.dialects import postgresql
 
-from planning_agent_core.adapters.openproject import (
+from agent_core.adapters.openproject import (
     OpenProjectClient,
     has_openproject_idempotency_marker,
     markdown_with_idempotency_marker,
     resolve_openproject_api_token,
 )
-from planning_agent_core.application.openproject_feedback import (
+from agent_core.application.openproject_feedback import (
     OpenProjectFeedbackIntent,
     classify_openproject_feedback,
 )
-from planning_agent_core.application.project_orchestrator import should_resume_planning
-from planning_agent_core.domain.events import EventEnvelope
-from planning_agent_core.models import (
+from agent_core.application.project_orchestrator import should_resume_planning
+from agent_core.domain.events import EventEnvelope
+from agent_core.models import (
     ExternalArtifact,
     OpenProjectOutboundOperation,
     OpenProjectReconciliationSnapshot,
 )
-from planning_agent_core.persistence.openproject_artifacts import (
+from agent_core.persistence.openproject_artifacts import (
     SqlAlchemyOpenProjectArtifactStore,
 )
-from planning_agent_core.persistence.openproject_outbox import (
+from agent_core.persistence.openproject_outbox import (
     SqlAlchemyOpenProjectOutboundStore,
 )
-from planning_agent_core.persistence.openproject_reconciliation import (
+from agent_core.persistence.openproject_reconciliation import (
     SqlAlchemyOpenProjectReconciliationStore,
 )
-from planning_agent_core.ports.openproject import (
+from agent_core.ports.openproject import (
     OpenProjectArtifactMapping,
     OpenProjectOperationClaim,
     OpenProjectOperationStatus,

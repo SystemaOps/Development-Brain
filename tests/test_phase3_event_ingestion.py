@@ -4,15 +4,15 @@ import pytest
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.dialects.postgresql import insert
 
-from planning_agent_core.application.event_classification import normalize_openproject_event
-from planning_agent_core.application.retry_policy import (
+from agent_core.application.event_classification import normalize_openproject_event
+from agent_core.application.retry_policy import (
     calculate_retry_delay_seconds,
     classify_exception,
 )
-from planning_agent_core.adapters.redis_queue import RedisEventQueue
-from planning_agent_core.domain.enums import AgentExecutionStatus, RetryCategory
-from planning_agent_core.domain.events import EventEnvelope, calculate_event_idempotency_key
-from planning_agent_core.models import AgentExecution, AgentJob, OpenProjectContextSnapshot, WebhookEvent
+from agent_core.adapters.redis_queue import RedisEventQueue
+from agent_core.domain.enums import AgentExecutionStatus, RetryCategory
+from agent_core.domain.events import EventEnvelope, calculate_event_idempotency_key
+from agent_core.models import AgentExecution, AgentJob, OpenProjectContextSnapshot, WebhookEvent
 
 
 def test_event_idempotency_key_is_stable_for_payload_key_order_and_ignores_headers():

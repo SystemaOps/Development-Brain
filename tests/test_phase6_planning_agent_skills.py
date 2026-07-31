@@ -4,8 +4,8 @@ from typing import Any
 
 import pytest
 
-from planning_agent_core.domain.enums import ImplementationStatus
-from planning_agent_core.skills.base import SkillContext
+from agent_core.domain.enums import ImplementationStatus
+from agent_core.skills.base import SkillContext
 
 
 class FakeLLM:
@@ -63,8 +63,8 @@ def _sample_plan() -> dict[str, Any]:
 
 
 def test_phase6_manifests_are_implemented_and_registry_runnable(monkeypatch):
-    from planning_agent_core.skills import build_skill_registry
-    from planning_agent_core.skills.manifest import load_builtin_skill_manifests
+    from agent_core.skills import build_skill_registry
+    from agent_core.skills.manifest import load_builtin_skill_manifests
 
     manifests = load_builtin_skill_manifests()
     phase6_skill_names = {
@@ -88,7 +88,7 @@ def test_phase6_manifests_are_implemented_and_registry_runnable(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_requirement_extraction_preserves_chunk_evidence():
-    from planning_agent_core.skills.requirement_extraction import RequirementExtractionSkill
+    from agent_core.skills.requirement_extraction import RequirementExtractionSkill
 
     result = await RequirementExtractionSkill().run(
         intent="extract requirements",
@@ -125,10 +125,10 @@ async def test_requirement_extraction_preserves_chunk_evidence():
 
 @pytest.mark.asyncio
 async def test_repository_inspection_feeds_implementation_status_classification():
-    from planning_agent_core.skills.implementation_status_classification import (
+    from agent_core.skills.implementation_status_classification import (
         ImplementationStatusClassificationSkill,
     )
-    from planning_agent_core.skills.repository_inspection import RepositoryInspectionSkill
+    from agent_core.skills.repository_inspection import RepositoryInspectionSkill
 
     symbols = [
         {
@@ -180,7 +180,7 @@ async def test_repository_inspection_feeds_implementation_status_classification(
 
 @pytest.mark.asyncio
 async def test_plan_validation_detects_missing_acceptance_and_dependency_cycle():
-    from planning_agent_core.skills.plan_validation import PlanValidationSkill
+    from agent_core.skills.plan_validation import PlanValidationSkill
 
     invalid_plan = _sample_plan()
     invalid_plan["nodes"][-1]["acceptance_criteria"] = []
@@ -202,10 +202,10 @@ async def test_plan_validation_detects_missing_acceptance_and_dependency_cycle()
 
 @pytest.mark.asyncio
 async def test_context_capsule_and_projection_skills_build_idempotent_specs():
-    from planning_agent_core.skills.context_capsule import ContextCapsuleSkill
-    from planning_agent_core.skills.neo4j_projection import Neo4jProjectionSkill
-    from planning_agent_core.skills.openproject_projection import OpenProjectProjectionSkill
-    from planning_agent_core.skills.weaviate_projection import WeaviateProjectionSkill
+    from agent_core.skills.context_capsule import ContextCapsuleSkill
+    from agent_core.skills.neo4j_projection import Neo4jProjectionSkill
+    from agent_core.skills.openproject_projection import OpenProjectProjectionSkill
+    from agent_core.skills.weaviate_projection import WeaviateProjectionSkill
 
     plan = _sample_plan()
     task = plan["nodes"][-1]

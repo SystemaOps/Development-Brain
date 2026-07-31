@@ -9,28 +9,28 @@ from uuid import uuid4
 import pytest
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-from planning_agent_core.domain.coding import (
+from agent_core.domain.coding import (
     CodingAttemptRequest,
     CodingAttemptResult,
     FileChange,
     RollbackPlan,
 )
-from planning_agent_core.domain.enums import (
+from agent_core.domain.enums import (
     CodingAttemptStatus,
     PlanNodeKind,
     PlanVersionStatus,
 )
-from planning_agent_core.models import (
+from agent_core.models import (
     ContextCapsule,
     PlanNode,
     PlanNodeIdentity,
     PlanVersion,
     Project,
 )
-from planning_agent_core.persistence.agent_transition_context import (
+from agent_core.persistence.agent_transition_context import (
     SqlAlchemyAgentTransitionContextStore,
 )
-from planning_agent_core.persistence.coding_attempts import (
+from agent_core.persistence.coding_attempts import (
     SqlAlchemyCodingAttemptStore,
 )
 
@@ -47,7 +47,7 @@ def migrated_postgres_url() -> str:
         )
 
     repo_root = Path(__file__).resolve().parents[1]
-    package_root = repo_root / "planning_agent_core"
+    package_root = repo_root / "agent_core"
     env = os.environ.copy()
     env["DATABASE_URL"] = database_url
     result = subprocess.run(

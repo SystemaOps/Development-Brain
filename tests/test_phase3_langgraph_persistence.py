@@ -8,7 +8,7 @@ from uuid import uuid4
 
 import pytest
 
-from planning_agent_core.workflow.persistence_setup import initialize_langgraph_persistence
+from agent_core.workflow.persistence_setup import initialize_langgraph_persistence
 
 
 class FakePersistenceContext:
@@ -88,7 +88,7 @@ async def test_initialize_langgraph_persistence_can_skip_store_setup():
 
 @pytest.mark.asyncio
 async def test_planning_workflow_runner_uses_stable_resume_config(monkeypatch):
-    from planning_agent_core.workflow import runner as runner_module
+    from agent_core.workflow import runner as runner_module
 
     captured = {}
 

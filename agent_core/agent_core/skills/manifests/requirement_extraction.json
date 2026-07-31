@@ -1,0 +1,10 @@
+{
+  "name": "requirement_extraction",
+  "version": "1.0.0",
+  "description": "Extracts and normalizes requirements with source evidence.",
+  "input_schema": "agent_core.skills.requirement_extraction.RequirementExtractionInput",
+  "output_schema": "agent_core.skills.requirement_extraction.RequirementExtractionOutput",
+  "side_effects": false,
+  "required_tools": [],
+  "status": "implemented"
+}

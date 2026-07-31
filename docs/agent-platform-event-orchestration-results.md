@@ -24,7 +24,7 @@ Commands run:
 
 ```powershell
 .venv/Scripts/python.exe -m pytest -q tests/test_agent_platform_api.py tests/test_phase3_project_orchestrator.py tests/test_import_smoke.py
-.venv/Scripts/python.exe -m ruff check planning_agent_core/planning_agent_core/application/project_orchestrator.py planning_agent_core/planning_agent_core/api/events.py tests/test_phase3_project_orchestrator.py tests/test_agent_platform_api.py
+.venv/Scripts/python.exe -m ruff check agent_core/agent_core/application/project_orchestrator.py agent_core/agent_core/api/events.py tests/test_phase3_project_orchestrator.py tests/test_agent_platform_api.py
 .venv/Scripts/python.exe -m pytest -q
 ```
 

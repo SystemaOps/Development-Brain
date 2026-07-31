@@ -38,8 +38,8 @@ The repository currently has the following high-level structure:
 │   │   └── init
 │   ├── scripts
 │   └── workspace
-├── planning_agent_core
-│   └── planning_agent_core
+├── agent_core
+│   └── agent_core
 │       ├── adapters
 │       ├── api
 │       ├── ingestion
@@ -69,7 +69,7 @@ Do not delete an existing module merely because the target structure differs. Pr
 4. add tests;
 5. remove the obsolete path only after no production code references it.
 
-Keep the Python distribution and import root `planning_agent_core` for the initial migration. Although the package will contain more than a planning agent, renaming the distribution now would introduce unnecessary migration risk. Record a possible future rename in an architectural decision record, but do not make it a prerequisite.
+Keep the Python distribution and import root `agent_core` for the initial migration. Although the package will contain more than a planning agent, renaming the distribution now would introduce unnecessary migration risk. Record a possible future rename in an architectural decision record, but do not make it a prerequisite.
 
 ## 3. System goals
 
@@ -284,9 +284,9 @@ Expand the existing repository toward the following structure. Reuse working cod
 │   │   └── smoke_test.py
 │   └── workspace
 │       └── repositories
-├── planning_agent_core
+├── agent_core
 │   ├── pyproject.toml               # retain only if package is independently managed
-│   └── planning_agent_core
+│   └── agent_core
 │       ├── __init__.py
 │       ├── config
 │       │   ├── settings.py
@@ -2781,7 +2781,7 @@ cp .env.example .env
 
 docker compose up -d postgres redis neo4j weaviate openproject
 
-python -m planning_agent_core.persistence.migrations upgrade
+python -m agent_core.persistence.migrations upgrade
 python infra/scripts/setup_langgraph_persistence.py
 python infra/scripts/provision_openproject.py
 

@@ -11,14 +11,14 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-from planning_agent_core.domain.enums import (
+from agent_core.domain.enums import (
     ApprovalDecision,
     ApprovalScope,
     RepositoryAccessMode,
 )
-from planning_agent_core.domain.events import EventEnvelope
-from planning_agent_core.domain.repositories import RepositoryBinding
-from planning_agent_core.models import (
+from agent_core.domain.events import EventEnvelope
+from agent_core.domain.repositories import RepositoryBinding
+from agent_core.models import (
     AgentJob,
     AgentPlatformCheckpointRecord,
     AgentPlatformFlowRecord,
@@ -32,17 +32,17 @@ from planning_agent_core.models import (
     RepositorySymbolRecord,
     WebhookEvent,
 )
-from planning_agent_core.persistence.approvals import SqlAlchemyApprovalRecordStore
-from planning_agent_core.persistence.openproject_artifacts import (
+from agent_core.persistence.approvals import SqlAlchemyApprovalRecordStore
+from agent_core.persistence.openproject_artifacts import (
     SqlAlchemyOpenProjectArtifactStore,
 )
-from planning_agent_core.persistence.event_inbox import SqlAlchemyEventInbox
-from planning_agent_core.persistence.repository_bindings import (
+from agent_core.persistence.event_inbox import SqlAlchemyEventInbox
+from agent_core.persistence.repository_bindings import (
     SqlAlchemyRepositoryBindingStore,
 )
-from planning_agent_core.persistence.repository_index import SqlAlchemyRepositoryIndexStore
-from planning_agent_core.ports.approvals import ApprovalRecordInput
-from planning_agent_core.services.repository_analysis_service import RepositoryAnalysisService
+from agent_core.persistence.repository_index import SqlAlchemyRepositoryIndexStore
+from agent_core.ports.approvals import ApprovalRecordInput
+from agent_core.services.repository_analysis_service import RepositoryAnalysisService
 
 
 POSTGRES_URL_ENV = "PHASE3_POSTGRES_DATABASE_URL"
@@ -59,7 +59,7 @@ def postgres_database_url() -> str:
 @pytest.fixture(scope="module")
 def migrated_postgres_url(postgres_database_url: str) -> str:
     repo_root = Path(__file__).resolve().parents[1]
-    package_root = repo_root / "planning_agent_core"
+    package_root = repo_root / "agent_core"
     env = os.environ.copy()
     env["DATABASE_URL"] = postgres_database_url
 
@@ -390,7 +390,7 @@ async def test_phase5_repository_binding_upsert_is_idempotent(
 async def test_phase5_repository_index_replace_is_queryable(
     migrated_postgres_url: str,
 ):
-    from planning_agent_core.adapters.repository_analysis import PythonAstRepositoryAnalyzer
+    from agent_core.adapters.repository_analysis import PythonAstRepositoryAnalyzer
 
     repo_root = Path(__file__).resolve().parents[1]
     sample_project = repo_root / "sample_project"
@@ -509,13 +509,13 @@ async def test_phase5_repository_analysis_service_binds_and_indexes_sample_proje
 async def test_agent_platform_postgres_checkpoint_and_result_stores(
     migrated_postgres_url: str,
 ):
-    from planning_agent_core.agent_platform.agents.base import (
+    from agent_core.agent_platform.agents.base import (
         AgentNextAction,
         AgentResult,
         AgentRunStatus,
     )
-    from planning_agent_core.agent_platform.runtime import CheckpointIdentity
-    from planning_agent_core.persistence.agent_platform import (
+    from agent_core.agent_platform.runtime import CheckpointIdentity
+    from agent_core.persistence.agent_platform import (
         SqlAlchemyAgentCheckpointStore,
         SqlAlchemyAgentResultStore,
     )
@@ -583,22 +583,22 @@ async def test_agent_platform_postgres_checkpoint_and_result_stores(
 async def test_verification_override_audit_survives_flow_store_recreation(
     migrated_postgres_url: str,
 ):
-    from planning_agent_core.agent_platform.agents.verification import (
+    from agent_core.agent_platform.agents.verification import (
         VerificationAgentRequest,
         VerificationOverrideCommand,
         VerificationVerdict,
     )
-    from planning_agent_core.agent_platform.config import AgentConfig
-    from planning_agent_core.agent_platform.orchestration import (
+    from agent_core.agent_platform.config import AgentConfig
+    from agent_core.agent_platform.orchestration import (
         AgentExecutionRequest,
         AgentFlowStatus,
     )
-    from planning_agent_core.agent_platform.runtime import AgentDependencyContainer
-    from planning_agent_core.domain.coding import CodingAttemptResult, RollbackPlan
-    from planning_agent_core.domain.enums import CodingAttemptStatus
-    from planning_agent_core.persistence.agent_flows import SqlAlchemyAgentFlowStore
-    from planning_agent_core.schemas import AcceptanceCriterionSpec
-    from planning_agent_core.services.agent_platform_service import (
+    from agent_core.agent_platform.runtime import AgentDependencyContainer
+    from agent_core.domain.coding import CodingAttemptResult, RollbackPlan
+    from agent_core.domain.enums import CodingAttemptStatus
+    from agent_core.persistence.agent_flows import SqlAlchemyAgentFlowStore
+    from agent_core.schemas import AcceptanceCriterionSpec
+    from agent_core.services.agent_platform_service import (
         create_agent_platform_service,
     )
 
@@ -688,9 +688,9 @@ async def test_verification_override_audit_survives_flow_store_recreation(
 async def test_phase7_coding_attempt_store_persists_attempt_result(
     migrated_postgres_url: str,
 ):
-    from planning_agent_core.domain.coding import CodingAttemptResult, RollbackPlan
-    from planning_agent_core.domain.enums import CodingAttemptStatus
-    from planning_agent_core.persistence.coding_attempts import SqlAlchemyCodingAttemptStore
+    from agent_core.domain.coding import CodingAttemptResult, RollbackPlan
+    from agent_core.domain.enums import CodingAttemptStatus
+    from agent_core.persistence.coding_attempts import SqlAlchemyCodingAttemptStore
 
     engine = create_async_engine(migrated_postgres_url)
     session_factory = async_sessionmaker(engine, expire_on_commit=False)

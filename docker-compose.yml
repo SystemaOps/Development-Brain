@@ -319,15 +319,15 @@ services:
   #     - ca_net
 
   # -------------------------------------------------------------------------
-  # Planning Agent Core
-  # The main planning agent service
+  # Agent Core
+  # The main agent service
   # -------------------------------------------------------------------------
-  planning-agent-core:
+  agent-core:
     build:
-      context: ./planning_agent_core
-    container_name: ca-planning-agent-core
+      context: ./agent_core
+    container_name: ca-agent-core
     restart: unless-stopped
-    command: ["uvicorn", "planning_agent_core.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    command: ["uvicorn", "agent_core.main:app", "--host", "0.0.0.0", "--port", "8000"]
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_APP_DB}
       - NEO4J_URI=bolt://neo4j:7687
@@ -372,10 +372,10 @@ services:
   # -------------------------------------------------------------------------
   agent-flow-worker:
     build:
-      context: ./planning_agent_core
+      context: ./agent_core
     container_name: ca-agent-flow-worker
     restart: unless-stopped
-    command: ["python", "-m", "planning_agent_core.workers.agent_flow_worker"]
+    command: ["python", "-m", "agent_core.workers.agent_flow_worker"]
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_APP_DB}
       - NEO4J_URI=bolt://neo4j:7687

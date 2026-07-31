@@ -1,0 +1,10 @@
+{
+  "name": "planning_decomposition",
+  "version": "1.0.0",
+  "description": "Creates a Vision to Capability to Epic to Story to Task implementation plan.",
+  "input_schema": null,
+  "output_schema": "agent_core.schemas.ProjectPlanSpec",
+  "side_effects": false,
+  "required_tools": ["llm"],
+  "status": "implemented"
+}

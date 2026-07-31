@@ -8,8 +8,8 @@ models at the HTTP boundary.
 
 ## Implemented
 
-- Added `planning_agent_core/api/agents.py` with `POST /v1/agents/execute`.
-- Registered the agents router in `planning_agent_core/main.py`.
+- Added `agent_core/api/agents.py` with `POST /v1/agents/execute`.
+- Registered the agents router in `agent_core/main.py`.
 - Added `AgentExecutePayload` with a discriminated union over `PlanningAgentRequest`, `CodingAgentRequest`, and `VerificationAgentRequest`.
 - Added `AgentExecutionResponse` containing the persisted result ID, typed agent result, and route decision.
 - The endpoint loads default agent configuration when no explicit config is supplied.
@@ -80,7 +80,7 @@ Commands run:
 
 ```powershell
 .venv/Scripts/python.exe -m pytest -q tests/test_agent_platform_api.py tests/test_agent_platform.py tests/test_import_smoke.py
-.venv/Scripts/python.exe -m ruff check planning_agent_core/planning_agent_core/api/agents.py planning_agent_core/planning_agent_core/main.py planning_agent_core/planning_agent_core/agent_platform planning_agent_core/planning_agent_core/services/agent_platform_service.py planning_agent_core/planning_agent_core/persistence/agent_platform.py tests/test_agent_platform_api.py tests/test_agent_platform.py tests/test_import_smoke.py
+.venv/Scripts/python.exe -m ruff check agent_core/agent_core/api/agents.py agent_core/agent_core/main.py agent_core/agent_core/agent_platform agent_core/agent_core/services/agent_platform_service.py agent_core/agent_core/persistence/agent_platform.py tests/test_agent_platform_api.py tests/test_agent_platform.py tests/test_import_smoke.py
 .venv/Scripts/python.exe -m pytest -q
 ```
 

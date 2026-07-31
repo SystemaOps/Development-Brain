@@ -60,7 +60,7 @@ or silently select one task from a multi-task plan.
 Commands run:
 
 ```powershell
-.venv/Scripts/python.exe -m ruff check planning_agent_core/planning_agent_core/agent_platform/orchestration planning_agent_core/planning_agent_core/services/agent_transition_resolver.py planning_agent_core/planning_agent_core/persistence/agent_transition_context.py planning_agent_core/planning_agent_core/services/agent_platform_service.py planning_agent_core/planning_agent_core/api/agents.py tests/test_agent_transition_resolver.py tests/test_agent_transition_postgres_integration.py tests/test_agent_platform_api.py
+.venv/Scripts/python.exe -m ruff check agent_core/agent_core/agent_platform/orchestration agent_core/agent_core/services/agent_transition_resolver.py agent_core/agent_core/persistence/agent_transition_context.py agent_core/agent_core/services/agent_platform_service.py agent_core/agent_core/api/agents.py tests/test_agent_transition_resolver.py tests/test_agent_transition_postgres_integration.py tests/test_agent_platform_api.py
 .venv/Scripts/python.exe -m pytest -q tests/test_agent_transition_resolver.py tests/test_agent_transition_postgres_integration.py tests/test_agent_platform_flow.py tests/test_agent_platform_api.py tests/test_import_smoke.py
 .venv/Scripts/python.exe -m pytest -q
 ```

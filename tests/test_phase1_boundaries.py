@@ -29,7 +29,7 @@ def _import_roots(path: Path) -> set[str]:
 
 def test_domain_and_ports_do_not_import_vendor_adapters():
     repo_root = Path(__file__).resolve().parents[1]
-    package_root = repo_root / "planning_agent_core" / "planning_agent_core"
+    package_root = repo_root / "agent_core" / "agent_core"
     checked_files = [
         *sorted((package_root / "domain").glob("*.py")),
         *sorted((package_root / "ports").glob("*.py")),
@@ -48,7 +48,7 @@ def test_domain_and_ports_do_not_import_vendor_adapters():
 
 def test_settings_accept_current_and_target_environment_names(monkeypatch):
     repo_root = Path(__file__).resolve().parents[1]
-    monkeypatch.syspath_prepend(str(repo_root / "planning_agent_core"))
+    monkeypatch.syspath_prepend(str(repo_root / "agent_core"))
 
     monkeypatch.delenv("DATABASE_URL", raising=False)
     monkeypatch.delenv("CHECKPOINT_DATABASE_URL", raising=False)
@@ -65,7 +65,7 @@ def test_settings_accept_current_and_target_environment_names(monkeypatch):
     monkeypatch.setenv("NEO4J_USERNAME", "neo4j-target")
     monkeypatch.setenv("NEO4J_PASSWORD", "change-me")
 
-    from planning_agent_core.config.settings import Settings
+    from agent_core.config.settings import Settings
 
     settings = Settings()
 

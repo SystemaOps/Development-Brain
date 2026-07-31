@@ -1,22 +1,22 @@
 # Agent Platform Architecture
 
-This document describes the modular agent-platform foundation added on top of the existing `planning_agent_core` package. The design is additive: existing FastAPI routes, services, skills, repository analysis, OpenProject, Neo4j, Weaviate, and coding-attempt behavior remain in place while new agents depend on stable platform contracts.
+This document describes the modular agent-platform foundation added on top of the existing `agent_core` package. The design is additive: existing FastAPI routes, services, skills, repository analysis, OpenProject, Neo4j, Weaviate, and coding-attempt behavior remain in place while new agents depend on stable platform contracts.
 
 ## Current Architecture Summary
 
 The repository currently has a working planning-oriented application with these reusable pieces:
 
-- `planning_agent_core/skills/` contains modular planning skills for ingestion, requirement extraction, ambiguity assessment, decomposition, validation, repository inspection, OpenProject projection, Neo4j projection, Weaviate projection, and context capsules.
-- `planning_agent_core/services/` contains application services for planning sessions, documents, context capsules, repository analysis, repository projection, and coding attempts.
-- `planning_agent_core/ports/` already defines infrastructure ports for project repositories, events, approvals, artifacts, OpenProject, graph storage, vector storage, repository filesystem, repository analysis, command execution, LLM generation, and coding attempts.
-- `planning_agent_core/adapters/` contains concrete adapters for OpenProject, Neo4j, Weaviate, repository filesystem, command execution, Tree-sitter extraction, LSP lookup, and repository analysis.
-- `planning_agent_core/workflow/` contains the existing planning LangGraph workflow and remains a compatibility path.
+- `agent_core/skills/` contains modular planning skills for ingestion, requirement extraction, ambiguity assessment, decomposition, validation, repository inspection, OpenProject projection, Neo4j projection, Weaviate projection, and context capsules.
+- `agent_core/services/` contains application services for planning sessions, documents, context capsules, repository analysis, repository projection, and coding attempts.
+- `agent_core/ports/` already defines infrastructure ports for project repositories, events, approvals, artifacts, OpenProject, graph storage, vector storage, repository filesystem, repository analysis, command execution, LLM generation, and coding attempts.
+- `agent_core/adapters/` contains concrete adapters for OpenProject, Neo4j, Weaviate, repository filesystem, command execution, Tree-sitter extraction, LSP lookup, and repository analysis.
+- `agent_core/workflow/` contains the existing planning LangGraph workflow and remains a compatibility path.
 
 The new platform package does not replace those pieces. It wraps and organizes them behind agent lifecycle contracts and dependency injection.
 
 ## Target Package Boundary
 
-The platform root is `planning_agent_core/agent_platform/`.
+The platform root is `agent_core/agent_platform/`.
 
 ```text
 agent_platform/
@@ -48,7 +48,7 @@ Important boundary rules:
 - Agent modules own their request/result/state/workflow definitions.
 - Skills remain reusable units and do not depend on whole agent objects.
 
-Application code can use `planning_agent_core/services/agent_platform_service.py` as the migration entry point for invoking the platform without directly constructing the factory and orchestrator.
+Application code can use `agent_core/services/agent_platform_service.py` as the migration entry point for invoking the platform without directly constructing the factory and orchestrator.
 
 FastAPI exposes one-step compatibility execution through `POST /v1/agents/execute`. Durable
 multi-agent flows use:
@@ -363,7 +363,7 @@ Platform adapter namespaces expose interfaces for:
 - `FilesystemWorkspace`
 - `CommandRunner`
 
-Most are aliases over existing `planning_agent_core.ports` protocols, so concrete adapters do not need to move immediately.
+Most are aliases over existing `agent_core.ports` protocols, so concrete adapters do not need to move immediately.
 
 ## Configuration
 
@@ -376,7 +376,7 @@ The platform configuration is represented by:
 
 The loader accepts JSON, discovers the runtime path from `AGENT_PLATFORM_CONFIG_FILE`, and returns
 a deep copy of the default config when no explicit or environment path is provided. Example
-configuration is in `planning_agent_core/agent-platform.example.json`.
+configuration is in `agent_core/agent-platform.example.json`.
 
 The LLM endpoint remains configurable by:
 

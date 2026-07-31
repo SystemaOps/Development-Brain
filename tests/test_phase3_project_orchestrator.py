@@ -7,30 +7,30 @@ from uuid import uuid4
 
 import pytest
 
-from planning_agent_core.agent_platform.agents.base import (
+from agent_core.agent_platform.agents.base import (
     AgentNextAction,
     AgentResult,
     AgentRunStatus,
 )
-from planning_agent_core.agent_platform.orchestration import (
+from agent_core.agent_platform.orchestration import (
     AgentOrchestrationResult,
     AgentRouteDecision,
     PersistedAgentResult,
 )
-from planning_agent_core.application.project_orchestrator import (
+from agent_core.application.project_orchestrator import (
     classify_agent_result_completion,
     classify_workflow_completion,
     OrchestrationAction,
     ProjectEventOrchestrator,
     should_resume_planning,
 )
-from planning_agent_core.domain.enums import (
+from agent_core.domain.enums import (
     AgentExecutionStatus,
     ApprovalDecision,
     ApprovalScope,
 )
-from planning_agent_core.domain.events import EventEnvelope
-from planning_agent_core.ports.executions import AgentExecutionStart
+from agent_core.domain.events import EventEnvelope
+from agent_core.ports.executions import AgentExecutionStart
 
 
 @dataclass

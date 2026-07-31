@@ -4,58 +4,58 @@ from uuid import uuid4
 
 import pytest
 
-from planning_agent_core.agent_platform.agents.base import (
+from agent_core.agent_platform.agents.base import (
     AgentNextAction,
     AgentResult,
     AgentRunStatus,
     ArtifactReference,
     StateReference,
 )
-from planning_agent_core.agent_platform.agents.base.errors import (
+from agent_core.agent_platform.agents.base.errors import (
     AgentConfigurationError,
 )
-from planning_agent_core.agent_platform.agents.coding import (
+from agent_core.agent_platform.agents.coding import (
     CodingAgentRequest,
     CodingAgentResult,
 )
-from planning_agent_core.agent_platform.agents.planning import (
+from agent_core.agent_platform.agents.planning import (
     PlanningAgentRequest,
     PlanningAgentResult,
 )
-from planning_agent_core.agent_platform.agents.verification import (
+from agent_core.agent_platform.agents.verification import (
     VerificationAgentRequest,
     VerificationAgentResult,
     VerificationFinding,
     VerificationVerdict,
 )
-from planning_agent_core.agent_platform.config import (
+from agent_core.agent_platform.config import (
     AgentConfig,
     load_agent_platform_config,
 )
-from planning_agent_core.agent_platform.orchestration import (
+from agent_core.agent_platform.orchestration import (
     AgentExecutionRequest,
     AgentOrchestrationResult,
     AgentRouteDecision,
     AgentTaskTransitionContext,
     PersistedAgentResult,
 )
-from planning_agent_core.agent_platform.runtime import AgentDependencyContainer
-from planning_agent_core.domain.coding import (
+from agent_core.agent_platform.runtime import AgentDependencyContainer
+from agent_core.domain.coding import (
     CodingAttemptRequest,
     CodingAttemptResult,
     FileChange,
     RollbackPlan,
 )
-from planning_agent_core.domain.enums import CodingAttemptStatus, PlanNodeKind
-from planning_agent_core.schemas import (
+from agent_core.domain.enums import CodingAttemptStatus, PlanNodeKind
+from agent_core.schemas import (
     AcceptanceCriterionSpec,
     PlanNodeSpec,
     ProjectPlanSpec,
 )
-from planning_agent_core.services.agent_transition_resolver import (
+from agent_core.services.agent_transition_resolver import (
     ApplicationAgentTransitionResolver,
 )
-from planning_agent_core.services.agent_platform_service import AgentPlatformService
+from agent_core.services.agent_platform_service import AgentPlatformService
 
 
 class FakeTransitionContextStore:

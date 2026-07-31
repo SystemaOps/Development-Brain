@@ -19,7 +19,7 @@ class FakeOutput(BaseModel):
 
 
 def test_builtin_skill_manifests_cover_required_planning_skills():
-    from planning_agent_core.skills.manifest import load_builtin_skill_manifests
+    from agent_core.skills.manifest import load_builtin_skill_manifests
 
     manifests = load_builtin_skill_manifests()
 
@@ -42,7 +42,7 @@ def test_builtin_skill_manifests_cover_required_planning_skills():
 
 
 def test_duplicate_skill_manifests_fail_clearly(tmp_path: Path):
-    from planning_agent_core.skills.manifest import load_skill_manifests
+    from agent_core.skills.manifest import load_skill_manifests
 
     payload = {
         "name": "duplicate_skill",
@@ -58,9 +58,9 @@ def test_duplicate_skill_manifests_fail_clearly(tmp_path: Path):
 
 
 def test_registry_rejects_skill_registered_against_planned_manifest():
-    from planning_agent_core.skills.base import BaseSkill, SkillContext, SkillResult
-    from planning_agent_core.skills.manifest import SkillManifest
-    from planning_agent_core.skills.registry import SkillRegistry
+    from agent_core.skills.base import BaseSkill, SkillContext, SkillResult
+    from agent_core.skills.manifest import SkillManifest
+    from agent_core.skills.registry import SkillRegistry
 
     class PlannedSkill(BaseSkill):
         name = "planned_skill"
@@ -96,10 +96,10 @@ def test_registry_rejects_skill_registered_against_planned_manifest():
 
 @pytest.mark.asyncio
 async def test_skill_node_adapter_validates_input_and_output():
-    from planning_agent_core.skills.base import BaseSkill, SkillContext, SkillResult
-    from planning_agent_core.skills.manifest import SkillManifest
-    from planning_agent_core.skills.registry import SkillRegistry
-    from planning_agent_core.workflow.skill_node import SkillNodeAdapter
+    from agent_core.skills.base import BaseSkill, SkillContext, SkillResult
+    from agent_core.skills.manifest import SkillManifest
+    from agent_core.skills.registry import SkillRegistry
+    from agent_core.workflow.skill_node import SkillNodeAdapter
 
     class FakeSkill(BaseSkill):
         name = "fake_skill"
@@ -147,9 +147,9 @@ async def test_skill_node_adapter_validates_input_and_output():
 
 
 def test_agent_registry_references_declared_skill_manifests():
-    from planning_agent_core.agents.registry import AgentRegistry
-    from planning_agent_core.skills.manifest import load_builtin_skill_manifests
-    from planning_agent_core.skills.registry import SkillRegistry
+    from agent_core.agents.registry import AgentRegistry
+    from agent_core.skills.manifest import load_builtin_skill_manifests
+    from agent_core.skills.registry import SkillRegistry
 
     skill_registry = SkillRegistry(load_builtin_skill_manifests())
 
@@ -175,7 +175,7 @@ def _set_required_settings(monkeypatch):
 def test_build_skill_registry_can_opt_into_database_backed_skills(monkeypatch):
     _set_required_settings(monkeypatch)
 
-    from planning_agent_core.skills import build_skill_registry
+    from agent_core.skills import build_skill_registry
 
     class FakeLLM:
         async def generate(self, **kwargs):
@@ -193,7 +193,7 @@ def test_build_skill_registry_can_opt_into_database_backed_skills(monkeypatch):
 def test_build_skill_registry_requires_db_for_database_backed_skills(monkeypatch):
     _set_required_settings(monkeypatch)
 
-    from planning_agent_core.skills import build_skill_registry
+    from agent_core.skills import build_skill_registry
 
     class FakeLLM:
         async def generate(self, **kwargs):
@@ -209,11 +209,11 @@ async def test_planning_workflow_executes_with_fake_skill_and_services(monkeypat
 
     from langgraph.store.memory import InMemoryStore
 
-    from planning_agent_core.schemas import ProjectPlanSpec
-    from planning_agent_core.skills.base import BaseSkill, SkillContext, SkillResult
-    from planning_agent_core.skills.manifest import load_builtin_skill_manifests
-    from planning_agent_core.skills.registry import SkillRegistry
-    from planning_agent_core.workflow.graph import build_planning_graph
+    from agent_core.schemas import ProjectPlanSpec
+    from agent_core.skills.base import BaseSkill, SkillContext, SkillResult
+    from agent_core.skills.manifest import load_builtin_skill_manifests
+    from agent_core.skills.registry import SkillRegistry
+    from agent_core.workflow.graph import build_planning_graph
 
     class FakePlanningSkill(BaseSkill):
         name = "planning_decomposition"

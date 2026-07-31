@@ -11,14 +11,14 @@ from uuid import uuid4
 import pytest
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-from planning_agent_core.agent_platform.agents.base import (
+from agent_core.agent_platform.agents.base import (
     AgentNextAction,
     AgentRequest,
     AgentResult,
     AgentRunStatus,
 )
-from planning_agent_core.agent_platform.config import AgentConfig
-from planning_agent_core.agent_platform.orchestration import (
+from agent_core.agent_platform.config import AgentConfig
+from agent_core.agent_platform.orchestration import (
     AgentExecutionRequest,
     AgentFlowApproval,
     AgentFlowResult,
@@ -29,9 +29,9 @@ from planning_agent_core.agent_platform.orchestration import (
     AgentRouteDecision,
     PersistedAgentResult,
 )
-from planning_agent_core.domain.enums import ApprovalDecision
-from planning_agent_core.models import AgentPlatformFlowRecord
-from planning_agent_core.persistence.agent_flows import SqlAlchemyAgentFlowStore
+from agent_core.domain.enums import ApprovalDecision
+from agent_core.models import AgentPlatformFlowRecord
+from agent_core.persistence.agent_flows import SqlAlchemyAgentFlowStore
 
 
 POSTGRES_URL_ENV = "PHASE3_POSTGRES_DATABASE_URL"
@@ -44,7 +44,7 @@ def migrated_postgres_url() -> str:
         pytest.skip(f"Set {POSTGRES_URL_ENV} to run live agent-flow integration tests")
 
     repo_root = Path(__file__).resolve().parents[1]
-    package_root = repo_root / "planning_agent_core"
+    package_root = repo_root / "agent_core"
     env = os.environ.copy()
     env["DATABASE_URL"] = database_url
     result = subprocess.run(
