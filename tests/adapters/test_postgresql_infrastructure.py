@@ -10,6 +10,7 @@ from brain.adapters.postgresql.repositories import (
     PostgresIdempotencyStore,
     PostgresRepositoryChangeSetRepository,
     PostgresRepositorySnapshotRepository,
+    PostgresVerificationRunRepository,
 )
 from brain.ports.context import ContextCapsuleRepository
 from brain.ports.event_log import EventLogRepository
@@ -18,6 +19,7 @@ from brain.ports.repository_scan import (
     RepositoryChangeSetRepository,
     RepositorySnapshotRepository,
 )
+from brain.ports.verification import VerificationRunRepository
 from tests.contracts.context_capsule import ContextCapsuleRepositoryContract
 from tests.contracts.event_log import EventLogRepositoryContract
 from tests.contracts.idempotency import IdempotencyStoreContract
@@ -25,6 +27,13 @@ from tests.contracts.repository_scan import (
     RepositoryChangeSetRepositoryContract,
     RepositorySnapshotRepositoryContract,
 )
+from tests.contracts.verification_run import VerificationRunRepositoryContract
+
+
+class TestPostgresVerificationRunRepository(VerificationRunRepositoryContract):
+    @pytest.fixture
+    def verification_runs(self, postgres_session) -> VerificationRunRepository:
+        return PostgresVerificationRunRepository(postgres_session)
 
 
 class TestPostgresContextCapsuleRepository(ContextCapsuleRepositoryContract):

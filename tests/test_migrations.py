@@ -48,6 +48,7 @@ EXPECTED_TABLES = {
     "topology_claims",
     "topology_dependencies",
     "verification_results",
+    "verification_runs",
     "work_items",
 }
 

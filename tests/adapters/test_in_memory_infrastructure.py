@@ -16,6 +16,7 @@ from brain.adapters.in_memory.repositories import (
     InMemoryRepositorySnapshotRepository,
 )
 from brain.adapters.in_memory.semantic_index import InMemorySemanticIndex
+from brain.adapters.in_memory.verification import InMemoryVerificationRunRepository
 from brain.ports.context import ContextCapsuleRepository
 from brain.ports.event_bus import EventBus
 from brain.ports.event_log import EventLogRepository
@@ -27,6 +28,7 @@ from brain.ports.repository_scan import (
     RepositorySnapshotRepository,
 )
 from brain.ports.semantic_index import SemanticIndex
+from brain.ports.verification import VerificationRunRepository
 from tests.contracts.context_capsule import ContextCapsuleRepositoryContract
 from tests.contracts.event_bus import EventBusContract
 from tests.contracts.event_log import EventLogRepositoryContract
@@ -38,6 +40,7 @@ from tests.contracts.repository_scan import (
     RepositorySnapshotRepositoryContract,
 )
 from tests.contracts.semantic_index import SemanticIndexContract
+from tests.contracts.verification_run import VerificationRunRepositoryContract
 
 
 class TestInMemoryEventBus(EventBusContract):
@@ -80,6 +83,12 @@ class TestInMemoryContextCapsuleRepository(ContextCapsuleRepositoryContract):
     @pytest.fixture
     def capsule_repository(self) -> ContextCapsuleRepository:
         return InMemoryContextCapsuleRepository()
+
+
+class TestInMemoryVerificationRunRepository(VerificationRunRepositoryContract):
+    @pytest.fixture
+    def verification_runs(self) -> VerificationRunRepository:
+        return InMemoryVerificationRunRepository()
 
 
 class TestInMemoryRepositorySnapshotRepository(RepositorySnapshotRepositoryContract):

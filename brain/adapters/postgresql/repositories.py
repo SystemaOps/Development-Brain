@@ -46,6 +46,7 @@ from brain.adapters.postgresql.tables import (
     TopologyClaimRow,
     TopologyDependencyRow,
     VerificationResultRow,
+    VerificationRunRow,
     WorkItemRow,
 )
 from brain.domain.actors import Actor
@@ -113,6 +114,11 @@ from brain.domain.software_model import (
 )
 from brain.domain.topology import CandidateKind, DependencyCandidate, TopologyClaim
 from brain.domain.verification import VerificationResult
+from brain.domain.verification_plan import (
+    VerificationPlan,
+    VerificationRun,
+    VerificationVerdict,
+)
 from brain.domain.work_items import WorkItem
 
 
@@ -1848,4 +1854,71 @@ def _plan_from_row(row: PlanRow) -> Plan:
         assessments=[AmbiguityAssessment.model_validate(a) for a in row.assessments],
         evidence=[PlanEvidence.model_validate(e) for e in row.evidence],
         validation_errors=list(row.validation_errors or []),
+    )
+
+
+class PostgresVerificationRunRepository(_PostgresRepository):
+    """Durable verification runs (Phase 13)."""
+
+    async def save_run(self, run: VerificationRun) -> VerificationRun:
+        stmt = pg_insert(VerificationRunRow).values(
+            id=run.id,
+            execution_id=run.execution_id,
+            plan=dump_model(run.plan),
+            verdict=run.verdict.value,
+            started_at=run.started_at,
+            completed_at=run.completed_at,
+            issues=list(run.issues),
+            feedback=list(run.feedback),
+            pr_allowed=run.pr_allowed,
+        )
+        await self._session.execute(
+            stmt.on_conflict_do_update(
+                index_elements=["id"],
+                set_={
+                    "execution_id": run.execution_id,
+                    "plan": dump_model(run.plan),
+                    "verdict": run.verdict.value,
+                    "started_at": run.started_at,
+                    "completed_at": run.completed_at,
+                    "issues": list(run.issues),
+                    "feedback": list(run.feedback),
+                    "pr_allowed": run.pr_allowed,
+                },
+            )
+        )
+        await self._session.flush()
+        return run
+
+    async def get_run(self, run_id: VerificationId) -> VerificationRun | None:
+        row = await self._session.get(VerificationRunRow, run_id)
+        return _verification_run_from_row(row) if row is not None else None
+
+    async def list_runs_for_execution(self, execution_id: ExecutionId) -> list[VerificationRun]:
+        result = await self._session.execute(
+            select(VerificationRunRow)
+            .where(VerificationRunRow.execution_id == execution_id)
+            .order_by(VerificationRunRow.started_at)
+        )
+        return [_verification_run_from_row(row) for row in result.scalars().all()]
+
+    async def delete_run(self, run_id: VerificationId) -> None:
+        row = await self._session.get(VerificationRunRow, run_id)
+        if row is not None:
+            await self._session.delete(row)
+            await self._session.flush()
+
+
+def _verification_run_from_row(row: VerificationRunRow) -> VerificationRun:
+    plan = VerificationPlan.model_validate(row.plan)
+    return VerificationRun(
+        id=VerificationId(row.id),
+        execution_id=ExecutionId(row.execution_id),
+        plan=plan,
+        verdict=VerificationVerdict(row.verdict),
+        started_at=row.started_at,
+        completed_at=row.completed_at,
+        issues=list(row.issues or []),
+        feedback=list(row.feedback or []),
+        pr_allowed=row.pr_allowed,
     )

@@ -17,7 +17,17 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import BigInteger, DateTime, Float, Index, String, Text, UniqueConstraint, func
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    DateTime,
+    Float,
+    Index,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -571,6 +581,24 @@ class PlanRow(Base):
     validation_errors: Mapped[list[str]] = mapped_column(JSONB, default=list)
 
     __table_args__ = (Index("ix_plans_project_id", "project_id"),)
+
+
+class VerificationRunRow(Base):
+    """A persisted verification run (Phase 13)."""
+
+    __tablename__ = "verification_runs"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    execution_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    plan: Mapped[dict[str, object]] = mapped_column(JSONB, default=dict)
+    verdict: Mapped[str] = mapped_column(String(20))
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    issues: Mapped[list[str]] = mapped_column(JSONB, default=list)
+    feedback: Mapped[list[str]] = mapped_column(JSONB, default=list)
+    pr_allowed: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    __table_args__ = (Index("ix_verification_runs_execution", "execution_id"),)
 
 
 metadata = Base.metadata

@@ -16,12 +16,20 @@ from brain.adapters.topology import (
     ResourceDetector,
     TopologyDiscoverer,
 )
+from brain.adapters.verification import (
+    DeterministicCommandRunner,
+    FakeCommandRunner,
+    FakePullRequestAdapter,
+)
 
 __all__ = [
     "ApiInterfaceDetector",
     "DeploymentTopologyDetector",
     "DerivedSoftwareCatalog",
+    "DeterministicCommandRunner",
+    "FakeCommandRunner",
     "FakeExecutor",
+    "FakePullRequestAdapter",
     "HashEmbeddingService",
     "InMemoryExecutorRegistry",
     "ManifestTopologyDetector",

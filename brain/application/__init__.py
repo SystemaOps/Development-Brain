@@ -39,6 +39,7 @@ from brain.application.revisions import IncrementalRevisionHandler
 from brain.application.semantic_indexing import IndexingResult, SemanticIndexingService
 from brain.application.token_estimation import TokenEstimator
 from brain.application.topology import TopologyDiscoveryResult, TopologyDiscoveryService
+from brain.application.verification_engine import VerificationEngine, VerificationOutcome
 from brain.application.workspace_manager import Workspace, WorkspaceManager
 
 __all__ = [
@@ -76,6 +77,8 @@ __all__ = [
     "TokenEstimator",
     "TopologyDiscoveryResult",
     "TopologyDiscoveryService",
+    "VerificationEngine",
+    "VerificationOutcome",
     "Workspace",
     "WorkspaceManager",
     "tokenize",

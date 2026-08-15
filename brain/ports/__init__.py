@@ -54,6 +54,7 @@ from brain.ports.topology import (
     SoftwareCatalogRepository,
     TopologyDiscoveryPort,
 )
+from brain.ports.verification import CommandRunner, VerificationRunRepository
 from brain.ports.work_management import WorkManagementPort
 
 __all__ = [
@@ -64,6 +65,7 @@ __all__ = [
     "CIValidationPort",
     "CodeGraphRepository",
     "CodeIntelligencePort",
+    "CommandRunner",
     "ContextCapsuleRepository",
     "DecisionRepository",
     "DerivedSoftwareCatalog",
@@ -100,6 +102,7 @@ __all__ = [
     "SourceControlPort",
     "TopologyDiscoveryPort",
     "VerificationResultRepository",
+    "VerificationRunRepository",
     "WorkItemRepository",
     "WorkManagementPort",
 ]
