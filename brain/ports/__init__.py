@@ -12,6 +12,7 @@ from brain.ports.code_intelligence import (
     CodeIntelligencePort,
     LanguageParser,
 )
+from brain.ports.context import ContextCapsuleRepository
 from brain.ports.documentation import DocumentationPort
 from brain.ports.embeddings import EmbeddingService
 from brain.ports.event_bus import EventBus, EventHandler
@@ -61,6 +62,7 @@ __all__ = [
     "CIValidationPort",
     "CodeGraphRepository",
     "CodeIntelligencePort",
+    "ContextCapsuleRepository",
     "DecisionRepository",
     "DerivedSoftwareCatalog",
     "DocumentParser",

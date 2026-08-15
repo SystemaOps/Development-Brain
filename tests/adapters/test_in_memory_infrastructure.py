@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 from brain.adapters.embeddings.hash_embedding import HashEmbeddingService
+from brain.adapters.in_memory.context import InMemoryContextCapsuleRepository
 from brain.adapters.in_memory.event_bus import InMemoryEventBus
 from brain.adapters.in_memory.event_log import InMemoryEventLogRepository
 from brain.adapters.in_memory.idempotency import InMemoryIdempotencyStore
@@ -14,6 +15,7 @@ from brain.adapters.in_memory.repositories import (
     InMemoryRepositorySnapshotRepository,
 )
 from brain.adapters.in_memory.semantic_index import InMemorySemanticIndex
+from brain.ports.context import ContextCapsuleRepository
 from brain.ports.event_bus import EventBus
 from brain.ports.event_log import EventLogRepository
 from brain.ports.idempotency import IdempotencyStore
@@ -23,6 +25,7 @@ from brain.ports.repository_scan import (
     RepositorySnapshotRepository,
 )
 from brain.ports.semantic_index import SemanticIndex
+from tests.contracts.context_capsule import ContextCapsuleRepositoryContract
 from tests.contracts.event_bus import EventBusContract
 from tests.contracts.event_log import EventLogRepositoryContract
 from tests.contracts.idempotency import IdempotencyStoreContract
@@ -62,6 +65,12 @@ class TestInMemorySemanticIndex(SemanticIndexContract):
     @pytest.fixture
     def semantic_index(self) -> SemanticIndex:
         return InMemorySemanticIndex(embeddings=HashEmbeddingService())
+
+
+class TestInMemoryContextCapsuleRepository(ContextCapsuleRepositoryContract):
+    @pytest.fixture
+    def capsule_repository(self) -> ContextCapsuleRepository:
+        return InMemoryContextCapsuleRepository()
 
 
 class TestInMemoryRepositorySnapshotRepository(RepositorySnapshotRepositoryContract):

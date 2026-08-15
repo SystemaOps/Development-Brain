@@ -26,6 +26,7 @@ EXPECTED_TABLES = {
     "code_files",
     "code_relations",
     "code_symbols",
+    "context_capsules",
     "decisions",
     "document_nodes",
     "document_versions",

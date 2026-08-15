@@ -5,23 +5,32 @@ from __future__ import annotations
 import pytest
 
 from brain.adapters.postgresql.repositories import (
+    PostgresContextCapsuleRepository,
     PostgresEventLogRepository,
     PostgresIdempotencyStore,
     PostgresRepositoryChangeSetRepository,
     PostgresRepositorySnapshotRepository,
 )
+from brain.ports.context import ContextCapsuleRepository
 from brain.ports.event_log import EventLogRepository
 from brain.ports.idempotency import IdempotencyStore
 from brain.ports.repository_scan import (
     RepositoryChangeSetRepository,
     RepositorySnapshotRepository,
 )
+from tests.contracts.context_capsule import ContextCapsuleRepositoryContract
 from tests.contracts.event_log import EventLogRepositoryContract
 from tests.contracts.idempotency import IdempotencyStoreContract
 from tests.contracts.repository_scan import (
     RepositoryChangeSetRepositoryContract,
     RepositorySnapshotRepositoryContract,
 )
+
+
+class TestPostgresContextCapsuleRepository(ContextCapsuleRepositoryContract):
+    @pytest.fixture
+    def capsule_repository(self, postgres_session) -> ContextCapsuleRepository:
+        return PostgresContextCapsuleRepository(postgres_session)
 
 
 class TestPostgresIdempotencyStore(IdempotencyStoreContract):

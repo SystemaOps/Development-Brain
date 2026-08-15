@@ -529,4 +529,30 @@ class CodeFileRow(Base):
     )
 
 
+class ContextCapsuleRow(Base):
+    """A built context capsule for later evaluation (Phase 10)."""
+
+    __tablename__ = "context_capsules"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    version: Mapped[str] = mapped_column(String(20))
+    work_item_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    context_type: Mapped[str] = mapped_column(String(30))
+    project_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    repository_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    revision: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    request: Mapped[dict[str, object]] = mapped_column(JSONB, default=dict)
+    candidates: Mapped[list[dict[str, object]]] = mapped_column(JSONB, default=list)
+    allocations: Mapped[list[dict[str, object]]] = mapped_column(JSONB, default=list)
+    total_tokens: Mapped[int] = mapped_column(BigInteger, default=0)
+    model_budget_tokens: Mapped[int] = mapped_column(BigInteger, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    capsule_metadata: Mapped[dict[str, object]] = mapped_column(JSONB, default=dict)
+
+    __table_args__ = (
+        Index("ix_context_capsules_work_item", "work_item_id"),
+        Index("ix_context_capsules_created", "created_at"),
+    )
+
+
 metadata = Base.metadata

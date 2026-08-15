@@ -22,6 +22,7 @@ from brain.adapters.postgresql.tables import (
     CodeFileRow,
     CodeRelationRow,
     CodeSymbolRow,
+    ContextCapsuleRow,
     DecisionRow,
     DocumentNodeRow,
     DocumentRow,
@@ -57,6 +58,13 @@ from brain.domain.code_intelligence import (
     SymbolKind,
     SymbolLocation,
 )
+from brain.domain.context import (
+    BudgetAllocation,
+    ContextCandidate,
+    ContextCapsule,
+    ContextRequest,
+    ContextType,
+)
 from brain.domain.decisions import Decision
 from brain.domain.documents import Document, DocumentNode, DocumentVersion
 from brain.domain.events import EventEnvelope
@@ -66,6 +74,7 @@ from brain.domain.external_reference import ExternalReference
 from brain.domain.identity import (
     ActorId,
     ArtifactId,
+    ContextCapsuleId,
     DecisionId,
     DocumentId,
     DocumentVersionId,
@@ -1685,3 +1694,85 @@ def _split_identity_key(
     qualified_name = parts[-2] if len(parts) >= 2 else ""
     kind = parts[-1] if parts else ""
     return module, qualified_name, kind
+
+
+class PostgresContextCapsuleRepository(_PostgresRepository):
+    """Durable context capsules for later evaluation (Phase 10)."""
+
+    async def save_capsule(self, capsule: ContextCapsule) -> ContextCapsule:
+        stmt = pg_insert(ContextCapsuleRow).values(
+            id=capsule.id,
+            version=capsule.version,
+            work_item_id=capsule.work_item_id,
+            context_type=_as_str(capsule.context_type),
+            project_id=capsule.request.project_id,
+            repository_id=capsule.repository_id,
+            revision=capsule.revision,
+            request=dump_model(capsule.request),
+            candidates=dump_models(capsule.candidates),
+            allocations=dump_models(capsule.allocations),
+            total_tokens=capsule.total_tokens,
+            model_budget_tokens=capsule.model_budget_tokens,
+            created_at=capsule.created_at,
+            capsule_metadata=dict(capsule.metadata),
+        )
+        await self._session.execute(
+            stmt.on_conflict_do_update(
+                index_elements=["id"],
+                set_={
+                    "version": capsule.version,
+                    "work_item_id": capsule.work_item_id,
+                    "context_type": _as_str(capsule.context_type),
+                    "project_id": capsule.request.project_id,
+                    "repository_id": capsule.repository_id,
+                    "revision": capsule.revision,
+                    "request": dump_model(capsule.request),
+                    "candidates": dump_models(capsule.candidates),
+                    "allocations": dump_models(capsule.allocations),
+                    "total_tokens": capsule.total_tokens,
+                    "model_budget_tokens": capsule.model_budget_tokens,
+                    "created_at": capsule.created_at,
+                    "capsule_metadata": dict(capsule.metadata),
+                },
+            )
+        )
+        await self._session.flush()
+        return capsule
+
+    async def get_capsule(self, capsule_id: ContextCapsuleId) -> ContextCapsule | None:
+        row = await self._session.get(ContextCapsuleRow, capsule_id)
+        return _capsule_from_row(row) if row is not None else None
+
+    async def list_capsules_for_work_item(self, work_item_id: WorkItemId) -> list[ContextCapsule]:
+        result = await self._session.execute(
+            select(ContextCapsuleRow)
+            .where(ContextCapsuleRow.work_item_id == work_item_id)
+            .order_by(ContextCapsuleRow.created_at)
+        )
+        return [_capsule_from_row(row) for row in result.scalars().all()]
+
+    async def delete_capsule(self, capsule_id: ContextCapsuleId) -> None:
+        row = await self._session.get(ContextCapsuleRow, capsule_id)
+        if row is not None:
+            await self._session.delete(row)
+            await self._session.flush()
+
+
+def _capsule_from_row(row: ContextCapsuleRow) -> ContextCapsule:
+    request = ContextRequest.model_validate(row.request)
+    context_type = ContextType(row.context_type)
+    return ContextCapsule(
+        id=ContextCapsuleId(row.id),
+        version=row.version,
+        work_item_id=WorkItemId(row.work_item_id),
+        context_type=context_type,
+        request=request,
+        repository_id=RepositoryId(row.repository_id) if row.repository_id else None,
+        revision=row.revision,
+        candidates=[ContextCandidate.model_validate(c) for c in row.candidates],
+        allocations=[BudgetAllocation.model_validate(a) for a in row.allocations],
+        total_tokens=row.total_tokens,
+        model_budget_tokens=row.model_budget_tokens,
+        created_at=row.created_at,
+        metadata=dict(row.capsule_metadata or {}),
+    )

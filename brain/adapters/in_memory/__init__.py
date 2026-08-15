@@ -8,6 +8,7 @@ from brain.adapters.in_memory.artifact_store import InMemoryArtifactStore
 from brain.adapters.in_memory.catalog import NullSoftwareCatalog
 from brain.adapters.in_memory.checkpoint_store import InMemoryCheckpointStore
 from brain.adapters.in_memory.code_graph import InMemoryCodeGraphRepository
+from brain.adapters.in_memory.context import InMemoryContextCapsuleRepository
 from brain.adapters.in_memory.event_bus import InMemoryEventBus
 from brain.adapters.in_memory.event_log import InMemoryEventLogRepository
 from brain.adapters.in_memory.idempotency import InMemoryIdempotencyStore
@@ -35,6 +36,7 @@ __all__ = [
     "InMemoryArtifactStore",
     "InMemoryCheckpointStore",
     "InMemoryCodeGraphRepository",
+    "InMemoryContextCapsuleRepository",
     "InMemoryDecisionRepository",
     "InMemoryDocumentRepository",
     "InMemoryEventBus",

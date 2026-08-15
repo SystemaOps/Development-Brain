@@ -7,6 +7,12 @@ adapters and against PostgreSQL alike.
 """
 
 from brain.application.code_intelligence import CodeIndexResult, CodeIntelligenceService
+from brain.application.context_engine import (
+    BudgetAllocator,
+    BuildResult,
+    ContextEngineService,
+    ContextRanker,
+)
 from brain.application.document_ingestion import (
     DocumentIngestionResult,
     DocumentIngestionService,
@@ -20,16 +26,22 @@ from brain.application.graph_integrity import (
 from brain.application.graph_projection import GraphProjectionResult, GraphProjectionService
 from brain.application.hybrid_retrieval import HybridRetrievalService, RetrievalCandidate
 from brain.application.impact_analysis import ImpactAnalysis, ImpactAnalysisService
+from brain.application.jit_retrieval import JustInTimeRetrieval
 from brain.application.lexical_search import LexicalSearchService, tokenize
 from brain.application.projections import CanonicalStateProjection
 from brain.application.revisions import IncrementalRevisionHandler
 from brain.application.semantic_indexing import IndexingResult, SemanticIndexingService
+from brain.application.token_estimation import TokenEstimator
 from brain.application.topology import TopologyDiscoveryResult, TopologyDiscoveryService
 
 __all__ = [
+    "BudgetAllocator",
+    "BuildResult",
     "CanonicalStateProjection",
     "CodeIndexResult",
     "CodeIntelligenceService",
+    "ContextEngineService",
+    "ContextRanker",
     "DocumentIngestionResult",
     "DocumentIngestionService",
     "GraphIntegrityChecker",
@@ -43,10 +55,12 @@ __all__ = [
     "IncrementalRevisionHandler",
     "IndexingResult",
     "IntegrityIssue",
+    "JustInTimeRetrieval",
     "LexicalSearchService",
     "ProcessOutcome",
     "RetrievalCandidate",
     "SemanticIndexingService",
+    "TokenEstimator",
     "TopologyDiscoveryResult",
     "TopologyDiscoveryService",
     "tokenize",
