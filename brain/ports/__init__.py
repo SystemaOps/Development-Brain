@@ -26,6 +26,7 @@ from brain.ports.parsing import (
     ParserRegistry,
     ParserSelectionPolicy,
 )
+from brain.ports.planning import PlanRepository
 from brain.ports.pull_request import PullRequest, PullRequestPort
 from brain.ports.repositories import (
     ActorRepository,
@@ -83,6 +84,7 @@ __all__ = [
     "LanguageParser",
     "ParserRegistry",
     "ParserSelectionPolicy",
+    "PlanRepository",
     "ProjectRepository",
     "PullRequest",
     "PullRequestPort",

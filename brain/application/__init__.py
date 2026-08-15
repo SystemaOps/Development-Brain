@@ -28,6 +28,7 @@ from brain.application.hybrid_retrieval import HybridRetrievalService, Retrieval
 from brain.application.impact_analysis import ImpactAnalysis, ImpactAnalysisService
 from brain.application.jit_retrieval import JustInTimeRetrieval
 from brain.application.lexical_search import LexicalSearchService, tokenize
+from brain.application.planning import PlanningResult, PlanningService
 from brain.application.projections import CanonicalStateProjection
 from brain.application.revisions import IncrementalRevisionHandler
 from brain.application.semantic_indexing import IndexingResult, SemanticIndexingService
@@ -58,6 +59,8 @@ __all__ = [
     "JustInTimeRetrieval",
     "LexicalSearchService",
     "ProcessOutcome",
+    "PlanningResult",
+    "PlanningService",
     "RetrievalCandidate",
     "SemanticIndexingService",
     "TokenEstimator",

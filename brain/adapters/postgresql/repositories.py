@@ -33,6 +33,7 @@ from brain.adapters.postgresql.tables import (
     ExternalReferenceRow,
     IdempotencyKeyRow,
     InterfaceRow,
+    PlanRow,
     ProjectRow,
     RepositoryChangeSetRow,
     RepositoryRow,
@@ -80,11 +81,19 @@ from brain.domain.identity import (
     DocumentVersionId,
     EvidenceId,
     ExecutionId,
+    PlanId,
     ProjectId,
     RepositoryId,
     RequirementId,
     VerificationId,
     WorkItemId,
+)
+from brain.domain.planning import (
+    AmbiguityAssessment,
+    Plan,
+    PlanEvidence,
+    PlanItem,
+    PlanStatus,
 )
 from brain.domain.projects import Project
 from brain.domain.repositories import Repository
@@ -1775,4 +1784,68 @@ def _capsule_from_row(row: ContextCapsuleRow) -> ContextCapsule:
         model_budget_tokens=row.model_budget_tokens,
         created_at=row.created_at,
         metadata=dict(row.capsule_metadata or {}),
+    )
+
+
+class PostgresPlanRepository(_PostgresRepository):
+    """Durable reconciled engineering plans (Phase 11)."""
+
+    async def save_plan(self, plan: Plan) -> Plan:
+        stmt = pg_insert(PlanRow).values(
+            id=plan.id,
+            project_id=plan.project_id,
+            title=plan.title,
+            status=_as_str(plan.status),
+            created_at=plan.created_at,
+            items=dump_models(plan.items),
+            assessments=dump_models(plan.assessments),
+            evidence=dump_models(plan.evidence),
+            validation_errors=list(plan.validation_errors),
+        )
+        await self._session.execute(
+            stmt.on_conflict_do_update(
+                index_elements=["id"],
+                set_={
+                    "project_id": plan.project_id,
+                    "title": plan.title,
+                    "status": _as_str(plan.status),
+                    "created_at": plan.created_at,
+                    "items": dump_models(plan.items),
+                    "assessments": dump_models(plan.assessments),
+                    "evidence": dump_models(plan.evidence),
+                    "validation_errors": list(plan.validation_errors),
+                },
+            )
+        )
+        await self._session.flush()
+        return plan
+
+    async def get_plan(self, plan_id: PlanId) -> Plan | None:
+        row = await self._session.get(PlanRow, plan_id)
+        return _plan_from_row(row) if row is not None else None
+
+    async def list_plans_for_project(self, project_id: ProjectId) -> list[Plan]:
+        result = await self._session.execute(
+            select(PlanRow).where(PlanRow.project_id == project_id).order_by(PlanRow.created_at)
+        )
+        return [_plan_from_row(row) for row in result.scalars().all()]
+
+    async def delete_plan(self, plan_id: PlanId) -> None:
+        row = await self._session.get(PlanRow, plan_id)
+        if row is not None:
+            await self._session.delete(row)
+            await self._session.flush()
+
+
+def _plan_from_row(row: PlanRow) -> Plan:
+    return Plan(
+        id=PlanId(row.id),
+        project_id=ProjectId(row.project_id),
+        title=row.title,
+        status=PlanStatus(row.status),
+        created_at=row.created_at,
+        items=[PlanItem.model_validate(item) for item in row.items],
+        assessments=[AmbiguityAssessment.model_validate(a) for a in row.assessments],
+        evidence=[PlanEvidence.model_validate(e) for e in row.evidence],
+        validation_errors=list(row.validation_errors or []),
     )

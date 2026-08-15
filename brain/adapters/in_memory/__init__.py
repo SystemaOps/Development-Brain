@@ -13,6 +13,7 @@ from brain.adapters.in_memory.event_bus import InMemoryEventBus
 from brain.adapters.in_memory.event_log import InMemoryEventLogRepository
 from brain.adapters.in_memory.idempotency import InMemoryIdempotencyStore
 from brain.adapters.in_memory.knowledge_graph import InMemoryKnowledgeGraph
+from brain.adapters.in_memory.planning import InMemoryPlanRepository
 from brain.adapters.in_memory.repositories import (
     InMemoryActorRepository,
     InMemoryArtifactRepository,
@@ -45,6 +46,7 @@ __all__ = [
     "InMemoryExecutionRepository",
     "InMemoryIdempotencyStore",
     "InMemoryKnowledgeGraph",
+    "InMemoryPlanRepository",
     "InMemoryProjectRepository",
     "InMemoryRepositoryChangeSetRepository",
     "InMemoryRepositoryRepository",

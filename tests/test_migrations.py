@@ -35,6 +35,7 @@ EXPECTED_TABLES = {
     "executions",
     "external_references",
     "interfaces",
+    "plans",
     "projects",
     "repositories",
     "repository_change_sets",

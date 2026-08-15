@@ -28,6 +28,7 @@ from brain.adapters.postgresql.repositories import (
     PostgresEvidenceRepository,
     PostgresExecutionRepository,
     PostgresIdempotencyStore,
+    PostgresPlanRepository,
     PostgresProjectRepository,
     PostgresRepositoryChangeSetRepository,
     PostgresRepositoryRepository,
@@ -84,6 +85,7 @@ class PostgresRepositories:
         self.software_catalog = PostgresSoftwareCatalogRepository(session)
         self.code_graph = PostgresCodeGraphRepository(session)
         self.context_capsules = PostgresContextCapsuleRepository(session)
+        self.plans = PostgresPlanRepository(session)
 
     @property
     def session(self) -> AsyncSession:

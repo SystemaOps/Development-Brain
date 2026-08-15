@@ -120,6 +120,15 @@ from brain.domain.parsing import (
     ReferenceKind,
     SemanticChunk,
 )
+from brain.domain.planning import (
+    AmbiguityAssessment,
+    Plan,
+    PlanEvidence,
+    PlanItem,
+    PlanItemType,
+    PlanStatus,
+    RequirementClarity,
+)
 from brain.domain.projects import Project, ProjectStatus
 from brain.domain.repositories import Repository
 from brain.domain.repository_scan import (
@@ -176,6 +185,7 @@ __all__ = [
     "ActorId",
     "ActorType",
     "AdrSections",
+    "AmbiguityAssessment",
     "Artifact",
     "ArtifactId",
     "ArtifactType",
@@ -258,6 +268,12 @@ __all__ = [
     "ParsedFile",
     "ParsedNode",
     "ParsedTable",
+    "Plan",
+    "PlanEvidence",
+    "PlanId",
+    "PlanItem",
+    "PlanItemType",
+    "PlanStatus",
     "PlanningContextCapsule",
     "Priority",
     "Project",
@@ -285,6 +301,7 @@ __all__ = [
     "RequirementSource",
     "RequirementSourceType",
     "RequirementStatus",
+    "RequirementClarity",
     "Resource",
     "ResourceCandidate",
     "ResourceType",

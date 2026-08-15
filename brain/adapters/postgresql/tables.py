@@ -555,4 +555,22 @@ class ContextCapsuleRow(Base):
     )
 
 
+class PlanRow(Base):
+    """A reconciled engineering plan (Phase 11)."""
+
+    __tablename__ = "plans"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    project_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    title: Mapped[str] = mapped_column(String(500))
+    status: Mapped[str] = mapped_column(String(30))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    items: Mapped[list[dict[str, object]]] = mapped_column(JSONB, default=list)
+    assessments: Mapped[list[dict[str, object]]] = mapped_column(JSONB, default=list)
+    evidence: Mapped[list[dict[str, object]]] = mapped_column(JSONB, default=list)
+    validation_errors: Mapped[list[str]] = mapped_column(JSONB, default=list)
+
+    __table_args__ = (Index("ix_plans_project_id", "project_id"),)
+
+
 metadata = Base.metadata

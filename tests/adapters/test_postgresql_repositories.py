@@ -35,6 +35,7 @@ from brain.domain.repositories import Repository
 from brain.domain.verification import VerificationResult, VerificationVerdict
 from brain.domain.work_items import WorkItem
 from brain.ports.code_intelligence import CodeGraphRepository
+from brain.ports.planning import PlanRepository
 from brain.ports.repositories import (
     ActorRepository,
     ArtifactRepository,
@@ -52,6 +53,7 @@ from brain.ports.topology import SoftwareCatalogRepository
 from tests.contracts.code_graph import CodeGraphRepositoryContract
 from tests.contracts.document_repository import DocumentRepositoryContract
 from tests.contracts.execution_repository import ExecutionRepositoryContract
+from tests.contracts.plan_repository import PlanRepositoryContract
 from tests.contracts.project_repository import ProjectRepositoryContract
 from tests.contracts.requirement_repository import RequirementRepositoryContract
 from tests.contracts.software_catalog import SoftwareCatalogRepositoryContract
@@ -103,6 +105,12 @@ class TestPostgresCodeGraphRepository(CodeGraphRepositoryContract):
     @pytest.fixture
     def code_graph_repository(self, postgres_session: AsyncSession) -> CodeGraphRepository:
         return create_repositories(postgres_session).code_graph
+
+
+class TestPostgresPlanRepository(PlanRepositoryContract):
+    @pytest.fixture
+    def plan_repository(self, postgres_session: AsyncSession) -> PlanRepository:
+        return create_repositories(postgres_session).plans
 
 
 async def test_actor_repository_round_trip(postgres_session: AsyncSession) -> None:
