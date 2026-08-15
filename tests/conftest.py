@@ -73,6 +73,7 @@ async def postgres_engine(postgres_settings: DatabaseSettings) -> AsyncIterator[
 async def postgres_session(postgres_engine: AsyncEngine) -> AsyncIterator[AsyncSession]:
     """Session with the schema present, isolated per test via rollback."""
     async with postgres_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
     factory = async_session_factory(postgres_engine)
     session = factory()

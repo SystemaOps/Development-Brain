@@ -157,6 +157,12 @@ class InMemoryDocumentRepository:
     async def list_by_project(self, project_id: ProjectId) -> list[Document]:
         return [d for d in await self._documents.list_all() if d.project_id == project_id]
 
+    async def find_by_source(self, project_id: ProjectId, source_uri: str) -> Document | None:
+        for d in await self._documents.list_all():
+            if d.project_id == project_id and d.source.uri == source_uri:
+                return d
+        return None
+
     async def update(self, document: Document) -> Document:
         return await self._documents.upsert(document, document.id)
 

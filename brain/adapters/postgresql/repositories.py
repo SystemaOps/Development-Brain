@@ -363,6 +363,16 @@ class PostgresDocumentRepository(_PostgresRepository):
         )
         return [_document_from_row(row) for row in result.scalars().all()]
 
+    async def find_by_source(self, project_id: ProjectId, source_uri: str) -> Document | None:
+        result = await self._session.execute(
+            select(DocumentRow).where(
+                DocumentRow.project_id == project_id,
+                DocumentRow.source["uri"].astext == source_uri,
+            )
+        )
+        row = result.scalar_one_or_none()
+        return _document_from_row(row) if row is not None else None
+
     async def update(self, document: Document) -> Document:
         row = await self._session.get(DocumentRow, document.id)
         if row is None:
@@ -427,6 +437,7 @@ class PostgresDocumentRepository(_PostgresRepository):
                 requirement_refs=dump_uuids(node.requirement_refs),
                 work_item_refs=dump_uuids(node.work_item_refs),
                 links=list(node.links),
+                unresolved_refs=list(node.unresolved_refs),
             )
         )
         await self._session.flush()
@@ -833,6 +844,7 @@ def _document_node_from_row(row: DocumentNodeRow) -> DocumentNode:
             "requirement_refs": row.requirement_refs,
             "work_item_refs": row.work_item_refs,
             "links": row.links,
+            "unresolved_refs": row.unresolved_refs,
         }
     )
 

@@ -15,10 +15,11 @@ from brain.ports.repositories import DocumentRepository
 
 
 def _document(project: Project, title: str, **kwargs: object) -> Document:
+    source = kwargs.pop("source", DocumentSource(provider="git_markdown", uri=f"{title}.md"))
     return Document(
         project_id=project.id,
         title=title,
-        source=DocumentSource(provider="git_markdown", uri=f"{title}.md"),
+        source=source,  # type: ignore[arg-type]
         **kwargs,
     )
 
@@ -90,3 +91,16 @@ class DocumentRepositoryContract:
         nodes = await document_repository.list_nodes(version.id)
         assert {n.id for n in nodes} == {root.id, child.id}
         assert child.heading_path == ["Root", "Child"]
+
+    async def test_find_by_source(self, document_repository: DocumentRepository) -> None:
+        project_a = Project(name="a")
+        project_b = Project(name="b")
+        source = "docs/README.md"
+        doc_a = _document(project_a, "README", source=DocumentSource(provider="git", uri=source))
+        doc_b = _document(project_b, "README", source=DocumentSource(provider="git", uri=source))
+        await document_repository.create(doc_a)
+        await document_repository.create(doc_b)
+
+        assert (await document_repository.find_by_source(project_a.id, source)).id == doc_a.id
+        assert (await document_repository.find_by_source(project_b.id, source)).id == doc_b.id
+        assert await document_repository.find_by_source(project_a.id, "docs/other.md") is None

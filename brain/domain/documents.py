@@ -52,6 +52,7 @@ class SourceArtifact(BaseModel):
     revision: str | None = None
     content_hash: str | None = None
     raw_bytes_ref: str | None = None
+    content: bytes | None = None
     metadata: dict[str, object] = Field(default_factory=dict)
 
 
@@ -102,3 +103,4 @@ class DocumentNode(BaseModel):
     requirement_refs: list[RequirementId] = Field(default_factory=list)
     work_item_refs: list[WorkItemId] = Field(default_factory=list)
     links: list[str] = Field(default_factory=list)
+    unresolved_refs: list[str] = Field(default_factory=list)

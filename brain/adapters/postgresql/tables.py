@@ -156,6 +156,7 @@ class DocumentNodeRow(Base):
     requirement_refs: Mapped[list[str]] = mapped_column(JSONB, default=list)
     work_item_refs: Mapped[list[str]] = mapped_column(JSONB, default=list)
     links: Mapped[list[str]] = mapped_column(JSONB, default=list)
+    unresolved_refs: Mapped[list[str]] = mapped_column(JSONB, default=list)
 
     __table_args__ = (Index("ix_document_nodes_version_id", "version_id"),)
 

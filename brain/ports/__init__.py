@@ -13,6 +13,12 @@ from brain.ports.event_log import EventLogRepository
 from brain.ports.executor import ExecutorPort
 from brain.ports.idempotency import IdempotencyStore
 from brain.ports.knowledge_graph import GraphEntity, GraphRelation, KnowledgeGraphRepository
+from brain.ports.parsing import (
+    DocumentParser,
+    EntityExtractor,
+    ParserRegistry,
+    ParserSelectionPolicy,
+)
 from brain.ports.pull_request import PullRequest, PullRequestPort
 from brain.ports.repositories import (
     ActorRepository,
@@ -43,8 +49,10 @@ __all__ = [
     "CheckpointStore",
     "CIValidationPort",
     "DecisionRepository",
+    "DocumentParser",
     "DocumentRepository",
     "DocumentationPort",
+    "EntityExtractor",
     "EventBus",
     "EventHandler",
     "EventLogRepository",
@@ -55,6 +63,8 @@ __all__ = [
     "GraphRelation",
     "IdempotencyStore",
     "KnowledgeGraphRepository",
+    "ParserRegistry",
+    "ParserSelectionPolicy",
     "ProjectRepository",
     "PullRequest",
     "PullRequestPort",

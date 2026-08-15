@@ -1,6 +1,8 @@
 # ==========================================
 # 1. React / Frontend (Node & Bundlers)
 # ==========================================
+AGENT.md
+
 # Dependencies
 node_modules/
 .pnp

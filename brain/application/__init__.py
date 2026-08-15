@@ -6,12 +6,18 @@ import adapters or provider SDKs: every dependency is an interface from
 adapters and against PostgreSQL alike.
 """
 
+from brain.application.document_ingestion import (
+    DocumentIngestionResult,
+    DocumentIngestionService,
+)
 from brain.application.events import IncomingEventProcessor, ProcessOutcome
 from brain.application.projections import CanonicalStateProjection
 from brain.application.revisions import IncrementalRevisionHandler
 
 __all__ = [
     "CanonicalStateProjection",
+    "DocumentIngestionResult",
+    "DocumentIngestionService",
     "IncomingEventProcessor",
     "IncrementalRevisionHandler",
     "ProcessOutcome",
