@@ -32,6 +32,14 @@ from brain.domain.projects import Project
 from brain.domain.repositories import Repository
 from brain.domain.repository_scan import RepositoryChangeSet, RepositorySnapshot
 from brain.domain.requirements import Requirement
+from brain.domain.software_model import (
+    Interface,
+    Resource,
+    SoftwareComponent,
+    SoftwareDomain,
+    System,
+)
+from brain.domain.topology import DependencyCandidate, TopologyClaim
 from brain.domain.verification import VerificationResult
 from brain.domain.work_items import WorkItem
 
@@ -299,3 +307,62 @@ class InMemoryRepositoryChangeSetRepository:
 
     async def list_change_sets(self, repository_id: RepositoryId) -> list[RepositoryChangeSet]:
         return [cs for cs in self._change_sets if cs.repository_id == repository_id]
+
+
+class InMemorySoftwareCatalogRepository:
+    """In-memory reference implementation of :class:`SoftwareCatalogRepository`."""
+
+    def __init__(self) -> None:
+        self._domains = InMemoryCollection[SoftwareDomain]()
+        self._systems = InMemoryCollection[System]()
+        self._components = InMemoryCollection[SoftwareComponent]()
+        self._interfaces = InMemoryCollection[Interface]()
+        self._resources = InMemoryCollection[Resource]()
+        self._claims: list[TopologyClaim] = []
+        self._dependencies: list[DependencyCandidate] = []
+
+    async def upsert_domain(self, domain: SoftwareDomain) -> SoftwareDomain:
+        return await self._domains.upsert(domain, domain.id)
+
+    async def upsert_system(self, system: System) -> System:
+        return await self._systems.upsert(system, system.id)
+
+    async def upsert_component(self, component: SoftwareComponent) -> SoftwareComponent:
+        return await self._components.upsert(component, component.id)
+
+    async def upsert_interface(self, interface: Interface) -> Interface:
+        return await self._interfaces.upsert(interface, interface.id)
+
+    async def upsert_resource(self, resource: Resource) -> Resource:
+        return await self._resources.upsert(resource, resource.id)
+
+    async def save_claims(self, claims: list[TopologyClaim]) -> list[TopologyClaim]:
+        self._claims.extend(claims)
+        return claims
+
+    async def save_dependencies(
+        self, dependencies: list[DependencyCandidate]
+    ) -> list[DependencyCandidate]:
+        self._dependencies.extend(dependencies)
+        return dependencies
+
+    async def list_claims(self, repository_id: RepositoryId) -> list[TopologyClaim]:
+        return [c for c in self._claims if c.repository_id == repository_id]
+
+    async def list_systems(self, project_id: ProjectId) -> list[System]:
+        return [s for s in await self._systems.list_all() if s.project_id == project_id]
+
+    async def list_components(self, project_id: ProjectId) -> list[SoftwareComponent]:
+        return [c for c in await self._components.list_all() if c.project_id == project_id]
+
+    async def list_interfaces(self, project_id: ProjectId) -> list[Interface]:
+        components = await self.list_components(project_id)
+        component_ids = {c.id for c in components}
+        return [i for i in await self._interfaces.list_all() if i.component_id in component_ids]
+
+    async def list_resources(self, project_id: ProjectId) -> list[Resource]:
+        return [r for r in await self._resources.list_all() if r.project_id == project_id]
+
+    async def list_dependencies(self, project_id: ProjectId, component_name: str) -> list[str]:
+        del project_id
+        return [dep.target for dep in self._dependencies if dep.source == component_name]

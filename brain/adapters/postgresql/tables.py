@@ -343,4 +343,119 @@ class RepositoryChangeSetRow(Base):
     __table_args__ = (Index("ix_repository_change_sets_repository_id", "repository_id"),)
 
 
+class SoftwareDomainRow(Base):
+    """Canonical software domain (Phase 6)."""
+
+    __tablename__ = "software_domains"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    project_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    name: Mapped[str] = mapped_column(String(255))
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    system_ids: Mapped[list[str]] = mapped_column(JSONB, default=list)
+    external_refs: Mapped[list[dict[str, object]]] = mapped_column(JSONB, default=list)
+
+    __table_args__ = (Index("ix_software_domains_project_id", "project_id"),)
+
+
+class SystemRow(Base):
+    __tablename__ = "systems"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    project_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    domain_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    name: Mapped[str] = mapped_column(String(255))
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    component_ids: Mapped[list[str]] = mapped_column(JSONB, default=list)
+    external_refs: Mapped[list[dict[str, object]]] = mapped_column(JSONB, default=list)
+
+    __table_args__ = (Index("ix_systems_project_id", "project_id"),)
+
+
+class SoftwareComponentRow(Base):
+    __tablename__ = "software_components"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    project_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    name: Mapped[str] = mapped_column(String(500))
+    component_type: Mapped[str] = mapped_column(String(50))
+    repository_ids: Mapped[list[str]] = mapped_column(JSONB, default=list)
+    owner: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    lifecycle: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    provenance: Mapped[list[dict[str, object]]] = mapped_column(JSONB, default=list)
+    external_refs: Mapped[list[dict[str, object]]] = mapped_column(JSONB, default=list)
+
+    __table_args__ = (Index("ix_software_components_project_id", "project_id"),)
+
+
+class InterfaceRow(Base):
+    __tablename__ = "interfaces"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    component_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    type: Mapped[str] = mapped_column(String(50))
+    name: Mapped[str] = mapped_column(String(500))
+    schema_ref: Mapped[str | None] = mapped_column(Text, nullable=True)
+    external_refs: Mapped[list[dict[str, object]]] = mapped_column(JSONB, default=list)
+
+    __table_args__ = (Index("ix_interfaces_component_id", "component_id"),)
+
+
+class ResourceRow(Base):
+    __tablename__ = "resources"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    project_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    name: Mapped[str] = mapped_column(String(500))
+    resource_type: Mapped[str] = mapped_column(String(50))
+    external_refs: Mapped[list[dict[str, object]]] = mapped_column(JSONB, default=list)
+    provenance: Mapped[list[dict[str, object]]] = mapped_column(JSONB, default=list)
+
+    __table_args__ = (Index("ix_resources_project_id", "project_id"),)
+
+
+class TopologyClaimRow(Base):
+    """A single reconciliation claim about a topology entity (Phase 6).
+
+    Claims are never overwritten: declared / discovered / inferred facts about
+    the same entity all persist so disagreement is preserved.
+    """
+
+    __tablename__ = "topology_claims"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    entity_kind: Mapped[str] = mapped_column(String(30))
+    entity_name: Mapped[str] = mapped_column(String(500))
+    attribute: Mapped[str] = mapped_column(String(100))
+    value: Mapped[str] = mapped_column(String(100))
+    repository_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    revision: Mapped[str] = mapped_column(String(255))
+    origin: Mapped[str] = mapped_column(String(30))
+    confidence: Mapped[str] = mapped_column(String(30))
+    provenance: Mapped[dict[str, object]] = mapped_column(JSONB, default=dict)
+    recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        Index("ix_topology_claims_repository_id", "repository_id"),
+        Index("ix_topology_claims_entity", "entity_kind", "entity_name"),
+    )
+
+
+class TopologyDependencyRow(Base):
+    """A persisted dependency between two topology entities (Phase 6)."""
+
+    __tablename__ = "topology_dependencies"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    project_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    source: Mapped[str] = mapped_column(String(500))
+    target: Mapped[str] = mapped_column(String(500))
+    relation: Mapped[str] = mapped_column(String(50))
+    repository_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    revision: Mapped[str] = mapped_column(String(255))
+    provenance: Mapped[dict[str, object]] = mapped_column(JSONB, default=dict)
+
+    __table_args__ = (Index("ix_topology_dependencies_project", "project_id", "source"),)
+
+
 metadata = Base.metadata

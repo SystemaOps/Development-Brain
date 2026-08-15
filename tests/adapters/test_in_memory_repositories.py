@@ -16,6 +16,7 @@ from brain.adapters.in_memory.repositories import (
     InMemoryProjectRepository,
     InMemoryRepositoryRepository,
     InMemoryRequirementRepository,
+    InMemorySoftwareCatalogRepository,
     InMemoryVerificationResultRepository,
     InMemoryWorkItemRepository,
 )
@@ -42,10 +43,12 @@ from brain.ports.repositories import (
     VerificationResultRepository,
     WorkItemRepository,
 )
+from brain.ports.topology import SoftwareCatalogRepository
 from tests.contracts.document_repository import DocumentRepositoryContract
 from tests.contracts.execution_repository import ExecutionRepositoryContract
 from tests.contracts.project_repository import ProjectRepositoryContract
 from tests.contracts.requirement_repository import RequirementRepositoryContract
+from tests.contracts.software_catalog import SoftwareCatalogRepositoryContract
 from tests.contracts.work_item_repository import WorkItemRepositoryContract
 
 
@@ -82,6 +85,12 @@ class TestInMemoryExecutionRepository(ExecutionRepositoryContract):
     @pytest.fixture
     def execution_repository(self) -> ExecutionRepository:
         return InMemoryExecutionRepository()
+
+
+class TestInMemorySoftwareCatalogRepository(SoftwareCatalogRepositoryContract):
+    @pytest.fixture
+    def catalog_repository(self) -> SoftwareCatalogRepository:
+        return InMemorySoftwareCatalogRepository()
 
 
 async def test_actor_repository_round_trip() -> None:

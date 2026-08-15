@@ -47,10 +47,12 @@ from brain.ports.repositories import (
     VerificationResultRepository,
     WorkItemRepository,
 )
+from brain.ports.topology import SoftwareCatalogRepository
 from tests.contracts.document_repository import DocumentRepositoryContract
 from tests.contracts.execution_repository import ExecutionRepositoryContract
 from tests.contracts.project_repository import ProjectRepositoryContract
 from tests.contracts.requirement_repository import RequirementRepositoryContract
+from tests.contracts.software_catalog import SoftwareCatalogRepositoryContract
 from tests.contracts.work_item_repository import WorkItemRepositoryContract
 
 
@@ -87,6 +89,12 @@ class TestPostgresExecutionRepository(ExecutionRepositoryContract):
     @pytest.fixture
     def execution_repository(self, postgres_session: AsyncSession) -> ExecutionRepository:
         return create_repositories(postgres_session).executions
+
+
+class TestPostgresSoftwareCatalogRepository(SoftwareCatalogRepositoryContract):
+    @pytest.fixture
+    def catalog_repository(self, postgres_session: AsyncSession) -> SoftwareCatalogRepository:
+        return create_repositories(postgres_session).software_catalog
 
 
 async def test_actor_repository_round_trip(postgres_session: AsyncSession) -> None:

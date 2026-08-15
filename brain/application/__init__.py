@@ -13,6 +13,7 @@ from brain.application.document_ingestion import (
 from brain.application.events import IncomingEventProcessor, ProcessOutcome
 from brain.application.projections import CanonicalStateProjection
 from brain.application.revisions import IncrementalRevisionHandler
+from brain.application.topology import TopologyDiscoveryResult, TopologyDiscoveryService
 
 __all__ = [
     "CanonicalStateProjection",
@@ -21,4 +22,6 @@ __all__ = [
     "IncomingEventProcessor",
     "IncrementalRevisionHandler",
     "ProcessOutcome",
+    "TopologyDiscoveryResult",
+    "TopologyDiscoveryService",
 ]

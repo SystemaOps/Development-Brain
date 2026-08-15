@@ -10,6 +10,7 @@ dependencies = [
     "markdown-it-py>=3",
     "pydantic>=2.7",
     "pypdf>=4",
+    "pyyaml>=6",
     "sqlalchemy>=2.0",
 ]
 
@@ -19,6 +20,7 @@ dev = [
     "pytest-asyncio>=0.23",
     "ruff>=0.5",
     "mypy>=1.10",
+    "types-pyyaml>=6.0.12.20260815",
 ]
 
 [build-system]

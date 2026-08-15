@@ -40,6 +40,11 @@ from brain.ports.repository_scan import (
 from brain.ports.semantic_index import SemanticIndex
 from brain.ports.software_catalog import SoftwareCatalogPort
 from brain.ports.source_control import SourceControlPort
+from brain.ports.topology import (
+    DerivedSoftwareCatalog,
+    SoftwareCatalogRepository,
+    TopologyDiscoveryPort,
+)
 from brain.ports.work_management import WorkManagementPort
 
 __all__ = [
@@ -49,6 +54,7 @@ __all__ = [
     "CheckpointStore",
     "CIValidationPort",
     "DecisionRepository",
+    "DerivedSoftwareCatalog",
     "DocumentParser",
     "DocumentRepository",
     "DocumentationPort",
@@ -74,7 +80,9 @@ __all__ = [
     "RequirementRepository",
     "SemanticIndex",
     "SoftwareCatalogPort",
+    "SoftwareCatalogRepository",
     "SourceControlPort",
+    "TopologyDiscoveryPort",
     "VerificationResultRepository",
     "WorkItemRepository",
     "WorkManagementPort",

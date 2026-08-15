@@ -15,7 +15,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from brain.adapters.postgresql.serialization import dump_models, dump_uuids
+from brain.adapters.postgresql.serialization import dump_model, dump_models, dump_uuids
 from brain.adapters.postgresql.tables import (
     ActorRow,
     ArtifactRow,
@@ -28,11 +28,18 @@ from brain.adapters.postgresql.tables import (
     ExecutionRow,
     ExternalReferenceRow,
     IdempotencyKeyRow,
+    InterfaceRow,
     ProjectRow,
     RepositoryChangeSetRow,
     RepositoryRow,
     RepositorySnapshotRow,
     RequirementRow,
+    ResourceRow,
+    SoftwareComponentRow,
+    SoftwareDomainRow,
+    SystemRow,
+    TopologyClaimRow,
+    TopologyDependencyRow,
     VerificationResultRow,
     WorkItemRow,
 )
@@ -67,6 +74,14 @@ from brain.domain.repository_scan import (
     RepositorySnapshot,
 )
 from brain.domain.requirements import Requirement
+from brain.domain.software_model import (
+    Interface,
+    Resource,
+    SoftwareComponent,
+    SoftwareDomain,
+    System,
+)
+from brain.domain.topology import CandidateKind, DependencyCandidate, TopologyClaim
 from brain.domain.verification import VerificationResult
 from brain.domain.work_items import WorkItem
 
@@ -1125,4 +1140,287 @@ def _changed_file_from_dict(data: dict[str, object]) -> ChangedFile:
         path=str(data["path"]),
         category=FileCategory(str(data["category"])),
         change_type=str(data.get("change_type", "modified")),
+    )
+
+
+class PostgresSoftwareCatalogRepository(_PostgresRepository):
+    """Durable software catalog persisted for a project (Phase 6)."""
+
+    async def upsert_domain(self, domain: SoftwareDomain) -> SoftwareDomain:
+        row = await self._session.get(SoftwareDomainRow, domain.id)
+        if row is None:
+            self._session.add(
+                SoftwareDomainRow(
+                    id=domain.id,
+                    project_id=domain.project_id,
+                    name=domain.name,
+                    description=domain.description,
+                    system_ids=dump_uuids(domain.system_ids),
+                    external_refs=dump_models(domain.external_refs),
+                )
+            )
+        else:
+            row.name = domain.name
+            row.description = domain.description
+            row.system_ids = dump_uuids(domain.system_ids)
+            row.external_refs = dump_models(domain.external_refs)
+        await self._session.flush()
+        return domain
+
+    async def upsert_system(self, system: System) -> System:
+        row = await self._session.get(SystemRow, system.id)
+        if row is None:
+            self._session.add(
+                SystemRow(
+                    id=system.id,
+                    project_id=system.project_id,
+                    domain_id=system.domain_id,
+                    name=system.name,
+                    description=system.description,
+                    component_ids=dump_uuids(system.component_ids),
+                    external_refs=dump_models(system.external_refs),
+                )
+            )
+        else:
+            row.project_id = system.project_id
+            row.domain_id = system.domain_id
+            row.name = system.name
+            row.description = system.description
+            row.component_ids = dump_uuids(system.component_ids)
+            row.external_refs = dump_models(system.external_refs)
+        await self._session.flush()
+        return system
+
+    async def upsert_component(self, component: SoftwareComponent) -> SoftwareComponent:
+        row = await self._session.get(SoftwareComponentRow, component.id)
+        if row is None:
+            self._session.add(
+                SoftwareComponentRow(
+                    id=component.id,
+                    project_id=component.project_id,
+                    name=component.name,
+                    component_type=_as_str(component.component_type),
+                    repository_ids=dump_uuids(component.repository_ids),
+                    owner=component.owner,
+                    lifecycle=_as_str(component.lifecycle) if component.lifecycle else None,
+                    provenance=dump_models(component.provenance),
+                    external_refs=dump_models(component.external_refs),
+                )
+            )
+        else:
+            row.project_id = component.project_id
+            row.name = component.name
+            row.component_type = _as_str(component.component_type)
+            row.repository_ids = dump_uuids(component.repository_ids)
+            row.owner = component.owner
+            row.lifecycle = _as_str(component.lifecycle) if component.lifecycle else None
+            row.provenance = dump_models(component.provenance)
+            row.external_refs = dump_models(component.external_refs)
+        await self._session.flush()
+        return component
+
+    async def upsert_interface(self, interface: Interface) -> Interface:
+        row = await self._session.get(InterfaceRow, interface.id)
+        if row is None:
+            self._session.add(
+                InterfaceRow(
+                    id=interface.id,
+                    component_id=interface.component_id,
+                    type=_as_str(interface.type),
+                    name=interface.name,
+                    schema_ref=interface.schema_ref,
+                    external_refs=dump_models(interface.external_refs),
+                )
+            )
+        else:
+            row.component_id = interface.component_id
+            row.type = _as_str(interface.type)
+            row.name = interface.name
+            row.schema_ref = interface.schema_ref
+            row.external_refs = dump_models(interface.external_refs)
+        await self._session.flush()
+        return interface
+
+    async def upsert_resource(self, resource: Resource) -> Resource:
+        row = await self._session.get(ResourceRow, resource.id)
+        if row is None:
+            self._session.add(
+                ResourceRow(
+                    id=resource.id,
+                    project_id=resource.project_id,
+                    name=resource.name,
+                    resource_type=_as_str(resource.resource_type),
+                    external_refs=dump_models(resource.external_refs),
+                    provenance=dump_models(resource.provenance),
+                )
+            )
+        else:
+            row.project_id = resource.project_id
+            row.name = resource.name
+            row.resource_type = _as_str(resource.resource_type)
+            row.external_refs = dump_models(resource.external_refs)
+            row.provenance = dump_models(resource.provenance)
+        await self._session.flush()
+        return resource
+
+    async def save_claims(self, claims: list[TopologyClaim]) -> list[TopologyClaim]:
+        for claim in claims:
+            self._session.add(
+                TopologyClaimRow(
+                    id=claim.id,
+                    entity_kind=claim.entity_kind.value,
+                    entity_name=claim.entity_name,
+                    attribute=claim.attribute,
+                    value=claim.value,
+                    repository_id=claim.repository_id,
+                    revision=claim.revision,
+                    origin=claim.origin,
+                    confidence=_as_str(claim.confidence),
+                    provenance=dump_model(claim.provenance),
+                    recorded_at=claim.recorded_at,
+                )
+            )
+        await self._session.flush()
+        return claims
+
+    async def save_dependencies(
+        self, dependencies: list[DependencyCandidate]
+    ) -> list[DependencyCandidate]:
+        for dependency in dependencies:
+            self._session.add(
+                TopologyDependencyRow(
+                    id=uuid.uuid4(),
+                    project_id=dependency.project_id,
+                    source=dependency.source,
+                    target=dependency.target,
+                    relation=dependency.relation,
+                    repository_id=dependency.repository_id,
+                    revision=dependency.revision,
+                    provenance=dump_model(dependency.provenance),
+                )
+            )
+        await self._session.flush()
+        return dependencies
+
+    async def list_claims(self, repository_id: RepositoryId) -> list[TopologyClaim]:
+        result = await self._session.execute(
+            select(TopologyClaimRow)
+            .where(TopologyClaimRow.repository_id == repository_id)
+            .order_by(TopologyClaimRow.recorded_at)
+        )
+        return [_topology_claim_from_row(row) for row in result.scalars().all()]
+
+    async def list_systems(self, project_id: ProjectId) -> list[System]:
+        result = await self._session.execute(
+            select(SystemRow).where(SystemRow.project_id == project_id).order_by(SystemRow.name)
+        )
+        return [_system_from_row(row) for row in result.scalars().all()]
+
+    async def list_components(self, project_id: ProjectId) -> list[SoftwareComponent]:
+        result = await self._session.execute(
+            select(SoftwareComponentRow)
+            .where(SoftwareComponentRow.project_id == project_id)
+            .order_by(SoftwareComponentRow.name)
+        )
+        return [_component_from_row(row) for row in result.scalars().all()]
+
+    async def list_interfaces(self, project_id: ProjectId) -> list[Interface]:
+        components = await self.list_components(project_id)
+        component_ids = [c.id for c in components]
+        if not component_ids:
+            return []
+        result = await self._session.execute(
+            select(InterfaceRow).where(InterfaceRow.component_id.in_(component_ids))
+        )
+        return [_interface_from_row(row) for row in result.scalars().all()]
+
+    async def list_resources(self, project_id: ProjectId) -> list[Resource]:
+        result = await self._session.execute(
+            select(ResourceRow)
+            .where(ResourceRow.project_id == project_id)
+            .order_by(ResourceRow.name)
+        )
+        return [_resource_from_row(row) for row in result.scalars().all()]
+
+    async def list_dependencies(self, project_id: ProjectId, component_name: str) -> list[str]:
+        result = await self._session.execute(
+            select(TopologyDependencyRow).where(
+                TopologyDependencyRow.project_id == project_id,
+                TopologyDependencyRow.source == component_name,
+            )
+        )
+        return [row.target for row in result.scalars().all()]
+
+
+def _topology_claim_from_row(row: TopologyClaimRow) -> TopologyClaim:
+    return TopologyClaim.model_validate(
+        {
+            "id": row.id,
+            "entity_kind": CandidateKind(row.entity_kind),
+            "entity_name": row.entity_name,
+            "attribute": row.attribute,
+            "value": row.value,
+            "repository_id": row.repository_id,
+            "revision": row.revision,
+            "origin": row.origin,
+            "confidence": row.confidence,
+            "provenance": row.provenance,
+            "recorded_at": row.recorded_at,
+        }
+    )
+
+
+def _system_from_row(row: SystemRow) -> System:
+    return System.model_validate(
+        {
+            "id": row.id,
+            "project_id": row.project_id,
+            "domain_id": row.domain_id,
+            "name": row.name,
+            "description": row.description,
+            "component_ids": row.component_ids,
+            "external_refs": row.external_refs,
+        }
+    )
+
+
+def _component_from_row(row: SoftwareComponentRow) -> SoftwareComponent:
+    return SoftwareComponent.model_validate(
+        {
+            "id": row.id,
+            "project_id": row.project_id,
+            "name": row.name,
+            "component_type": row.component_type,
+            "repository_ids": row.repository_ids,
+            "owner": row.owner,
+            "lifecycle": row.lifecycle,
+            "provenance": row.provenance,
+            "external_refs": row.external_refs,
+        }
+    )
+
+
+def _interface_from_row(row: InterfaceRow) -> Interface:
+    return Interface.model_validate(
+        {
+            "id": row.id,
+            "component_id": row.component_id,
+            "type": row.type,
+            "name": row.name,
+            "schema_ref": row.schema_ref,
+            "external_refs": row.external_refs,
+        }
+    )
+
+
+def _resource_from_row(row: ResourceRow) -> Resource:
+    return Resource.model_validate(
+        {
+            "id": row.id,
+            "project_id": row.project_id,
+            "name": row.name,
+            "resource_type": row.resource_type,
+            "external_refs": row.external_refs,
+            "provenance": row.provenance,
+        }
     )
