@@ -1,0 +1,45 @@
+"""In-memory reference adapters.
+
+These are reference implementations used to establish contract behavior and to
+run application services and tests without external infrastructure.
+"""
+
+from brain.adapters.in_memory.artifact_store import InMemoryArtifactStore
+from brain.adapters.in_memory.catalog import NullSoftwareCatalog
+from brain.adapters.in_memory.checkpoint_store import InMemoryCheckpointStore
+from brain.adapters.in_memory.event_bus import InMemoryEventBus
+from brain.adapters.in_memory.knowledge_graph import InMemoryKnowledgeGraph
+from brain.adapters.in_memory.repositories import (
+    InMemoryActorRepository,
+    InMemoryArtifactRepository,
+    InMemoryDecisionRepository,
+    InMemoryDocumentRepository,
+    InMemoryEvidenceRepository,
+    InMemoryExecutionRepository,
+    InMemoryProjectRepository,
+    InMemoryRepositoryRepository,
+    InMemoryRequirementRepository,
+    InMemoryVerificationResultRepository,
+    InMemoryWorkItemRepository,
+)
+from brain.adapters.in_memory.semantic_index import InMemorySemanticIndex
+
+__all__ = [
+    "InMemoryActorRepository",
+    "InMemoryArtifactRepository",
+    "InMemoryArtifactStore",
+    "InMemoryCheckpointStore",
+    "InMemoryDecisionRepository",
+    "InMemoryDocumentRepository",
+    "InMemoryEventBus",
+    "InMemoryEvidenceRepository",
+    "InMemoryExecutionRepository",
+    "InMemoryKnowledgeGraph",
+    "InMemoryProjectRepository",
+    "InMemoryRepositoryRepository",
+    "InMemoryRequirementRepository",
+    "InMemorySemanticIndex",
+    "InMemoryVerificationResultRepository",
+    "InMemoryWorkItemRepository",
+    "NullSoftwareCatalog",
+]

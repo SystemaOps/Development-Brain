@@ -1,6 +1,0 @@
-{
-  "debug": true,
-  "max_execution_time": 30,
-  "supported_languages": ["python"],
-  "enable_autonomous_mode": false
-}
