@@ -49,4 +49,5 @@ class EventEnvelope(BaseModel):
     correlation_id: uuid.UUID = Field(default_factory=uuid.uuid4)
     causation_id: uuid.UUID | None = None
     source: str
+    idempotency_key: str | None = None
     payload: dict[str, object] = Field(default_factory=dict)

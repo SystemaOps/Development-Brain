@@ -17,6 +17,7 @@ import pkgutil
 from collections.abc import Iterator
 
 import brain.adapters
+import brain.application
 import brain.domain
 import brain.ports
 
@@ -105,6 +106,15 @@ def test_adapters_never_import_provider_sdks() -> None:
         ):
             continue
         top = _imported_top_levels(_module_source(module))
+        assert not (top & PROVIDER_MODULES), (
+            f"{module.__name__} imports provider modules {top & PROVIDER_MODULES}"
+        )
+
+
+def test_application_never_imports_adapters_or_providers() -> None:
+    for module in _iter_modules(brain.application):
+        top = _imported_top_levels(_module_source(module))
+        assert "adapters" not in top, f"{module.__name__} imports adapters"
         assert not (top & PROVIDER_MODULES), (
             f"{module.__name__} imports provider modules {top & PROVIDER_MODULES}"
         )

@@ -17,7 +17,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Index, String, Text, UniqueConstraint
+from sqlalchemy import BigInteger, DateTime, Index, String, Text, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -261,6 +261,46 @@ class ExternalReferenceRow(Base):
         Index("ix_external_references_owner", "owner_type", "owner_id"),
         Index("ix_external_references_provider_external", "provider", "external_id"),
     )
+
+
+class IdempotencyKeyRow(Base):
+    """Deduplication record for external (provider) events.
+
+    The key is the provider webhook ID / commit SHA + event / document
+    version ID; it is the primary key so redelivered events are skipped.
+    """
+
+    __tablename__ = "idempotency_keys"
+
+    idempotency_key: Mapped[str] = mapped_column(String(500), primary_key=True)
+    event_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    processed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class EventLogRow(Base):
+    """Append-only log of processed canonical events.
+
+    Rows keep the full correlation/causation chain so an operational flow
+    (webhook -> ingestion -> context -> execution -> verification) can be
+    traced through one ``correlation_id``.
+    """
+
+    __tablename__ = "event_log"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    event_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), unique=True)
+    event_type: Mapped[str] = mapped_column(String(100))
+    project_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    correlation_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    causation_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    source: Mapped[str] = mapped_column(String(255))
+    idempotency_key: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    payload: Mapped[dict[str, object]] = mapped_column(JSONB, default=dict)
+
+    __table_args__ = (Index("ix_event_log_correlation_id", "correlation_id"),)
 
 
 metadata = Base.metadata

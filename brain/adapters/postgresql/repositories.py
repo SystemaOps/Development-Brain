@@ -12,6 +12,7 @@ from __future__ import annotations
 import uuid
 
 from sqlalchemy import delete, select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from brain.adapters.postgresql.serialization import dump_models, dump_uuids
@@ -22,9 +23,11 @@ from brain.adapters.postgresql.tables import (
     DocumentNodeRow,
     DocumentRow,
     DocumentVersionRow,
+    EventLogRow,
     EvidenceRow,
     ExecutionRow,
     ExternalReferenceRow,
+    IdempotencyKeyRow,
     ProjectRow,
     RepositoryRow,
     RequirementRow,
@@ -35,6 +38,7 @@ from brain.domain.actors import Actor
 from brain.domain.artifacts import Artifact
 from brain.domain.decisions import Decision
 from brain.domain.documents import Document, DocumentNode, DocumentVersion
+from brain.domain.events import EventEnvelope
 from brain.domain.evidence import Evidence
 from brain.domain.executions import Execution
 from brain.domain.external_reference import ExternalReference
@@ -901,3 +905,79 @@ def _verification_result_from_row(row: VerificationResultRow) -> VerificationRes
             "evidence_refs": row.evidence_refs,
         }
     )
+
+
+class PostgresIdempotencyStore:
+    """Durable deduplication of external events (see IdempotencyStore port)."""
+
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def is_processed(self, key: str) -> bool:
+        result = await self._session.execute(
+            select(IdempotencyKeyRow.idempotency_key).where(
+                IdempotencyKeyRow.idempotency_key == key
+            )
+        )
+        return result.first() is not None
+
+    async def mark_processed(self, key: str, event_id: uuid.UUID | None = None) -> None:
+        await self._session.execute(
+            pg_insert(IdempotencyKeyRow)
+            .values(idempotency_key=key, event_id=event_id)
+            .on_conflict_do_nothing(index_elements=["idempotency_key"])
+        )
+        await self._session.flush()
+
+
+def _envelope_from_row(row: EventLogRow) -> EventEnvelope:
+    return EventEnvelope.model_validate(
+        {
+            "event_id": row.event_id,
+            "event_type": row.event_type,
+            "occurred_at": row.occurred_at,
+            "project_id": row.project_id,
+            "correlation_id": row.correlation_id,
+            "causation_id": row.causation_id,
+            "source": row.source,
+            "idempotency_key": row.idempotency_key,
+            "payload": row.payload,
+        }
+    )
+
+
+class PostgresEventLogRepository:
+    """Append-only log of processed canonical events (see EventLogRepository port)."""
+
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def append(self, event: EventEnvelope) -> None:
+        self._session.add(
+            EventLogRow(
+                event_id=event.event_id,
+                event_type=event.event_type.value,
+                project_id=event.project_id,
+                occurred_at=event.occurred_at,
+                correlation_id=event.correlation_id,
+                causation_id=event.causation_id,
+                source=event.source,
+                idempotency_key=event.idempotency_key,
+                payload=event.payload,
+            )
+        )
+        await self._session.flush()
+
+    async def list_by_correlation(self, correlation_id: uuid.UUID) -> list[EventEnvelope]:
+        result = await self._session.execute(
+            select(EventLogRow)
+            .where(EventLogRow.correlation_id == correlation_id)
+            .order_by(EventLogRow.id)
+        )
+        return [_envelope_from_row(row) for row in result.scalars().all()]
+
+    async def list_recent(self, limit: int = 100) -> list[EventEnvelope]:
+        result = await self._session.execute(
+            select(EventLogRow).order_by(EventLogRow.id.desc()).limit(limit)
+        )
+        return [_envelope_from_row(row) for row in reversed(result.scalars().all())]
