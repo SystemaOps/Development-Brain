@@ -42,6 +42,13 @@ PROVIDER_MODULES = {
     "requests",
 }
 
+# Adapter packages that ARE the provider integration themselves.  These are
+# the concrete bindings (e.g. the PostgreSQL persistence adapter), so they may
+# depend on their provider SDK; the rule below applies to every other adapter.
+PROVIDER_BINDING_PACKAGES = {
+    "brain.adapters.postgresql",
+}
+
 
 def _iter_modules(package: object) -> Iterator[object]:
     for module_info in pkgutil.walk_packages(package.__path__, prefix=package.__name__ + "."):
@@ -92,6 +99,11 @@ def test_ports_never_import_adapters_or_providers() -> None:
 
 def test_adapters_never_import_provider_sdks() -> None:
     for module in _iter_modules(brain.adapters):
+        if any(
+            module.__name__ == binding or module.__name__.startswith(binding + ".")
+            for binding in PROVIDER_BINDING_PACKAGES
+        ):
+            continue
         top = _imported_top_levels(_module_source(module))
         assert not (top & PROVIDER_MODULES), (
             f"{module.__name__} imports provider modules {top & PROVIDER_MODULES}"

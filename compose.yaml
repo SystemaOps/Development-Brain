@@ -1,0 +1,23 @@
+# Local development / test PostgreSQL for the Software Development Brain.
+# Start with:   docker compose up -d
+# The adapter defaults to the URL below, so no configuration is required.
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: brain-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: brain
+    ports:
+      - "5432:5432"
+    volumes:
+      - brain-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d brain"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  brain-pgdata:
