@@ -12,6 +12,12 @@ from brain.application.document_ingestion import (
     DocumentIngestionService,
 )
 from brain.application.events import IncomingEventProcessor, ProcessOutcome
+from brain.application.graph_integrity import (
+    GraphIntegrityChecker,
+    GraphIntegrityReport,
+    IntegrityIssue,
+)
+from brain.application.graph_projection import GraphProjectionResult, GraphProjectionService
 from brain.application.impact_analysis import ImpactAnalysis, ImpactAnalysisService
 from brain.application.projections import CanonicalStateProjection
 from brain.application.revisions import IncrementalRevisionHandler
@@ -23,10 +29,15 @@ __all__ = [
     "CodeIntelligenceService",
     "DocumentIngestionResult",
     "DocumentIngestionService",
+    "GraphIntegrityChecker",
+    "GraphIntegrityReport",
+    "GraphProjectionResult",
+    "GraphProjectionService",
     "ImpactAnalysis",
     "ImpactAnalysisService",
     "IncomingEventProcessor",
     "IncrementalRevisionHandler",
+    "IntegrityIssue",
     "ProcessOutcome",
     "TopologyDiscoveryResult",
     "TopologyDiscoveryService",

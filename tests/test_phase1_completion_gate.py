@@ -90,10 +90,31 @@ def test_completion_gate_chain_serializes_without_provider_imports() -> None:
 
 
 def test_domain_imports_never_touch_provider_modules() -> None:
+    """Importing the domain in a fresh interpreter must not load providers.
+
+    Runs in a subprocess so adapters already loaded by the rest of the test
+    suite (e.g. the Neo4j driver) cannot pollute ``sys.modules`` here.
+    """
+    import subprocess
     import sys
+    from pathlib import Path
 
     provider_modules = {"openproject", "jira", "neo4j", "weaviate", "pi", "langgraph"}
-    loaded = {name.split(".")[0] for name in sys.modules}
-    assert not (loaded & provider_modules), (
-        f"provider modules were loaded while importing the domain: {loaded & provider_modules}"
+    providers_repr = repr(sorted(provider_modules))
+    code = (
+        "import sys\n"
+        "import brain.domain  # noqa: F401\n"
+        "loaded = {name.split('.')[0] for name in sys.modules}\n"
+        f"providers = {{m for m in {providers_repr} if m in loaded}}\n"
+        "sys.exit(0 if not providers else 1)\n"
+    )
+    root = str(Path(__file__).resolve().parent.parent)
+    result = subprocess.run(
+        [sys.executable, "-c", code],
+        capture_output=True,
+        text=True,
+        cwd=root,
+    )
+    assert result.returncode == 0, (
+        f"provider modules loaded while importing the domain:\n{result.stderr}"
     )

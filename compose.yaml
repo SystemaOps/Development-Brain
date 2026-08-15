@@ -1,6 +1,6 @@
-# Local development / test PostgreSQL for the Software Development Brain.
+# Local development / test infrastructure for the Software Development Brain.
 # Start with:   docker compose up -d
-# The adapter defaults to the URL below, so no configuration is required.
+# The adapters default to the URLs below, so no configuration is required.
 services:
   postgres:
     image: postgres:17-alpine
@@ -19,5 +19,23 @@ services:
       timeout: 3s
       retries: 10
 
+  neo4j:
+    image: neo4j:5-community
+    container_name: brain-neo4j
+    environment:
+      NEO4J_AUTH: neo4j/password
+      NEO4J_PLUGINS: '["apoc"]'
+    ports:
+      - "7687:7687"
+      - "7474:7474"
+    volumes:
+      - brain-neo4jdata:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:7474 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
 volumes:
   brain-pgdata:
+  brain-neo4jdata:

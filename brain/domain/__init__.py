@@ -65,6 +65,12 @@ from brain.domain.executions import (
     ExecutionStatus,
 )
 from brain.domain.external_reference import ExternalReference, SourceReference
+from brain.domain.graph_reconciliation import (
+    GraphReconciler,
+    ReconciledRelation,
+    RelationClaim,
+)
+from brain.domain.graph_schema import GraphLabel, RelationType
 from brain.domain.identity import (
     ActorId,
     ArtifactId,
@@ -212,6 +218,8 @@ __all__ = [
     "ExtractedReference",
     "FeedbackVerdict",
     "FileCategory",
+    "GraphLabel",
+    "GraphReconciler",
     "HumanFeedbackReceived",
     "HumanWorkStatus",
     "ImplementationStatus",
@@ -239,7 +247,10 @@ __all__ = [
     "PullRequestCreated",
     "PullRequestRequested",
     "PullRequestStatus",
+    "ReconciledRelation",
     "ReferenceKind",
+    "RelationClaim",
+    "RelationType",
     "Repository",
     "RepositoryChangeSet",
     "RepositoryChangeSetId",

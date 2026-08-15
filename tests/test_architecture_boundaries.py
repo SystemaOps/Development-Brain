@@ -48,6 +48,7 @@ PROVIDER_MODULES = {
 # depend on their provider SDK; the rule below applies to every other adapter.
 PROVIDER_BINDING_PACKAGES = {
     "brain.adapters.postgresql",
+    "brain.adapters.neo4j",
 }
 
 

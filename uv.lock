@@ -155,6 +155,7 @@ dependencies = [
     { name = "asyncpg" },
     { name = "beautifulsoup4" },
     { name = "markdown-it-py" },
+    { name = "neo4j" },
     { name = "pydantic" },
     { name = "pypdf" },
     { name = "pyyaml" },
@@ -176,6 +177,7 @@ requires-dist = [
     { name = "asyncpg", specifier = ">=0.29" },
     { name = "beautifulsoup4", specifier = ">=4.12" },
     { name = "markdown-it-py", specifier = ">=3" },
+    { name = "neo4j", specifier = ">=6.2.0" },
     { name = "pydantic", specifier = ">=2.7" },
     { name = "pypdf", specifier = ">=4" },
     { name = "pyyaml", specifier = ">=6" },
@@ -525,6 +527,18 @@ wheels = [
 ]
 
 [[package]]
+name = "neo4j"
+version = "6.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pytz" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ce/f4/aaa4ac19adae4b01bc742b63afd2672a77e7351566f02721e713e4b863ee/neo4j-6.2.0.tar.gz", hash = "sha256:e1e246b65b572bd8ea97f9e0e721b7d40a5ce53e53d0007c29aef63e4f9124d9", size = 241459, upload-time = "2026-05-04T07:35:41.428Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e6/cf/1c3795866cefaac6e648d4e98c373cafd97810f6e317c307371007ab4abb/neo4j-6.2.0-py3-none-any.whl", hash = "sha256:b87abdd13a5cc2e3bd51026926c2f20ac38fa3febe98c340520dce19e97388d0", size = 327824, upload-time = "2026-05-04T07:35:39.604Z" },
+]
+
+[[package]]
 name = "packaging"
 version = "26.3"
 source = { registry = "https://pypi.org/simple" }
@@ -686,6 +700,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/43/7c/d36d04db312ecf4298932ef77e6e4a9e8ad017906e24e34f0b0c361a2473/pytest_asyncio-1.4.0.tar.gz", hash = "sha256:c6c0d2259945122819f171a32ecea2c349ead889ee28176caaf492143424be42", size = 58514, upload-time = "2026-05-26T09:56:04.083Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/03/e2/08a497ef684b88559c9cc5f4ad53a37e7b99e727094a86d6ea32536d5d3c/pytest_asyncio-1.4.0-py3-none-any.whl", hash = "sha256:933ca923a23075a87fb7070c0ec272a6848489824d887c85c812670932835aa1", size = 16930, upload-time = "2026-05-26T09:56:02.576Z" },
+]
+
+[[package]]
+name = "pytz"
+version = "2026.3.post1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/fb/48/fb042503b6ca6cd271261dc559fd6432f7d8c713153e9ec5c591af4dfc1c/pytz-2026.3.post1.tar.gz", hash = "sha256:2211d3fcf9a797d3405cac96ac7f61d80e6a644f72a3309607282fe8a2010c5d", size = 319745, upload-time = "2026-07-25T15:12:07.385Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0f/7b/39c34ca613b0b198cb866466651b26b045e2009864c5183c979a3b83f383/pytz-2026.3.post1-py2.py3-none-any.whl", hash = "sha256:dd95840dd199baea12d9cc096a1d452caa6596a1c1e4b5f3dbd1541855d5e815", size = 508283, upload-time = "2026-07-25T15:12:05.782Z" },
 ]
 
 [[package]]
