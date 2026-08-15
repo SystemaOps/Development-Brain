@@ -76,6 +76,15 @@ from brain.domain.executions import (
     ExecutionResult,
     ExecutionStatus,
 )
+from brain.domain.executor import (
+    CostClass,
+    ExecutorCapabilities,
+    ExecutorDescriptor,
+    ExecutorKind,
+    ExecutorSelection,
+    ModelCapabilityProfile,
+    ModelDeployment,
+)
 from brain.domain.external_reference import ExternalReference, SourceReference
 from brain.domain.graph_reconciliation import (
     GraphReconciler,
@@ -205,6 +214,7 @@ __all__ = [
     "ContextCategory",
     "ContextRequest",
     "ContextType",
+    "CostClass",
     "ChangedFile",
     "classify_changed_files",
     "classify_file",
@@ -233,6 +243,10 @@ __all__ = [
     "Evidence",
     "EvidenceId",
     "EvidenceType",
+    "ExecutorCapabilities",
+    "ExecutorDescriptor",
+    "ExecutorKind",
+    "ExecutorSelection",
     "event_to_model",
     "Execution",
     "ExecutionCompleted",
@@ -261,6 +275,8 @@ __all__ = [
     "KnowledgeConfidence",
     "KnowledgeEvidence",
     "KnowledgeOrigin",
+    "ModelCapabilityProfile",
+    "ModelDeployment",
     "model_to_envelope",
     "module_from_path",
     "ParsedCodeBlock",

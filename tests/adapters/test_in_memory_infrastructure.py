@@ -8,6 +8,7 @@ from brain.adapters.embeddings.hash_embedding import HashEmbeddingService
 from brain.adapters.in_memory.context import InMemoryContextCapsuleRepository
 from brain.adapters.in_memory.event_bus import InMemoryEventBus
 from brain.adapters.in_memory.event_log import InMemoryEventLogRepository
+from brain.adapters.in_memory.executor_registry import InMemoryExecutorRegistry
 from brain.adapters.in_memory.idempotency import InMemoryIdempotencyStore
 from brain.adapters.in_memory.knowledge_graph import InMemoryKnowledgeGraph
 from brain.adapters.in_memory.repositories import (
@@ -18,6 +19,7 @@ from brain.adapters.in_memory.semantic_index import InMemorySemanticIndex
 from brain.ports.context import ContextCapsuleRepository
 from brain.ports.event_bus import EventBus
 from brain.ports.event_log import EventLogRepository
+from brain.ports.executor_registry import ExecutorRegistry
 from brain.ports.idempotency import IdempotencyStore
 from brain.ports.knowledge_graph import KnowledgeGraphRepository
 from brain.ports.repository_scan import (
@@ -28,6 +30,7 @@ from brain.ports.semantic_index import SemanticIndex
 from tests.contracts.context_capsule import ContextCapsuleRepositoryContract
 from tests.contracts.event_bus import EventBusContract
 from tests.contracts.event_log import EventLogRepositoryContract
+from tests.contracts.executor_registry import ExecutorRegistryContract
 from tests.contracts.idempotency import IdempotencyStoreContract
 from tests.contracts.knowledge_graph import KnowledgeGraphRepositoryContract
 from tests.contracts.repository_scan import (
@@ -59,6 +62,12 @@ class TestInMemoryKnowledgeGraph(KnowledgeGraphRepositoryContract):
     @pytest.fixture
     def knowledge_graph(self) -> KnowledgeGraphRepository:
         return InMemoryKnowledgeGraph()
+
+
+class TestInMemoryExecutorRegistry(ExecutorRegistryContract):
+    @pytest.fixture
+    def executor_registry(self) -> ExecutorRegistry:
+        return InMemoryExecutorRegistry()
 
 
 class TestInMemorySemanticIndex(SemanticIndexContract):

@@ -6,6 +6,7 @@ import adapters or provider SDKs: every dependency is an interface from
 adapters and against PostgreSQL alike.
 """
 
+from brain.application.brain_tools import TOOL_REGISTRY, BrainTools
 from brain.application.code_intelligence import CodeIndexResult, CodeIntelligenceService
 from brain.application.context_engine import (
     BudgetAllocator,
@@ -18,6 +19,10 @@ from brain.application.document_ingestion import (
     DocumentIngestionService,
 )
 from brain.application.events import IncomingEventProcessor, ProcessOutcome
+from brain.application.execution_request_builder import (
+    BuiltExecution,
+    ExecutionRequestBuilder,
+)
 from brain.application.graph_integrity import (
     GraphIntegrityChecker,
     GraphIntegrityReport,
@@ -34,10 +39,14 @@ from brain.application.revisions import IncrementalRevisionHandler
 from brain.application.semantic_indexing import IndexingResult, SemanticIndexingService
 from brain.application.token_estimation import TokenEstimator
 from brain.application.topology import TopologyDiscoveryResult, TopologyDiscoveryService
+from brain.application.workspace_manager import Workspace, WorkspaceManager
 
 __all__ = [
+    "TOOL_REGISTRY",
+    "BrainTools",
     "BudgetAllocator",
     "BuildResult",
+    "BuiltExecution",
     "CanonicalStateProjection",
     "CodeIndexResult",
     "CodeIntelligenceService",
@@ -45,6 +54,7 @@ __all__ = [
     "ContextRanker",
     "DocumentIngestionResult",
     "DocumentIngestionService",
+    "ExecutionRequestBuilder",
     "GraphIntegrityChecker",
     "GraphIntegrityReport",
     "GraphProjectionResult",
@@ -66,5 +76,7 @@ __all__ = [
     "TokenEstimator",
     "TopologyDiscoveryResult",
     "TopologyDiscoveryService",
+    "Workspace",
+    "WorkspaceManager",
     "tokenize",
 ]

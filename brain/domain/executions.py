@@ -72,6 +72,7 @@ class ExecutionRequest(BaseModel):
     work_item_id: WorkItemId
     repository_ref: str
     base_revision: str
+    workspace_path: str | None = None
     context_capsule_id: ContextCapsuleId | None = None
     permissions: ExecutionPermissions = Field(default_factory=ExecutionPermissions)
     correlation_id: uuid.UUID = Field(default_factory=uuid.uuid4)
@@ -87,6 +88,7 @@ class ExecutionResult(BaseModel):
     deleted_files: list[str] = Field(default_factory=list)
     commands_executed: list[str] = Field(default_factory=list)
     tests_executed: list[str] = Field(default_factory=list)
+    diff: str | None = None
     artifact_refs: list[ArtifactId] = Field(default_factory=list)
     evidence_refs: list[EvidenceId] = Field(default_factory=list)
     observations: list[str] = Field(default_factory=list)

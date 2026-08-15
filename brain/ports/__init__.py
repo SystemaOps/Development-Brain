@@ -18,6 +18,7 @@ from brain.ports.embeddings import EmbeddingService
 from brain.ports.event_bus import EventBus, EventHandler
 from brain.ports.event_log import EventLogRepository
 from brain.ports.executor import ExecutorPort
+from brain.ports.executor_registry import ExecutorRegistry
 from brain.ports.idempotency import IdempotencyStore
 from brain.ports.knowledge_graph import GraphEntity, GraphRelation, KnowledgeGraphRepository
 from brain.ports.parsing import (
@@ -77,6 +78,7 @@ __all__ = [
     "EvidenceRepository",
     "ExecutionRepository",
     "ExecutorPort",
+    "ExecutorRegistry",
     "GraphEntity",
     "GraphRelation",
     "IdempotencyStore",
