@@ -62,7 +62,9 @@ from brain.domain.identity import (
     EvidenceId,
     ExecutionId,
     ProjectId,
+    RepositoryChangeSetId,
     RepositoryId,
+    RepositorySnapshotId,
     RequirementId,
     VerificationId,
     WorkflowId,
@@ -78,6 +80,14 @@ from brain.domain.knowledge import (
 )
 from brain.domain.projects import Project, ProjectStatus
 from brain.domain.repositories import Repository
+from brain.domain.repository_scan import (
+    ChangedFile,
+    FileCategory,
+    RepositoryChangeSet,
+    RepositorySnapshot,
+    classify_changed_files,
+    classify_file,
+)
 from brain.domain.requirements import (
     Constraint,
     ConstraintKind,
@@ -122,6 +132,9 @@ __all__ = [
     "Constraint",
     "ConstraintKind",
     "ContextCapsuleId",
+    "ChangedFile",
+    "classify_changed_files",
+    "classify_file",
     "Decision",
     "DecisionId",
     "DecisionStatus",
@@ -154,6 +167,7 @@ __all__ = [
     "ExecutionStatus",
     "ExternalReference",
     "FeedbackVerdict",
+    "FileCategory",
     "HumanFeedbackReceived",
     "HumanWorkStatus",
     "ImplementationStatus",
@@ -173,9 +187,13 @@ __all__ = [
     "PullRequestRequested",
     "PullRequestStatus",
     "Repository",
+    "RepositoryChangeSet",
+    "RepositoryChangeSetId",
     "RepositoryId",
     "RepositoryRegistered",
     "RepositoryRevisionChanged",
+    "RepositorySnapshot",
+    "RepositorySnapshotId",
     "Requirement",
     "RequirementChanged",
     "RequirementId",

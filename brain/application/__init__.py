@@ -8,9 +8,11 @@ adapters and against PostgreSQL alike.
 
 from brain.application.events import IncomingEventProcessor, ProcessOutcome
 from brain.application.projections import CanonicalStateProjection
+from brain.application.revisions import IncrementalRevisionHandler
 
 __all__ = [
     "CanonicalStateProjection",
     "IncomingEventProcessor",
+    "IncrementalRevisionHandler",
     "ProcessOutcome",
 ]

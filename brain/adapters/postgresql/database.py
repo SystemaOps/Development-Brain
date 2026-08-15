@@ -27,7 +27,9 @@ from brain.adapters.postgresql.repositories import (
     PostgresExecutionRepository,
     PostgresIdempotencyStore,
     PostgresProjectRepository,
+    PostgresRepositoryChangeSetRepository,
     PostgresRepositoryRepository,
+    PostgresRepositorySnapshotRepository,
     PostgresRequirementRepository,
     PostgresVerificationResultRepository,
     PostgresWorkItemRepository,
@@ -74,6 +76,8 @@ class PostgresRepositories:
         self.verification_results = PostgresVerificationResultRepository(session)
         self.idempotency = PostgresIdempotencyStore(session)
         self.event_log = PostgresEventLogRepository(session)
+        self.repository_snapshots = PostgresRepositorySnapshotRepository(session)
+        self.repository_change_sets = PostgresRepositoryChangeSetRepository(session)
 
     @property
     def session(self) -> AsyncSession:

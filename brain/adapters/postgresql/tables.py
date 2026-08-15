@@ -303,4 +303,43 @@ class EventLogRow(Base):
     __table_args__ = (Index("ix_event_log_correlation_id", "correlation_id"),)
 
 
+class RepositorySnapshotRow(Base):
+    """Repository tree summarized at one exact revision (Phase 4)."""
+
+    __tablename__ = "repository_snapshots"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    repository_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    revision: Mapped[str] = mapped_column(String(255))
+    captured_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    tree: Mapped[list[str]] = mapped_column(JSONB, default=list)
+    languages: Mapped[list[str]] = mapped_column(JSONB, default=list)
+    manifest_files: Mapped[list[str]] = mapped_column(JSONB, default=list)
+    dockerfiles: Mapped[list[str]] = mapped_column(JSONB, default=list)
+    compose_files: Mapped[list[str]] = mapped_column(JSONB, default=list)
+    ci_configuration: Mapped[list[str]] = mapped_column(JSONB, default=list)
+    documentation_roots: Mapped[list[str]] = mapped_column(JSONB, default=list)
+    test_roots: Mapped[list[str]] = mapped_column(JSONB, default=list)
+
+    __table_args__ = (
+        UniqueConstraint("repository_id", "revision", name="uq_repository_snapshots_repo_revision"),
+        Index("ix_repository_snapshots_repository_id", "repository_id"),
+    )
+
+
+class RepositoryChangeSetRow(Base):
+    """Classified set of files changed between two revisions (Phase 4)."""
+
+    __tablename__ = "repository_change_sets"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    repository_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    old_revision: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    new_revision: Mapped[str] = mapped_column(String(255))
+    detected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    files: Mapped[list[dict[str, object]]] = mapped_column(JSONB, default=list)
+
+    __table_args__ = (Index("ix_repository_change_sets_repository_id", "repository_id"),)
+
+
 metadata = Base.metadata

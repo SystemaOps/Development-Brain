@@ -29,7 +29,9 @@ from brain.adapters.postgresql.tables import (
     ExternalReferenceRow,
     IdempotencyKeyRow,
     ProjectRow,
+    RepositoryChangeSetRow,
     RepositoryRow,
+    RepositorySnapshotRow,
     RequirementRow,
     VerificationResultRow,
     WorkItemRow,
@@ -58,6 +60,12 @@ from brain.domain.identity import (
 )
 from brain.domain.projects import Project
 from brain.domain.repositories import Repository
+from brain.domain.repository_scan import (
+    ChangedFile,
+    FileCategory,
+    RepositoryChangeSet,
+    RepositorySnapshot,
+)
 from brain.domain.requirements import Requirement
 from brain.domain.verification import VerificationResult
 from brain.domain.work_items import WorkItem
@@ -981,3 +989,128 @@ class PostgresEventLogRepository:
             select(EventLogRow).order_by(EventLogRow.id.desc()).limit(limit)
         )
         return [_envelope_from_row(row) for row in reversed(result.scalars().all())]
+
+
+class PostgresRepositorySnapshotRepository(_PostgresRepository):
+    """Durable repository snapshots (see RepositorySnapshotRepository port)."""
+
+    async def save_snapshot(self, snapshot: RepositorySnapshot) -> RepositorySnapshot:
+        stmt = pg_insert(RepositorySnapshotRow).values(
+            id=snapshot.id,
+            repository_id=snapshot.repository_id,
+            revision=snapshot.revision,
+            captured_at=snapshot.captured_at,
+            tree=list(snapshot.tree),
+            languages=list(snapshot.languages),
+            manifest_files=list(snapshot.manifest_files),
+            dockerfiles=list(snapshot.dockerfiles),
+            compose_files=list(snapshot.compose_files),
+            ci_configuration=list(snapshot.ci_configuration),
+            documentation_roots=list(snapshot.documentation_roots),
+            test_roots=list(snapshot.test_roots),
+        )
+        await self._session.execute(
+            stmt.on_conflict_do_update(
+                index_elements=["repository_id", "revision"],
+                set_={
+                    "id": snapshot.id,
+                    "captured_at": snapshot.captured_at,
+                    "tree": list(snapshot.tree),
+                    "languages": list(snapshot.languages),
+                    "manifest_files": list(snapshot.manifest_files),
+                    "dockerfiles": list(snapshot.dockerfiles),
+                    "compose_files": list(snapshot.compose_files),
+                    "ci_configuration": list(snapshot.ci_configuration),
+                    "documentation_roots": list(snapshot.documentation_roots),
+                    "test_roots": list(snapshot.test_roots),
+                },
+            )
+        )
+        await self._session.flush()
+        return snapshot
+
+    async def get_snapshot(
+        self, repository_id: RepositoryId, revision: str
+    ) -> RepositorySnapshot | None:
+        result = await self._session.execute(
+            select(RepositorySnapshotRow).where(
+                RepositorySnapshotRow.repository_id == repository_id,
+                RepositorySnapshotRow.revision == revision,
+            )
+        )
+        row = result.scalar_one_or_none()
+        return _snapshot_from_row(row) if row is not None else None
+
+    async def list_snapshots(self, repository_id: RepositoryId) -> list[RepositorySnapshot]:
+        result = await self._session.execute(
+            select(RepositorySnapshotRow)
+            .where(RepositorySnapshotRow.repository_id == repository_id)
+            .order_by(RepositorySnapshotRow.captured_at)
+        )
+        return [_snapshot_from_row(row) for row in result.scalars().all()]
+
+
+class PostgresRepositoryChangeSetRepository(_PostgresRepository):
+    """Durable classified change sets (see RepositoryChangeSetRepository port)."""
+
+    async def save_change_set(self, change_set: RepositoryChangeSet) -> RepositoryChangeSet:
+        self._session.add(
+            RepositoryChangeSetRow(
+                id=change_set.id,
+                repository_id=change_set.repository_id,
+                old_revision=change_set.old_revision,
+                new_revision=change_set.new_revision,
+                detected_at=change_set.detected_at,
+                files=dump_models(change_set.files),
+            )
+        )
+        await self._session.flush()
+        return change_set
+
+    async def list_change_sets(self, repository_id: RepositoryId) -> list[RepositoryChangeSet]:
+        result = await self._session.execute(
+            select(RepositoryChangeSetRow)
+            .where(RepositoryChangeSetRow.repository_id == repository_id)
+            .order_by(RepositoryChangeSetRow.detected_at)
+        )
+        return [_change_set_from_row(row) for row in result.scalars().all()]
+
+
+def _snapshot_from_row(row: RepositorySnapshotRow) -> RepositorySnapshot:
+    return RepositorySnapshot.model_validate(
+        {
+            "id": row.id,
+            "repository_id": row.repository_id,
+            "revision": row.revision,
+            "captured_at": row.captured_at,
+            "tree": row.tree,
+            "languages": row.languages,
+            "manifest_files": row.manifest_files,
+            "dockerfiles": row.dockerfiles,
+            "compose_files": row.compose_files,
+            "ci_configuration": row.ci_configuration,
+            "documentation_roots": row.documentation_roots,
+            "test_roots": row.test_roots,
+        }
+    )
+
+
+def _change_set_from_row(row: RepositoryChangeSetRow) -> RepositoryChangeSet:
+    return RepositoryChangeSet.model_validate(
+        {
+            "id": row.id,
+            "repository_id": row.repository_id,
+            "old_revision": row.old_revision,
+            "new_revision": row.new_revision,
+            "detected_at": row.detected_at,
+            "files": [_changed_file_from_dict(f) for f in row.files],
+        }
+    )
+
+
+def _changed_file_from_dict(data: dict[str, object]) -> ChangedFile:
+    return ChangedFile(
+        path=str(data["path"]),
+        category=FileCategory(str(data["category"])),
+        change_type=str(data.get("change_type", "modified")),
+    )

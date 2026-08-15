@@ -32,6 +32,8 @@ EXPECTED_TABLES = {
     "external_references",
     "projects",
     "repositories",
+    "repository_change_sets",
+    "repository_snapshots",
     "requirements",
     "verification_results",
     "work_items",

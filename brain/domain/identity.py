@@ -27,6 +27,8 @@ DecisionId = NewType("DecisionId", uuid.UUID)
 VerificationId = NewType("VerificationId", uuid.UUID)
 ContextCapsuleId = NewType("ContextCapsuleId", uuid.UUID)
 WorkflowId = NewType("WorkflowId", uuid.UUID)
+RepositorySnapshotId = NewType("RepositorySnapshotId", uuid.UUID)
+RepositoryChangeSetId = NewType("RepositoryChangeSetId", uuid.UUID)
 
 
 def new_project_id() -> ProjectId:
@@ -83,3 +85,11 @@ def new_context_capsule_id() -> ContextCapsuleId:
 
 def new_workflow_id() -> WorkflowId:
     return WorkflowId(uuid.uuid4())
+
+
+def new_repository_snapshot_id() -> RepositorySnapshotId:
+    return RepositorySnapshotId(uuid.uuid4())
+
+
+def new_repository_change_set_id() -> RepositoryChangeSetId:
+    return RepositoryChangeSetId(uuid.uuid4())

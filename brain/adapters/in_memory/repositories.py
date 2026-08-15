@@ -30,6 +30,7 @@ from brain.domain.identity import (
 )
 from brain.domain.projects import Project
 from brain.domain.repositories import Repository
+from brain.domain.repository_scan import RepositoryChangeSet, RepositorySnapshot
 from brain.domain.requirements import Requirement
 from brain.domain.verification import VerificationResult
 from brain.domain.work_items import WorkItem
@@ -255,3 +256,40 @@ class InMemoryVerificationResultRepository:
 
     async def list_by_execution(self, execution_id: ExecutionId) -> list[VerificationResult]:
         return [v for v in await self._results.list_all() if v.execution_id == execution_id]
+
+
+class InMemoryRepositorySnapshotRepository:
+    def __init__(self) -> None:
+        self._snapshots: list[RepositorySnapshot] = []
+
+    async def save_snapshot(self, snapshot: RepositorySnapshot) -> RepositorySnapshot:
+        self._snapshots = [
+            s
+            for s in self._snapshots
+            if not (s.repository_id == snapshot.repository_id and s.revision == snapshot.revision)
+        ]
+        self._snapshots.append(snapshot)
+        return snapshot
+
+    async def get_snapshot(
+        self, repository_id: RepositoryId, revision: str
+    ) -> RepositorySnapshot | None:
+        for snapshot in self._snapshots:
+            if snapshot.repository_id == repository_id and snapshot.revision == revision:
+                return snapshot
+        return None
+
+    async def list_snapshots(self, repository_id: RepositoryId) -> list[RepositorySnapshot]:
+        return [snapshot for snapshot in self._snapshots if snapshot.repository_id == repository_id]
+
+
+class InMemoryRepositoryChangeSetRepository:
+    def __init__(self) -> None:
+        self._change_sets: list[RepositoryChangeSet] = []
+
+    async def save_change_set(self, change_set: RepositoryChangeSet) -> RepositoryChangeSet:
+        self._change_sets.append(change_set)
+        return change_set
+
+    async def list_change_sets(self, repository_id: RepositoryId) -> list[RepositoryChangeSet]:
+        return [cs for cs in self._change_sets if cs.repository_id == repository_id]
