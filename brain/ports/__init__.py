@@ -13,6 +13,7 @@ from brain.ports.code_intelligence import (
     LanguageParser,
 )
 from brain.ports.documentation import DocumentationPort
+from brain.ports.embeddings import EmbeddingService
 from brain.ports.event_bus import EventBus, EventHandler
 from brain.ports.event_log import EventLogRepository
 from brain.ports.executor import ExecutorPort
@@ -65,6 +66,7 @@ __all__ = [
     "DocumentParser",
     "DocumentRepository",
     "DocumentationPort",
+    "EmbeddingService",
     "EntityExtractor",
     "EventBus",
     "EventHandler",

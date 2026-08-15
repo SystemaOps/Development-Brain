@@ -13,6 +13,7 @@ dependencies = [
     "pypdf>=4",
     "pyyaml>=6",
     "sqlalchemy>=2.0",
+    "weaviate-client>=4.23.0",
 ]
 
 [dependency-groups]

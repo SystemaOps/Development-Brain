@@ -49,6 +49,7 @@ PROVIDER_MODULES = {
 PROVIDER_BINDING_PACKAGES = {
     "brain.adapters.postgresql",
     "brain.adapters.neo4j",
+    "brain.adapters.weaviate",
 }
 
 

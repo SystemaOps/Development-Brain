@@ -5,6 +5,7 @@ layers never import this package.
 """
 
 from brain.adapters.code_intelligence import PythonAstParser
+from brain.adapters.embeddings import HashEmbeddingService
 from brain.adapters.topology import (
     ApiInterfaceDetector,
     DeploymentTopologyDetector,
@@ -18,6 +19,7 @@ __all__ = [
     "ApiInterfaceDetector",
     "DeploymentTopologyDetector",
     "DerivedSoftwareCatalog",
+    "HashEmbeddingService",
     "ManifestTopologyDetector",
     "PythonAstParser",
     "ResourceDetector",

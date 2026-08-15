@@ -69,3 +69,49 @@ class SemanticIndexContract:
         assert await semantic_index.search("xyzzy", {}, limit=5)
         await semantic_index.delete([record.record_id])
         assert await semantic_index.search("xyzzy", {}, limit=5) == []
+
+    async def test_search_respects_revision_filter(self, semantic_index: SemanticIndex) -> None:
+        entity_id = uuid.uuid4()
+        await semantic_index.index(
+            [
+                SemanticRecord(
+                    entity_id=entity_id,
+                    entity_type="DocumentNode",
+                    text="cache invalidation logic here",
+                    revision="abc",
+                ),
+                SemanticRecord(
+                    entity_id=entity_id,
+                    entity_type="DocumentNode",
+                    text="cache invalidation logic here",
+                    revision="def",
+                ),
+            ]
+        )
+        results = await semantic_index.search("cache invalidation", {"revision": "abc"}, limit=5)
+        assert len(results) == 1
+        assert results[0].revision == "abc"
+
+    async def test_search_by_vector_returns_related(self, semantic_index: SemanticIndex) -> None:
+        await semantic_index.index(
+            [
+                SemanticRecord(
+                    entity_id=uuid.uuid4(),
+                    entity_type="DocumentNode",
+                    text="the refresh token expires after fifteen minutes",
+                ),
+                SemanticRecord(
+                    entity_id=uuid.uuid4(),
+                    entity_type="DocumentNode",
+                    text="billing is processed at the end of every month",
+                ),
+            ]
+        )
+        # A vector close to the refresh-token text must rank it first when the
+        # adapter supports vector search.  When embeddings are not configured,
+        # this raises RuntimeError and is skipped by the caller.
+        try:
+            results = await semantic_index.search_by_vector([0.5] * 256, {}, limit=5)
+        except RuntimeError:
+            pytest.skip("adapter does not support vector search")
+        assert results

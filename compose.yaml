@@ -36,6 +36,28 @@ services:
       timeout: 5s
       retries: 20
 
+  weaviate:
+    image: semitechnologies/weaviate:1.29.1
+    container_name: brain-weaviate
+    environment:
+      QUERY_DEFAULTS_LIMIT: 25
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: "true"
+      PERSISTENCE_DATA_PATH: "/var/lib/weaviate"
+      DEFAULT_VECTORIZER_MODULE: "none"
+      ENABLE_MODULES: ""
+      CLUSTER_HOSTNAME: "node1"
+    ports:
+      - "8080:8080"
+      - "50051:50051"
+    volumes:
+      - brain-weaviatedata:/var/lib/weaviate
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/v1/.well-known/ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
 volumes:
   brain-pgdata:
   brain-neo4jdata:
+  brain-weaviatedata:

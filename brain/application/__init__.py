@@ -18,9 +18,12 @@ from brain.application.graph_integrity import (
     IntegrityIssue,
 )
 from brain.application.graph_projection import GraphProjectionResult, GraphProjectionService
+from brain.application.hybrid_retrieval import HybridRetrievalService, RetrievalCandidate
 from brain.application.impact_analysis import ImpactAnalysis, ImpactAnalysisService
+from brain.application.lexical_search import LexicalSearchService, tokenize
 from brain.application.projections import CanonicalStateProjection
 from brain.application.revisions import IncrementalRevisionHandler
+from brain.application.semantic_indexing import IndexingResult, SemanticIndexingService
 from brain.application.topology import TopologyDiscoveryResult, TopologyDiscoveryService
 
 __all__ = [
@@ -33,12 +36,18 @@ __all__ = [
     "GraphIntegrityReport",
     "GraphProjectionResult",
     "GraphProjectionService",
+    "HybridRetrievalService",
     "ImpactAnalysis",
     "ImpactAnalysisService",
     "IncomingEventProcessor",
     "IncrementalRevisionHandler",
+    "IndexingResult",
     "IntegrityIssue",
+    "LexicalSearchService",
     "ProcessOutcome",
+    "RetrievalCandidate",
+    "SemanticIndexingService",
     "TopologyDiscoveryResult",
     "TopologyDiscoveryService",
+    "tokenize",
 ]

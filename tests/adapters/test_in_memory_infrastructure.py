@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 
+from brain.adapters.embeddings.hash_embedding import HashEmbeddingService
 from brain.adapters.in_memory.event_bus import InMemoryEventBus
 from brain.adapters.in_memory.event_log import InMemoryEventLogRepository
 from brain.adapters.in_memory.idempotency import InMemoryIdempotencyStore
@@ -60,7 +61,7 @@ class TestInMemoryKnowledgeGraph(KnowledgeGraphRepositoryContract):
 class TestInMemorySemanticIndex(SemanticIndexContract):
     @pytest.fixture
     def semantic_index(self) -> SemanticIndex:
-        return InMemorySemanticIndex()
+        return InMemorySemanticIndex(embeddings=HashEmbeddingService())
 
 
 class TestInMemoryRepositorySnapshotRepository(RepositorySnapshotRepositoryContract):
