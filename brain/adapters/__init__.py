@@ -4,6 +4,7 @@ Adapters may depend on ports and provider SDKs; the domain and application
 layers never import this package.
 """
 
+from brain.adapters.code_intelligence import PythonAstParser
 from brain.adapters.topology import (
     ApiInterfaceDetector,
     DeploymentTopologyDetector,
@@ -18,6 +19,7 @@ __all__ = [
     "DeploymentTopologyDetector",
     "DerivedSoftwareCatalog",
     "ManifestTopologyDetector",
+    "PythonAstParser",
     "ResourceDetector",
     "TopologyDiscoverer",
 ]

@@ -23,6 +23,9 @@ from tests.conftest import MIGRATION_TEST_DATABASE_URL, postgres_reachable
 EXPECTED_TABLES = {
     "actors",
     "artifacts",
+    "code_files",
+    "code_relations",
+    "code_symbols",
     "decisions",
     "document_nodes",
     "document_versions",

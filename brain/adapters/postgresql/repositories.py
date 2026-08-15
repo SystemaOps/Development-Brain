@@ -19,6 +19,9 @@ from brain.adapters.postgresql.serialization import dump_model, dump_models, dum
 from brain.adapters.postgresql.tables import (
     ActorRow,
     ArtifactRow,
+    CodeFileRow,
+    CodeRelationRow,
+    CodeSymbolRow,
     DecisionRow,
     DocumentNodeRow,
     DocumentRow,
@@ -45,6 +48,15 @@ from brain.adapters.postgresql.tables import (
 )
 from brain.domain.actors import Actor
 from brain.domain.artifacts import Artifact
+from brain.domain.code_intelligence import (
+    CodeRelation,
+    CodeRelationType,
+    ParsedFile,
+    Symbol,
+    SymbolIdentity,
+    SymbolKind,
+    SymbolLocation,
+)
 from brain.domain.decisions import Decision
 from brain.domain.documents import Document, DocumentNode, DocumentVersion
 from brain.domain.events import EventEnvelope
@@ -1424,3 +1436,252 @@ def _resource_from_row(row: ResourceRow) -> Resource:
             "provenance": row.provenance,
         }
     )
+
+
+class PostgresCodeGraphRepository(_PostgresRepository):
+    """Durable code symbols/relations per repository revision (Phase 7)."""
+
+    async def save_symbols(self, symbols: list[Symbol]) -> list[Symbol]:
+        for symbol in symbols:
+            stmt = pg_insert(CodeSymbolRow).values(
+                id=symbol.id,
+                repository_id=symbol.identity.repository_id,
+                revision=symbol.identity.revision,
+                module=symbol.identity.module,
+                qualified_name=symbol.identity.qualified_name,
+                kind=_as_str(symbol.identity.kind),
+                name=symbol.name,
+                path=symbol.path,
+                identity_key=symbol.identity_key,
+                location=dump_model(symbol.location),
+                parameters=symbol.parameters,
+                return_annotation=symbol.return_annotation,
+                decorators=symbol.decorators,
+                docstring=symbol.docstring,
+                content_hash=symbol.content_hash,
+                symbol_metadata=dict(symbol.metadata),
+            )
+            await self._session.execute(
+                stmt.on_conflict_do_update(
+                    index_elements=["id"],
+                    set_={
+                        "module": symbol.identity.module,
+                        "qualified_name": symbol.identity.qualified_name,
+                        "kind": _as_str(symbol.identity.kind),
+                        "name": symbol.name,
+                        "path": symbol.path,
+                        "identity_key": symbol.identity_key,
+                        "location": dump_model(symbol.location),
+                        "parameters": symbol.parameters,
+                        "return_annotation": symbol.return_annotation,
+                        "decorators": symbol.decorators,
+                        "docstring": symbol.docstring,
+                        "content_hash": symbol.content_hash,
+                        "symbol_metadata": dict(symbol.metadata),
+                    },
+                )
+            )
+        await self._session.flush()
+        return symbols
+
+    async def save_relations(self, relations: list[CodeRelation]) -> list[CodeRelation]:
+        for relation in relations:
+            stmt = pg_insert(CodeRelationRow).values(
+                id=relation.id,
+                repository_id=relation.repository_id,
+                revision=relation.revision,
+                relation_type=_as_str(relation.relation_type),
+                source_identity_key=relation.source_identity.key,
+                target_identity_key=relation.target_identity.key,
+                source_path=relation.source_path,
+                target_path=relation.target_path,
+                confidence=relation.confidence,
+                relation_metadata=dict(relation.metadata),
+            )
+            await self._session.execute(
+                stmt.on_conflict_do_update(
+                    index_elements=["id"],
+                    set_={
+                        "relation_type": _as_str(relation.relation_type),
+                        "source_identity_key": relation.source_identity.key,
+                        "target_identity_key": relation.target_identity.key,
+                        "source_path": relation.source_path,
+                        "target_path": relation.target_path,
+                        "confidence": relation.confidence,
+                        "relation_metadata": dict(relation.metadata),
+                    },
+                )
+            )
+        await self._session.flush()
+        return relations
+
+    async def save_parsed_file(self, parsed: ParsedFile) -> ParsedFile:
+        await self.save_symbols(parsed.symbols)
+        await self.save_relations(parsed.relations)
+        stmt = pg_insert(CodeFileRow).values(
+            id=uuid.uuid4(),
+            repository_id=parsed.repository_id,
+            revision=parsed.revision,
+            path=parsed.path,
+            module=parsed.module,
+            language=parsed.language,
+            content_hash=parsed.content_hash,
+            file_metadata=dict(parsed.metadata),
+        )
+        await self._session.execute(
+            stmt.on_conflict_do_update(
+                index_elements=["repository_id", "revision", "path"],
+                set_={
+                    "module": parsed.module,
+                    "language": parsed.language,
+                    "content_hash": parsed.content_hash,
+                    "file_metadata": dict(parsed.metadata),
+                },
+            )
+        )
+        await self._session.flush()
+        return parsed
+
+    async def get_symbol(
+        self, repository_id: RepositoryId, revision: str, identity_key: str
+    ) -> Symbol | None:
+        result = await self._session.execute(
+            select(CodeSymbolRow).where(
+                CodeSymbolRow.repository_id == repository_id,
+                CodeSymbolRow.revision == revision,
+                CodeSymbolRow.identity_key == identity_key,
+            )
+        )
+        row = result.scalar_one_or_none()
+        return _symbol_from_row(row) if row is not None else None
+
+    async def list_symbols(self, repository_id: RepositoryId, revision: str) -> list[Symbol]:
+        result = await self._session.execute(
+            select(CodeSymbolRow)
+            .where(
+                CodeSymbolRow.repository_id == repository_id,
+                CodeSymbolRow.revision == revision,
+            )
+            .order_by(CodeSymbolRow.qualified_name)
+        )
+        return [_symbol_from_row(row) for row in result.scalars().all()]
+
+    async def list_relations(
+        self, repository_id: RepositoryId, revision: str
+    ) -> list[CodeRelation]:
+        result = await self._session.execute(
+            select(CodeRelationRow).where(
+                CodeRelationRow.repository_id == repository_id,
+                CodeRelationRow.revision == revision,
+            )
+        )
+        return [_relation_from_row(row) for row in result.scalars().all()]
+
+    async def find_symbol(
+        self, repository_id: RepositoryId, revision: str, qualified_name: str
+    ) -> list[Symbol]:
+        result = await self._session.execute(
+            select(CodeSymbolRow)
+            .where(
+                CodeSymbolRow.repository_id == repository_id,
+                CodeSymbolRow.revision == revision,
+                CodeSymbolRow.qualified_name == qualified_name,
+            )
+            .order_by(CodeSymbolRow.qualified_name)
+        )
+        return [_symbol_from_row(row) for row in result.scalars().all()]
+
+    async def expire_revision(self, repository_id: RepositoryId, revision: str) -> None:
+        await self._session.execute(
+            delete(CodeRelationRow).where(
+                CodeRelationRow.repository_id == repository_id,
+                CodeRelationRow.revision == revision,
+            )
+        )
+        await self._session.execute(
+            delete(CodeSymbolRow).where(
+                CodeSymbolRow.repository_id == repository_id,
+                CodeSymbolRow.revision == revision,
+            )
+        )
+        await self._session.execute(
+            delete(CodeFileRow).where(
+                CodeFileRow.repository_id == repository_id,
+                CodeFileRow.revision == revision,
+            )
+        )
+        await self._session.flush()
+
+
+def _symbol_from_row(row: CodeSymbolRow) -> Symbol:
+    identity = SymbolIdentity(
+        repository_id=RepositoryId(row.repository_id),
+        revision=row.revision,
+        module=row.module,
+        qualified_name=row.qualified_name,
+        kind=SymbolKind(row.kind),
+    )
+    return Symbol(
+        id=row.id,
+        identity=identity,
+        name=row.name,
+        path=row.path,
+        kind=SymbolKind(row.kind),
+        location=SymbolLocation.model_validate(row.location),
+        qualified_name=row.qualified_name,
+        parameters=list(row.parameters or []),
+        return_annotation=row.return_annotation,
+        decorators=list(row.decorators or []),
+        docstring=row.docstring,
+        content_hash=row.content_hash,
+        metadata=dict(row.symbol_metadata or {}),
+    )
+
+
+def _relation_from_row(row: CodeRelationRow) -> CodeRelation:
+    source = _identity_from_row(
+        RepositoryId(row.repository_id), row.revision, row.source_identity_key
+    )
+    target = _identity_from_row(
+        RepositoryId(row.repository_id), row.revision, row.target_identity_key
+    )
+    return CodeRelation(
+        id=row.id,
+        relation_type=CodeRelationType(row.relation_type),
+        source_identity=source,
+        target_identity=target,
+        repository_id=RepositoryId(row.repository_id),
+        revision=row.revision,
+        source_path=row.source_path,
+        target_path=row.target_path,
+        confidence=row.confidence,
+        metadata=dict(row.relation_metadata or {}),
+    )
+
+
+def _identity_from_row(
+    repository_id: RepositoryId, revision: str, identity_key: str
+) -> SymbolIdentity:
+    module, qualified_name, kind = _split_identity_key(identity_key, repository_id, revision)
+    return SymbolIdentity(
+        repository_id=repository_id,
+        revision=revision,
+        module=module,
+        qualified_name=qualified_name,
+        kind=SymbolKind(kind),
+    )
+
+
+def _split_identity_key(
+    identity_key: str, repository_id: RepositoryId, revision: str
+) -> tuple[str, str, str]:
+    """Reconstruct module / qualified_name / kind from the identity key.
+
+    The key is ``repo:revision:module:qualified_name:kind``; the last three
+    segments map back to the identity fields.
+    """
+    parts = identity_key.split(":")
+    module = parts[-3] if len(parts) >= 3 else ""
+    qualified_name = parts[-2] if len(parts) >= 2 else ""
+    kind = parts[-1] if parts else ""
+    return module, qualified_name, kind

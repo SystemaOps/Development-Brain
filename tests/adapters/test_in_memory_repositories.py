@@ -6,6 +6,7 @@ import uuid
 
 import pytest
 
+from brain.adapters.in_memory.code_graph import InMemoryCodeGraphRepository
 from brain.adapters.in_memory.repositories import (
     InMemoryActorRepository,
     InMemoryArtifactRepository,
@@ -30,6 +31,7 @@ from brain.domain.projects import Project
 from brain.domain.repositories import Repository
 from brain.domain.verification import VerificationResult
 from brain.domain.work_items import WorkItem
+from brain.ports.code_intelligence import CodeGraphRepository
 from brain.ports.repositories import (
     ActorRepository,
     ArtifactRepository,
@@ -44,6 +46,7 @@ from brain.ports.repositories import (
     WorkItemRepository,
 )
 from brain.ports.topology import SoftwareCatalogRepository
+from tests.contracts.code_graph import CodeGraphRepositoryContract
 from tests.contracts.document_repository import DocumentRepositoryContract
 from tests.contracts.execution_repository import ExecutionRepositoryContract
 from tests.contracts.project_repository import ProjectRepositoryContract
@@ -91,6 +94,12 @@ class TestInMemorySoftwareCatalogRepository(SoftwareCatalogRepositoryContract):
     @pytest.fixture
     def catalog_repository(self) -> SoftwareCatalogRepository:
         return InMemorySoftwareCatalogRepository()
+
+
+class TestInMemoryCodeGraphRepository(CodeGraphRepositoryContract):
+    @pytest.fixture
+    def code_graph_repository(self) -> CodeGraphRepository:
+        return InMemoryCodeGraphRepository()
 
 
 async def test_actor_repository_round_trip() -> None:

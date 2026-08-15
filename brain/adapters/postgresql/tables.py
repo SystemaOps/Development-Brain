@@ -17,7 +17,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import BigInteger, DateTime, Index, String, Text, UniqueConstraint, func
+from sqlalchemy import BigInteger, DateTime, Float, Index, String, Text, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -456,6 +456,77 @@ class TopologyDependencyRow(Base):
     provenance: Mapped[dict[str, object]] = mapped_column(JSONB, default=dict)
 
     __table_args__ = (Index("ix_topology_dependencies_project", "project_id", "source"),)
+
+
+class CodeSymbolRow(Base):
+    """A parsed code symbol at one repository revision (Phase 7)."""
+
+    __tablename__ = "code_symbols"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    repository_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    revision: Mapped[str] = mapped_column(String(255))
+    module: Mapped[str] = mapped_column(String(500))
+    qualified_name: Mapped[str] = mapped_column(String(500))
+    kind: Mapped[str] = mapped_column(String(50))
+    name: Mapped[str] = mapped_column(String(500))
+    path: Mapped[str] = mapped_column(String(1000))
+    identity_key: Mapped[str] = mapped_column(String(1500))
+    location: Mapped[dict[str, object]] = mapped_column(JSONB, default=dict)
+    parameters: Mapped[list[str]] = mapped_column(JSONB, default=list)
+    return_annotation: Mapped[str | None] = mapped_column(Text, nullable=True)
+    decorators: Mapped[list[str]] = mapped_column(JSONB, default=list)
+    docstring: Mapped[str | None] = mapped_column(Text, nullable=True)
+    content_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    symbol_metadata: Mapped[dict[str, object]] = mapped_column(JSONB, default=dict)
+
+    __table_args__ = (
+        Index("ix_code_symbols_repo_revision", "repository_id", "revision"),
+        Index("ix_code_symbols_identity_key", "identity_key"),
+        Index("ix_code_symbols_qualified", "repository_id", "qualified_name"),
+    )
+
+
+class CodeRelationRow(Base):
+    """A typed relation between two code symbols at one revision (Phase 7)."""
+
+    __tablename__ = "code_relations"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    repository_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    revision: Mapped[str] = mapped_column(String(255))
+    relation_type: Mapped[str] = mapped_column(String(50))
+    source_identity_key: Mapped[str] = mapped_column(String(1500))
+    target_identity_key: Mapped[str] = mapped_column(String(1500))
+    source_path: Mapped[str] = mapped_column(String(1000))
+    target_path: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    confidence: Mapped[float] = mapped_column(Float, default=1.0)
+    relation_metadata: Mapped[dict[str, object]] = mapped_column(JSONB, default=dict)
+
+    __table_args__ = (
+        Index("ix_code_relations_repo_revision", "repository_id", "revision"),
+        Index("ix_code_relations_source", "source_identity_key"),
+        Index("ix_code_relations_target", "target_identity_key"),
+    )
+
+
+class CodeFileRow(Base):
+    """A parsed source file at one repository revision (Phase 7)."""
+
+    __tablename__ = "code_files"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    repository_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    revision: Mapped[str] = mapped_column(String(255))
+    path: Mapped[str] = mapped_column(String(1000))
+    module: Mapped[str] = mapped_column(String(500))
+    language: Mapped[str] = mapped_column(String(50))
+    content_hash: Mapped[str] = mapped_column(String(64))
+    file_metadata: Mapped[dict[str, object]] = mapped_column(JSONB, default=dict)
+
+    __table_args__ = (
+        UniqueConstraint("repository_id", "revision", "path", name="uq_code_files_repo_rev_path"),
+    )
 
 
 metadata = Base.metadata

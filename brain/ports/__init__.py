@@ -7,6 +7,11 @@ never pulls in a provider SDK, database, workflow engine, or coding agent.
 from brain.ports.artifact_store import ArtifactStore
 from brain.ports.checkpoint_store import CheckpointStore
 from brain.ports.ci_validation import CIValidationPort
+from brain.ports.code_intelligence import (
+    CodeGraphRepository,
+    CodeIntelligencePort,
+    LanguageParser,
+)
 from brain.ports.documentation import DocumentationPort
 from brain.ports.event_bus import EventBus, EventHandler
 from brain.ports.event_log import EventLogRepository
@@ -53,6 +58,8 @@ __all__ = [
     "ArtifactStore",
     "CheckpointStore",
     "CIValidationPort",
+    "CodeGraphRepository",
+    "CodeIntelligencePort",
     "DecisionRepository",
     "DerivedSoftwareCatalog",
     "DocumentParser",
@@ -69,6 +76,7 @@ __all__ = [
     "GraphRelation",
     "IdempotencyStore",
     "KnowledgeGraphRepository",
+    "LanguageParser",
     "ParserRegistry",
     "ParserSelectionPolicy",
     "ProjectRepository",

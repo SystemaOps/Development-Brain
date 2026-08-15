@@ -6,6 +6,19 @@ engines, or coding agents.  The domain depends only on Pydantic.
 
 from brain.domain.actors import Actor, ActorType
 from brain.domain.artifacts import Artifact, ArtifactType
+from brain.domain.code_intelligence import (
+    CodeRelation,
+    CodeRelationType,
+    ImportStatement,
+    ParsedFile,
+    Symbol,
+    SymbolIdentity,
+    SymbolKind,
+    SymbolLocation,
+    content_hash,
+    is_test_path,
+    module_from_path,
+)
 from brain.domain.common import Priority
 from brain.domain.decisions import Decision, DecisionStatus
 from brain.domain.documents import (
@@ -160,6 +173,9 @@ __all__ = [
     "ChangedFile",
     "classify_changed_files",
     "classify_file",
+    "CodeRelation",
+    "CodeRelationType",
+    "content_hash",
     "Decision",
     "DecisionId",
     "DecisionStatus",
@@ -199,16 +215,20 @@ __all__ = [
     "HumanFeedbackReceived",
     "HumanWorkStatus",
     "ImplementationStatus",
+    "ImportStatement",
     "Interface",
     "InterfaceCandidate",
     "InterfaceType",
+    "is_test_path",
     "KnowledgeConflictDetected",
     "KnowledgeConfidence",
     "KnowledgeEvidence",
     "KnowledgeOrigin",
     "model_to_envelope",
+    "module_from_path",
     "ParsedCodeBlock",
     "ParsedDocument",
+    "ParsedFile",
     "ParsedNode",
     "ParsedTable",
     "Priority",
@@ -244,6 +264,10 @@ __all__ = [
     "SoftwareDomain",
     "SourceArtifact",
     "SourceReference",
+    "Symbol",
+    "SymbolIdentity",
+    "SymbolKind",
+    "SymbolLocation",
     "System",
     "TopologyClaim",
     "TopologyReconciler",

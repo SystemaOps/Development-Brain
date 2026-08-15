@@ -20,6 +20,7 @@ from brain.adapters.postgresql.config import DatabaseSettings
 from brain.adapters.postgresql.repositories import (
     PostgresActorRepository,
     PostgresArtifactRepository,
+    PostgresCodeGraphRepository,
     PostgresDecisionRepository,
     PostgresDocumentRepository,
     PostgresEventLogRepository,
@@ -80,6 +81,7 @@ class PostgresRepositories:
         self.repository_snapshots = PostgresRepositorySnapshotRepository(session)
         self.repository_change_sets = PostgresRepositoryChangeSetRepository(session)
         self.software_catalog = PostgresSoftwareCatalogRepository(session)
+        self.code_graph = PostgresCodeGraphRepository(session)
 
     @property
     def session(self) -> AsyncSession:

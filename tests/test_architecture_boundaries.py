@@ -123,5 +123,16 @@ def test_application_never_imports_adapters_or_providers() -> None:
 def test_domain_has_no_external_dependencies_beyond_pydantic() -> None:
     for module in _iter_modules(brain.domain):
         top = _imported_top_levels(_module_source(module))
-        external = top - {"brain", "pydantic", "uuid", "typing", "enum", "datetime", "re"}
+        external = top - {
+            "brain",
+            "pydantic",
+            "uuid",
+            "typing",
+            "enum",
+            "datetime",
+            "re",
+            "hashlib",
+            "collections",
+            "dataclasses",
+        }
         assert not external, f"{module.__name__} imports unexpected modules {external}"
