@@ -20,6 +20,7 @@ from brain.adapters.in_memory.verification import InMemoryVerificationRunReposit
 from brain.adapters.in_memory.work_management import (
     InMemoryWorkManagementIntegrationRepository,
 )
+from brain.adapters.in_memory.workflow import InMemoryWorkflowCheckpointRepository
 from brain.ports.context import ContextCapsuleRepository
 from brain.ports.event_bus import EventBus
 from brain.ports.event_log import EventLogRepository
@@ -33,6 +34,7 @@ from brain.ports.repository_scan import (
 from brain.ports.semantic_index import SemanticIndex
 from brain.ports.verification import VerificationRunRepository
 from brain.ports.work_management_repo import WorkManagementIntegrationRepository
+from brain.ports.workflow import WorkflowCheckpointRepository
 from tests.contracts.context_capsule import ContextCapsuleRepositoryContract
 from tests.contracts.event_bus import EventBusContract
 from tests.contracts.event_log import EventLogRepositoryContract
@@ -48,6 +50,7 @@ from tests.contracts.verification_run import VerificationRunRepositoryContract
 from tests.contracts.work_management_integration import (
     WorkManagementIntegrationRepositoryContract,
 )
+from tests.contracts.workflow_checkpoint import WorkflowCheckpointRepositoryContract
 
 
 class TestInMemoryEventBus(EventBusContract):
@@ -102,6 +105,12 @@ class TestInMemoryWorkManagementIntegrationRepository(WorkManagementIntegrationR
     @pytest.fixture
     def work_management_integrations(self) -> WorkManagementIntegrationRepository:
         return InMemoryWorkManagementIntegrationRepository()
+
+
+class TestInMemoryWorkflowCheckpointRepository(WorkflowCheckpointRepositoryContract):
+    @pytest.fixture
+    def workflow_checkpoints(self) -> WorkflowCheckpointRepository:
+        return InMemoryWorkflowCheckpointRepository()
 
 
 class TestInMemoryRepositorySnapshotRepository(RepositorySnapshotRepositoryContract):

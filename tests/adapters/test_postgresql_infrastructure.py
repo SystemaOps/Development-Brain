@@ -11,6 +11,7 @@ from brain.adapters.postgresql.repositories import (
     PostgresRepositoryChangeSetRepository,
     PostgresRepositorySnapshotRepository,
     PostgresVerificationRunRepository,
+    PostgresWorkflowCheckpointRepository,
     PostgresWorkManagementIntegrationRepository,
 )
 from brain.ports.context import ContextCapsuleRepository
@@ -22,6 +23,7 @@ from brain.ports.repository_scan import (
 )
 from brain.ports.verification import VerificationRunRepository
 from brain.ports.work_management_repo import WorkManagementIntegrationRepository
+from brain.ports.workflow import WorkflowCheckpointRepository
 from tests.contracts.context_capsule import ContextCapsuleRepositoryContract
 from tests.contracts.event_log import EventLogRepositoryContract
 from tests.contracts.idempotency import IdempotencyStoreContract
@@ -33,6 +35,13 @@ from tests.contracts.verification_run import VerificationRunRepositoryContract
 from tests.contracts.work_management_integration import (
     WorkManagementIntegrationRepositoryContract,
 )
+from tests.contracts.workflow_checkpoint import WorkflowCheckpointRepositoryContract
+
+
+class TestPostgresWorkflowCheckpointRepository(WorkflowCheckpointRepositoryContract):
+    @pytest.fixture
+    def workflow_checkpoints(self, postgres_session) -> WorkflowCheckpointRepository:
+        return PostgresWorkflowCheckpointRepository(postgres_session)
 
 
 class TestPostgresWorkManagementIntegrationRepository(WorkManagementIntegrationRepositoryContract):

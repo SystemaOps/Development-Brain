@@ -637,4 +637,21 @@ class SyncConflictRow(Base):
     __table_args__ = (Index("ix_sync_conflicts_work_item", "work_item_id"),)
 
 
+class WorkflowCheckpointRow(Base):
+    """A persisted workflow checkpoint (Phase 16).
+
+    Conceptually separate from domain execution records: it answers "where
+    should orchestration resume", not "what engineering work happened".
+    """
+
+    __tablename__ = "workflow_checkpoints"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    workflow_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), unique=True)
+    state: Mapped[dict[str, object]] = mapped_column(JSONB, default=dict)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (Index("ix_workflow_checkpoints_workflow", "workflow_id"),)
+
+
 metadata = Base.metadata

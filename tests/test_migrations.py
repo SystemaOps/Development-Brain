@@ -52,6 +52,7 @@ EXPECTED_TABLES = {
     "work_items",
     "work_management_mappings",
     "sync_conflicts",
+    "workflow_checkpoints",
 }
 
 pytestmark = pytest.mark.skipif(

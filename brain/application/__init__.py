@@ -51,6 +51,7 @@ from brain.application.work_management_sync import (
     WebhookNormalizationResult,
     WorkManagementSyncService,
 )
+from brain.application.workflow_engine import RetryDecision, WorkflowEngine, WorkflowOutcome
 from brain.application.workspace_manager import Workspace, WorkspaceManager
 
 __all__ = [
@@ -88,6 +89,7 @@ __all__ = [
     "PlanningResult",
     "PlanningService",
     "RetrievalCandidate",
+    "RetryDecision",
     "SemanticIndexingService",
     "SyncResult",
     "TokenEstimator",
@@ -96,6 +98,8 @@ __all__ = [
     "VerificationEngine",
     "VerificationOutcome",
     "WebhookNormalizationResult",
+    "WorkflowEngine",
+    "WorkflowOutcome",
     "WorkManagementSyncService",
     "Workspace",
     "WorkspaceManager",

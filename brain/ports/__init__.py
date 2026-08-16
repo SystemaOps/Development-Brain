@@ -57,6 +57,7 @@ from brain.ports.topology import (
 from brain.ports.verification import CommandRunner, VerificationRunRepository
 from brain.ports.work_management import WorkManagementPort
 from brain.ports.work_management_repo import WorkManagementIntegrationRepository
+from brain.ports.workflow import WorkflowCheckpointRepository
 
 __all__ = [
     "ActorRepository",
@@ -107,4 +108,5 @@ __all__ = [
     "WorkItemRepository",
     "WorkManagementIntegrationRepository",
     "WorkManagementPort",
+    "WorkflowCheckpointRepository",
 ]

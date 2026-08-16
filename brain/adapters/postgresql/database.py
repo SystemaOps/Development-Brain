@@ -37,6 +37,7 @@ from brain.adapters.postgresql.repositories import (
     PostgresSoftwareCatalogRepository,
     PostgresVerificationResultRepository,
     PostgresVerificationRunRepository,
+    PostgresWorkflowCheckpointRepository,
     PostgresWorkItemRepository,
     PostgresWorkManagementIntegrationRepository,
 )
@@ -82,6 +83,7 @@ class PostgresRepositories:
         self.verification_results = PostgresVerificationResultRepository(session)
         self.verification_runs = PostgresVerificationRunRepository(session)
         self.work_management_integrations = PostgresWorkManagementIntegrationRepository(session)
+        self.workflow_checkpoints = PostgresWorkflowCheckpointRepository(session)
         self.idempotency = PostgresIdempotencyStore(session)
         self.event_log = PostgresEventLogRepository(session)
         self.repository_snapshots = PostgresRepositorySnapshotRepository(session)

@@ -35,6 +35,7 @@ from brain.adapters.in_memory.verification import InMemoryVerificationRunReposit
 from brain.adapters.in_memory.work_management import (
     InMemoryWorkManagementIntegrationRepository,
 )
+from brain.adapters.in_memory.workflow import InMemoryWorkflowCheckpointRepository
 
 __all__ = [
     "InMemoryActorRepository",
@@ -63,5 +64,6 @@ __all__ = [
     "InMemoryVerificationRunRepository",
     "InMemoryWorkItemRepository",
     "InMemoryWorkManagementIntegrationRepository",
+    "InMemoryWorkflowCheckpointRepository",
     "NullSoftwareCatalog",
 ]

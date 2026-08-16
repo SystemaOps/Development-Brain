@@ -48,6 +48,7 @@ from brain.adapters.postgresql.tables import (
     TopologyDependencyRow,
     VerificationResultRow,
     VerificationRunRow,
+    WorkflowCheckpointRow,
     WorkItemRow,
     WorkManagementMappingRow,
 )
@@ -89,6 +90,7 @@ from brain.domain.identity import (
     RepositoryId,
     RequirementId,
     VerificationId,
+    WorkflowId,
     WorkItemId,
 )
 from brain.domain.planning import (
@@ -127,6 +129,7 @@ from brain.domain.work_management import (
     SyncConflict,
     SyncState,
 )
+from brain.domain.workflow import WorkflowState
 
 
 def _as_str(value: object) -> str:
@@ -2026,3 +2029,45 @@ def _conflict_from_row(row: SyncConflictRow) -> SyncConflict:
         detected_at=row.detected_at,
         resolved=row.resolved,
     )
+
+
+class PostgresWorkflowCheckpointRepository(_PostgresRepository):
+    """Durable workflow checkpoints, separate from domain execution records (16.4)."""
+
+    async def save_checkpoint(self, state: WorkflowState) -> WorkflowState:
+        stmt = pg_insert(WorkflowCheckpointRow).values(
+            id=uuid.uuid4(),
+            workflow_id=state.workflow_id,
+            state=dump_model(state),
+            updated_at=state.updated_at,
+        )
+        await self._session.execute(
+            stmt.on_conflict_do_update(
+                index_elements=["workflow_id"],
+                set_={
+                    "state": dump_model(state),
+                    "updated_at": state.updated_at,
+                },
+            )
+        )
+        await self._session.flush()
+        return state
+
+    async def load_checkpoint(self, workflow_id: WorkflowId) -> WorkflowState | None:
+        result = await self._session.execute(
+            select(WorkflowCheckpointRow).where(WorkflowCheckpointRow.workflow_id == workflow_id)
+        )
+        row = result.scalar_one_or_none()
+        return WorkflowState.model_validate(row.state) if row is not None else None
+
+    async def delete_checkpoint(self, workflow_id: WorkflowId) -> None:
+        await self._session.execute(
+            delete(WorkflowCheckpointRow).where(WorkflowCheckpointRow.workflow_id == workflow_id)
+        )
+        await self._session.flush()
+
+    async def list_checkpoints(self) -> list[WorkflowState]:
+        result = await self._session.execute(
+            select(WorkflowCheckpointRow).order_by(WorkflowCheckpointRow.updated_at)
+        )
+        return [WorkflowState.model_validate(row.state) for row in result.scalars().all()]
