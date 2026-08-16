@@ -18,6 +18,12 @@ from brain.application.document_ingestion import (
     DocumentIngestionResult,
     DocumentIngestionService,
 )
+from brain.application.documentation_catalog_sync import (
+    CatalogConflict,
+    CatalogReconciliationResult,
+    DocumentationCatalogSyncService,
+    DocumentSyncResult,
+)
 from brain.application.events import IncomingEventProcessor, ProcessOutcome
 from brain.application.execution_request_builder import (
     BuiltExecution,
@@ -54,12 +60,16 @@ __all__ = [
     "BuildResult",
     "BuiltExecution",
     "CanonicalStateProjection",
+    "CatalogConflict",
+    "CatalogReconciliationResult",
     "CodeIndexResult",
     "CodeIntelligenceService",
     "ContextEngineService",
     "ContextRanker",
+    "DocumentationCatalogSyncService",
     "DocumentIngestionResult",
     "DocumentIngestionService",
+    "DocumentSyncResult",
     "ExecutionRequestBuilder",
     "GraphIntegrityChecker",
     "GraphIntegrityReport",
