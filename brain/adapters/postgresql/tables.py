@@ -601,4 +601,40 @@ class VerificationRunRow(Base):
     __table_args__ = (Index("ix_verification_runs_execution", "execution_id"),)
 
 
+class WorkManagementMappingRow(Base):
+    """Internal<->external work item mapping (Phase 14)."""
+
+    __tablename__ = "work_management_mappings"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    work_item_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    provider: Mapped[str] = mapped_column(String(50))
+    external_id: Mapped[str] = mapped_column(String(500))
+    sync_state: Mapped[str] = mapped_column(String(30))
+    last_synced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_sync_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint("work_item_id", "provider", name="uq_work_management_mapping"),
+    )
+
+
+class SyncConflictRow(Base):
+    """A provider/brain disagreement that must not be overwritten (Phase 14)."""
+
+    __tablename__ = "sync_conflicts"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    work_item_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    provider: Mapped[str] = mapped_column(String(50))
+    external_id: Mapped[str] = mapped_column(String(500))
+    provider_field: Mapped[str] = mapped_column(String(100))
+    provider_value: Mapped[str] = mapped_column(String(500))
+    brain_value: Mapped[str] = mapped_column(String(500))
+    detected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    resolved: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    __table_args__ = (Index("ix_sync_conflicts_work_item", "work_item_id"),)
+
+
 metadata = Base.metadata

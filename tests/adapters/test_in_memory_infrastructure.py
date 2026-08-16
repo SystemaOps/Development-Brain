@@ -17,6 +17,9 @@ from brain.adapters.in_memory.repositories import (
 )
 from brain.adapters.in_memory.semantic_index import InMemorySemanticIndex
 from brain.adapters.in_memory.verification import InMemoryVerificationRunRepository
+from brain.adapters.in_memory.work_management import (
+    InMemoryWorkManagementIntegrationRepository,
+)
 from brain.ports.context import ContextCapsuleRepository
 from brain.ports.event_bus import EventBus
 from brain.ports.event_log import EventLogRepository
@@ -29,6 +32,7 @@ from brain.ports.repository_scan import (
 )
 from brain.ports.semantic_index import SemanticIndex
 from brain.ports.verification import VerificationRunRepository
+from brain.ports.work_management_repo import WorkManagementIntegrationRepository
 from tests.contracts.context_capsule import ContextCapsuleRepositoryContract
 from tests.contracts.event_bus import EventBusContract
 from tests.contracts.event_log import EventLogRepositoryContract
@@ -41,6 +45,9 @@ from tests.contracts.repository_scan import (
 )
 from tests.contracts.semantic_index import SemanticIndexContract
 from tests.contracts.verification_run import VerificationRunRepositoryContract
+from tests.contracts.work_management_integration import (
+    WorkManagementIntegrationRepositoryContract,
+)
 
 
 class TestInMemoryEventBus(EventBusContract):
@@ -89,6 +96,12 @@ class TestInMemoryVerificationRunRepository(VerificationRunRepositoryContract):
     @pytest.fixture
     def verification_runs(self) -> VerificationRunRepository:
         return InMemoryVerificationRunRepository()
+
+
+class TestInMemoryWorkManagementIntegrationRepository(WorkManagementIntegrationRepositoryContract):
+    @pytest.fixture
+    def work_management_integrations(self) -> WorkManagementIntegrationRepository:
+        return InMemoryWorkManagementIntegrationRepository()
 
 
 class TestInMemoryRepositorySnapshotRepository(RepositorySnapshotRepositoryContract):

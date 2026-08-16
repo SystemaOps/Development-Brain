@@ -50,6 +50,8 @@ EXPECTED_TABLES = {
     "verification_results",
     "verification_runs",
     "work_items",
+    "work_management_mappings",
+    "sync_conflicts",
 }
 
 pytestmark = pytest.mark.skipif(

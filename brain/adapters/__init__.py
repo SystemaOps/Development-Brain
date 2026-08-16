@@ -21,6 +21,10 @@ from brain.adapters.verification import (
     FakeCommandRunner,
     FakePullRequestAdapter,
 )
+from brain.adapters.work_management import (
+    JiraAdapter,
+    OpenProjectAdapter,
+)
 
 __all__ = [
     "ApiInterfaceDetector",
@@ -32,7 +36,9 @@ __all__ = [
     "FakePullRequestAdapter",
     "HashEmbeddingService",
     "InMemoryExecutorRegistry",
+    "JiraAdapter",
     "ManifestTopologyDetector",
+    "OpenProjectAdapter",
     "PiExecutor",
     "PythonAstParser",
     "ResourceDetector",

@@ -197,6 +197,13 @@ from brain.domain.work_items import (
     WorkItem,
     WorkItemType,
 )
+from brain.domain.work_management import (
+    FieldMapping,
+    IntegrationMapping,
+    ProviderMappingSpec,
+    SyncConflict,
+    SyncState,
+)
 
 __all__ = [
     "AcceptanceCriterion",
@@ -273,6 +280,7 @@ __all__ = [
     "ExternalReference",
     "ExtractedReference",
     "FeedbackVerdict",
+    "FieldMapping",
     "FileCategory",
     "GraphLabel",
     "GraphReconciler",
@@ -280,6 +288,7 @@ __all__ = [
     "HumanWorkStatus",
     "ImplementationStatus",
     "ImportStatement",
+    "IntegrationMapping",
     "Interface",
     "InterfaceCandidate",
     "InterfaceType",
@@ -313,6 +322,7 @@ __all__ = [
     "PullRequestCreated",
     "PullRequestRequested",
     "PullRequestStatus",
+    "ProviderMappingSpec",
     "ReconciledRelation",
     "ReferenceKind",
     "RelationClaim",
@@ -343,6 +353,8 @@ __all__ = [
     "SoftwareDomain",
     "SourceArtifact",
     "SourceReference",
+    "SyncConflict",
+    "SyncState",
     "Symbol",
     "SymbolIdentity",
     "SymbolKind",

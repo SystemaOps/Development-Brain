@@ -42,12 +42,14 @@ from brain.adapters.postgresql.tables import (
     ResourceRow,
     SoftwareComponentRow,
     SoftwareDomainRow,
+    SyncConflictRow,
     SystemRow,
     TopologyClaimRow,
     TopologyDependencyRow,
     VerificationResultRow,
     VerificationRunRow,
     WorkItemRow,
+    WorkManagementMappingRow,
 )
 from brain.domain.actors import Actor
 from brain.domain.artifacts import Artifact
@@ -120,6 +122,11 @@ from brain.domain.verification_plan import (
     VerificationVerdict,
 )
 from brain.domain.work_items import WorkItem
+from brain.domain.work_management import (
+    IntegrationMapping,
+    SyncConflict,
+    SyncState,
+)
 
 
 def _as_str(value: object) -> str:
@@ -1921,4 +1928,101 @@ def _verification_run_from_row(row: VerificationRunRow) -> VerificationRun:
         issues=list(row.issues or []),
         feedback=list(row.feedback or []),
         pr_allowed=row.pr_allowed,
+    )
+
+
+class PostgresWorkManagementIntegrationRepository(_PostgresRepository):
+    """Durable provider mappings and sync conflicts (Phase 14)."""
+
+    async def save_mapping(self, mapping: IntegrationMapping) -> IntegrationMapping:
+        stmt = pg_insert(WorkManagementMappingRow).values(
+            id=mapping.id,
+            work_item_id=mapping.work_item_id,
+            provider=mapping.provider,
+            external_id=mapping.external_id,
+            sync_state=mapping.sync_state.value,
+            last_synced_at=mapping.last_synced_at,
+            last_sync_error=mapping.last_sync_error,
+        )
+        await self._session.execute(
+            stmt.on_conflict_do_update(
+                index_elements=["work_item_id", "provider"],
+                set_={
+                    "external_id": mapping.external_id,
+                    "sync_state": mapping.sync_state.value,
+                    "last_synced_at": mapping.last_synced_at,
+                    "last_sync_error": mapping.last_sync_error,
+                },
+            )
+        )
+        await self._session.flush()
+        return mapping
+
+    async def get_mapping(
+        self, work_item_id: WorkItemId, provider: str
+    ) -> IntegrationMapping | None:
+        result = await self._session.execute(
+            select(WorkManagementMappingRow).where(
+                WorkManagementMappingRow.work_item_id == work_item_id,
+                WorkManagementMappingRow.provider == provider,
+            )
+        )
+        row = result.scalar_one_or_none()
+        return _mapping_from_row(row) if row is not None else None
+
+    async def list_mappings(self, work_item_id: WorkItemId) -> list[IntegrationMapping]:
+        result = await self._session.execute(
+            select(WorkManagementMappingRow).where(
+                WorkManagementMappingRow.work_item_id == work_item_id
+            )
+        )
+        return [_mapping_from_row(row) for row in result.scalars().all()]
+
+    async def save_conflict(self, conflict: SyncConflict) -> SyncConflict:
+        self._session.add(
+            SyncConflictRow(
+                id=conflict.id,
+                work_item_id=conflict.work_item_id,
+                provider=conflict.provider,
+                external_id=conflict.external_id,
+                provider_field=conflict.provider_field,
+                provider_value=conflict.provider_value,
+                brain_value=conflict.brain_value,
+                detected_at=conflict.detected_at,
+                resolved=conflict.resolved,
+            )
+        )
+        await self._session.flush()
+        return conflict
+
+    async def list_conflicts(self, work_item_id: WorkItemId) -> list[SyncConflict]:
+        result = await self._session.execute(
+            select(SyncConflictRow).where(SyncConflictRow.work_item_id == work_item_id)
+        )
+        return [_conflict_from_row(row) for row in result.scalars().all()]
+
+
+def _mapping_from_row(row: WorkManagementMappingRow) -> IntegrationMapping:
+    return IntegrationMapping(
+        id=row.id,
+        work_item_id=WorkItemId(row.work_item_id),
+        provider=row.provider,
+        external_id=row.external_id,
+        sync_state=SyncState(row.sync_state),
+        last_synced_at=row.last_synced_at,
+        last_sync_error=row.last_sync_error,
+    )
+
+
+def _conflict_from_row(row: SyncConflictRow) -> SyncConflict:
+    return SyncConflict(
+        id=row.id,
+        work_item_id=WorkItemId(row.work_item_id),
+        provider=row.provider,
+        external_id=row.external_id,
+        provider_field=row.provider_field,
+        provider_value=row.provider_value,
+        brain_value=row.brain_value,
+        detected_at=row.detected_at,
+        resolved=row.resolved,
     )

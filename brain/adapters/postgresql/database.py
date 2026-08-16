@@ -38,6 +38,7 @@ from brain.adapters.postgresql.repositories import (
     PostgresVerificationResultRepository,
     PostgresVerificationRunRepository,
     PostgresWorkItemRepository,
+    PostgresWorkManagementIntegrationRepository,
 )
 
 type SessionFactory = async_sessionmaker[AsyncSession]
@@ -80,6 +81,7 @@ class PostgresRepositories:
         self.artifacts = PostgresArtifactRepository(session)
         self.verification_results = PostgresVerificationResultRepository(session)
         self.verification_runs = PostgresVerificationRunRepository(session)
+        self.work_management_integrations = PostgresWorkManagementIntegrationRepository(session)
         self.idempotency = PostgresIdempotencyStore(session)
         self.event_log = PostgresEventLogRepository(session)
         self.repository_snapshots = PostgresRepositorySnapshotRepository(session)
