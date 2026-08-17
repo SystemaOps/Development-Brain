@@ -24,15 +24,19 @@ from brain.adapters.postgresql.tables import (
     CodeRelationRow,
     CodeSymbolRow,
     ContextCapsuleRow,
+    ContextMetricsRow,
+    ContextOutcomeRow,
     DecisionRow,
     DocumentNodeRow,
     DocumentRow,
     DocumentVersionRow,
     EventLogRow,
     EvidenceRow,
+    ExecutionMetricsRow,
     ExecutionRow,
     ExternalReferenceRow,
     IdempotencyKeyRow,
+    ImpactMetricsRow,
     InterfaceRow,
     PlanRow,
     ProjectRow,
@@ -93,6 +97,13 @@ from brain.domain.identity import (
     VerificationId,
     WorkflowId,
     WorkItemId,
+)
+from brain.domain.observability import (
+    ContextMetrics,
+    ContextOutcomeSignals,
+    ExecutionMetrics,
+    ImpactAnalysisMetrics,
+    SelectedContextItem,
 )
 from brain.domain.planning import (
     AmbiguityAssessment,
@@ -2150,4 +2161,211 @@ def _approval_from_row(row: ApprovalRow) -> Approval:
         requested_at=row.requested_at,
         decided_at=row.decided_at,
         metadata=dict(row.approval_metadata or {}),
+    )
+
+
+class PostgresMetricsRepository(_PostgresRepository):
+    """Durable per-execution observability metrics (Phase 18)."""
+
+    async def save_execution_metrics(self, metrics: ExecutionMetrics) -> None:
+        values = _execution_metrics_values(metrics)
+        stmt = pg_insert(ExecutionMetricsRow).values(**values)
+        await self._session.execute(
+            stmt.on_conflict_do_update(
+                index_elements=["execution_id"],
+                set_={k: v for k, v in values.items() if k != "execution_id"},
+            )
+        )
+        await self._session.flush()
+
+    async def get_execution_metrics(self, execution_id: ExecutionId) -> ExecutionMetrics | None:
+        result = await self._session.execute(
+            select(ExecutionMetricsRow).where(ExecutionMetricsRow.execution_id == execution_id)
+        )
+        row = result.scalar_one_or_none()
+        return _execution_metrics_from_row(row) if row is not None else None
+
+    async def save_context_metrics(self, metrics: ContextMetrics) -> None:
+        if metrics.execution_id is None:
+            raise ValueError("context metrics require an execution_id to persist")
+        values = _context_metrics_values(metrics)
+        stmt = pg_insert(ContextMetricsRow).values(**values)
+        await self._session.execute(
+            stmt.on_conflict_do_update(
+                index_elements=["context_capsule_id"],
+                set_={k: v for k, v in values.items() if k != "context_capsule_id"},
+            )
+        )
+        await self._session.flush()
+
+    async def get_context_metrics(self, execution_id: ExecutionId) -> ContextMetrics | None:
+        result = await self._session.execute(
+            select(ContextMetricsRow).where(ContextMetricsRow.execution_id == execution_id)
+        )
+        row = result.scalar_one_or_none()
+        return _context_metrics_from_row(row) if row is not None else None
+
+    async def save_context_outcome(self, signals: ContextOutcomeSignals) -> None:
+        stmt = pg_insert(ContextOutcomeRow).values(
+            id=uuid.uuid4(),
+            execution_id=signals.execution_id,
+            missing_files_discovered_later=signals.missing_files_discovered_later,
+            verifier_omitted_dependencies=signals.verifier_omitted_dependencies,
+            additional_context_requests=signals.additional_context_requests,
+            irrelevant_context_rate=signals.irrelevant_context_rate,
+            retry_caused_by_context_failure=signals.retry_caused_by_context_failure,
+        )
+        await self._session.execute(
+            stmt.on_conflict_do_update(
+                index_elements=["execution_id"],
+                set_={
+                    "missing_files_discovered_later": signals.missing_files_discovered_later,
+                    "verifier_omitted_dependencies": signals.verifier_omitted_dependencies,
+                    "additional_context_requests": signals.additional_context_requests,
+                    "irrelevant_context_rate": signals.irrelevant_context_rate,
+                    "retry_caused_by_context_failure": signals.retry_caused_by_context_failure,
+                },
+            )
+        )
+        await self._session.flush()
+
+    async def get_context_outcome(self, execution_id: ExecutionId) -> ContextOutcomeSignals | None:
+        result = await self._session.execute(
+            select(ContextOutcomeRow).where(ContextOutcomeRow.execution_id == execution_id)
+        )
+        row = result.scalar_one_or_none()
+        return _context_outcome_from_row(row) if row is not None else None
+
+    async def save_impact_metrics(self, metrics: ImpactAnalysisMetrics) -> None:
+        stmt = pg_insert(ImpactMetricsRow).values(
+            id=uuid.uuid4(),
+            execution_id=metrics.execution_id,
+            predicted_files=metrics.predicted_files,
+            actual_changed_files=metrics.actual_changed_files,
+        )
+        await self._session.execute(
+            stmt.on_conflict_do_update(
+                index_elements=["execution_id"],
+                set_={
+                    "predicted_files": metrics.predicted_files,
+                    "actual_changed_files": metrics.actual_changed_files,
+                },
+            )
+        )
+        await self._session.flush()
+
+    async def get_impact_metrics(self, execution_id: ExecutionId) -> ImpactAnalysisMetrics | None:
+        result = await self._session.execute(
+            select(ImpactMetricsRow).where(ImpactMetricsRow.execution_id == execution_id)
+        )
+        row = result.scalar_one_or_none()
+        return _impact_metrics_from_row(row) if row is not None else None
+
+
+def _execution_metrics_values(metrics: ExecutionMetrics) -> dict[str, object]:
+    return {
+        "id": uuid.uuid4(),
+        "execution_id": metrics.execution_id,
+        "workflow_id": metrics.workflow_id,
+        "work_item_id": metrics.work_item_id,
+        "project_id": metrics.project_id,
+        "started_at": metrics.started_at,
+        "completed_at": metrics.completed_at,
+        "duration_seconds": metrics.duration_seconds,
+        "model": metrics.model,
+        "tokens_in": metrics.tokens_in,
+        "tokens_out": metrics.tokens_out,
+        "tool_calls": metrics.tool_calls,
+        "commands_executed": metrics.commands_executed,
+        "retries": metrics.retries,
+        "verification_outcome": metrics.verification_outcome,
+    }
+
+
+def _execution_metrics_from_row(row: ExecutionMetricsRow) -> ExecutionMetrics:
+    return ExecutionMetrics(
+        execution_id=ExecutionId(row.execution_id),
+        workflow_id=row.workflow_id,
+        work_item_id=WorkItemId(row.work_item_id) if row.work_item_id else None,
+        project_id=ProjectId(row.project_id) if row.project_id else None,
+        started_at=row.started_at,
+        completed_at=row.completed_at,
+        duration_seconds=row.duration_seconds,
+        model=row.model,
+        tokens_in=row.tokens_in or 0,
+        tokens_out=row.tokens_out or 0,
+        tool_calls=row.tool_calls or 0,
+        commands_executed=list(row.commands_executed or []),
+        retries=row.retries or 0,
+        verification_outcome=row.verification_outcome,
+    )
+
+
+def _context_metrics_values(metrics: ContextMetrics) -> dict[str, object]:
+    return {
+        "id": uuid.uuid4(),
+        "context_capsule_id": metrics.context_capsule_id,
+        "work_item_id": metrics.work_item_id,
+        "execution_id": metrics.execution_id,
+        "context_token_count": metrics.context_token_count,
+        "candidate_count": metrics.candidate_count,
+        "selected_entity_count": metrics.selected_entity_count,
+        "retrieval_source_distribution": metrics.retrieval_source_distribution,
+        "jit_retrieval_requests": metrics.jit_retrieval_requests,
+        "selected_context": [item.model_dump(mode="json") for item in metrics.selected_context],
+    }
+
+
+def _context_metrics_from_row(row: ContextMetricsRow) -> ContextMetrics:
+    return ContextMetrics(
+        context_capsule_id=ContextCapsuleId(row.context_capsule_id),
+        work_item_id=WorkItemId(row.work_item_id),
+        execution_id=ExecutionId(row.execution_id) if row.execution_id else None,
+        context_token_count=row.context_token_count or 0,
+        candidate_count=row.candidate_count or 0,
+        selected_entity_count=row.selected_entity_count or 0,
+        retrieval_source_distribution=dict(row.retrieval_source_distribution or {}),
+        jit_retrieval_requests=row.jit_retrieval_requests or 0,
+        selected_context=[
+            _selected_context_item_from_dict(item) for item in (row.selected_context or [])
+        ],
+    )
+
+
+def _selected_context_item_from_dict(item: dict[str, object]) -> SelectedContextItem:
+    score_value = item.get("relevance_score")
+    if score_value is None:
+        score: float = 0.0
+    elif isinstance(score_value, (int, float)):
+        score = float(score_value)
+    else:
+        try:
+            score = float(str(score_value))
+        except (TypeError, ValueError):
+            score = 0.0
+    return SelectedContextItem(
+        entity_type=str(item.get("entity_type", "")),
+        entity_id=uuid.UUID(str(item.get("entity_id"))),
+        reason=str(item.get("reason", "")),
+        retrieval_source=str(item.get("retrieval_source", "")),
+        relevance_score=score,
+    )
+
+
+def _context_outcome_from_row(row: ContextOutcomeRow) -> ContextOutcomeSignals:
+    return ContextOutcomeSignals(
+        execution_id=ExecutionId(row.execution_id),
+        missing_files_discovered_later=list(row.missing_files_discovered_later or []),
+        verifier_omitted_dependencies=list(row.verifier_omitted_dependencies or []),
+        additional_context_requests=row.additional_context_requests or 0,
+        irrelevant_context_rate=row.irrelevant_context_rate or 0.0,
+        retry_caused_by_context_failure=row.retry_caused_by_context_failure or False,
+    )
+
+
+def _impact_metrics_from_row(row: ImpactMetricsRow) -> ImpactAnalysisMetrics:
+    return ImpactAnalysisMetrics(
+        execution_id=ExecutionId(row.execution_id),
+        predicted_files=list(row.predicted_files or []),
+        actual_changed_files=list(row.actual_changed_files or []),
     )

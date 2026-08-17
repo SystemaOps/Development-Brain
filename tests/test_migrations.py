@@ -54,6 +54,10 @@ EXPECTED_TABLES = {
     "sync_conflicts",
     "workflow_checkpoints",
     "approvals",
+    "context_metrics",
+    "context_outcomes",
+    "execution_metrics",
+    "impact_metrics",
 }
 
 pytestmark = pytest.mark.skipif(

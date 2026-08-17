@@ -14,6 +14,10 @@ from brain.adapters.in_memory.event_log import InMemoryEventLogRepository
 from brain.adapters.in_memory.executor_registry import InMemoryExecutorRegistry
 from brain.adapters.in_memory.idempotency import InMemoryIdempotencyStore
 from brain.adapters.in_memory.knowledge_graph import InMemoryKnowledgeGraph
+from brain.adapters.in_memory.observability import (
+    InMemoryLogSink,
+    InMemoryMetricsRepository,
+)
 from brain.adapters.in_memory.planning import InMemoryPlanRepository
 from brain.adapters.in_memory.policies import InMemoryApprovalRepository
 from brain.adapters.in_memory.repositories import (
@@ -55,6 +59,8 @@ __all__ = [
     "InMemoryExecutionRepository",
     "InMemoryIdempotencyStore",
     "InMemoryKnowledgeGraph",
+    "InMemoryLogSink",
+    "InMemoryMetricsRepository",
     "InMemoryPlanRepository",
     "InMemoryProjectRepository",
     "InMemoryRepositoryChangeSetRepository",

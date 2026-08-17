@@ -40,6 +40,14 @@ from brain.application.hybrid_retrieval import HybridRetrievalService, Retrieval
 from brain.application.impact_analysis import ImpactAnalysis, ImpactAnalysisService
 from brain.application.jit_retrieval import JustInTimeRetrieval
 from brain.application.lexical_search import LexicalSearchService, tokenize
+from brain.application.observability import (
+    ContextMetricsBuilder,
+    ContextOutcomeEvaluator,
+    MetricsCollector,
+    MetricsReporter,
+    ObservabilityService,
+    StructuredLogger,
+)
 from brain.application.planning import PlanningResult, PlanningService
 from brain.application.policy_service import PolicyEvaluation, PolicyService, RiskAssessment
 from brain.application.projections import CanonicalStateProjection
@@ -69,6 +77,8 @@ __all__ = [
     "CodeIndexResult",
     "CodeIntelligenceService",
     "ContextEngineService",
+    "ContextMetricsBuilder",
+    "ContextOutcomeEvaluator",
     "ContextRanker",
     "DocumentationCatalogSyncService",
     "DocumentIngestionResult",
@@ -88,6 +98,9 @@ __all__ = [
     "IntegrityIssue",
     "JustInTimeRetrieval",
     "LexicalSearchService",
+    "MetricsCollector",
+    "MetricsReporter",
+    "ObservabilityService",
     "ProcessOutcome",
     "PlanningResult",
     "PlanningService",
@@ -97,6 +110,7 @@ __all__ = [
     "RetryDecision",
     "RiskAssessment",
     "SemanticIndexingService",
+    "StructuredLogger",
     "SyncResult",
     "TokenEstimator",
     "TopologyDiscoveryResult",

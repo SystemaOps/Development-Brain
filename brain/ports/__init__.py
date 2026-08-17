@@ -21,6 +21,7 @@ from brain.ports.executor import ExecutorPort
 from brain.ports.executor_registry import ExecutorRegistry
 from brain.ports.idempotency import IdempotencyStore
 from brain.ports.knowledge_graph import GraphEntity, GraphRelation, KnowledgeGraphRepository
+from brain.ports.observability import LogSink, MetricsRepository
 from brain.ports.parsing import (
     DocumentParser,
     EntityExtractor,
@@ -90,6 +91,8 @@ __all__ = [
     "IdempotencyStore",
     "KnowledgeGraphRepository",
     "LanguageParser",
+    "LogSink",
+    "MetricsRepository",
     "ParserRegistry",
     "ParserSelectionPolicy",
     "PlanRepository",

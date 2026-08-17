@@ -678,4 +678,72 @@ class ApprovalRow(Base):
     )
 
 
+class ExecutionMetricsRow(Base):
+    """Per-execution operational metrics (Phase 18)."""
+
+    __tablename__ = "execution_metrics"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    execution_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), unique=True)
+    workflow_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    work_item_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    project_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    duration_seconds: Mapped[float | None] = mapped_column(Float, nullable=True)
+    model: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    tokens_in: Mapped[int] = mapped_column(BigInteger, default=0)
+    tokens_out: Mapped[int] = mapped_column(BigInteger, default=0)
+    tool_calls: Mapped[int] = mapped_column(BigInteger, default=0)
+    commands_executed: Mapped[list[str]] = mapped_column(JSONB, default=list)
+    retries: Mapped[int] = mapped_column(BigInteger, default=0)
+    verification_outcome: Mapped[str | None] = mapped_column(String(50), nullable=True)
+
+    __table_args__ = (Index("ix_execution_metrics_workflow", "workflow_id"),)
+
+
+class ContextMetricsRow(Base):
+    """Per-capsule context metrics (Phase 18)."""
+
+    __tablename__ = "context_metrics"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    context_capsule_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), unique=True)
+    work_item_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    execution_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    context_token_count: Mapped[int] = mapped_column(BigInteger, default=0)
+    candidate_count: Mapped[int] = mapped_column(BigInteger, default=0)
+    selected_entity_count: Mapped[int] = mapped_column(BigInteger, default=0)
+    retrieval_source_distribution: Mapped[dict[str, int]] = mapped_column(JSONB, default=dict)
+    jit_retrieval_requests: Mapped[int] = mapped_column(BigInteger, default=0)
+    selected_context: Mapped[list[dict[str, object]]] = mapped_column(JSONB, default=list)
+
+    __table_args__ = (Index("ix_context_metrics_execution", "execution_id"),)
+
+
+class ContextOutcomeRow(Base):
+    """Context-quality outcome signals (Phase 18)."""
+
+    __tablename__ = "context_outcomes"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    execution_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), unique=True)
+    missing_files_discovered_later: Mapped[list[str]] = mapped_column(JSONB, default=list)
+    verifier_omitted_dependencies: Mapped[list[str]] = mapped_column(JSONB, default=list)
+    additional_context_requests: Mapped[int] = mapped_column(BigInteger, default=0)
+    irrelevant_context_rate: Mapped[float] = mapped_column(Float, default=0.0)
+    retry_caused_by_context_failure: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class ImpactMetricsRow(Base):
+    """Predicted vs actual impact metrics (Phase 18)."""
+
+    __tablename__ = "impact_metrics"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    execution_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), unique=True)
+    predicted_files: Mapped[list[str]] = mapped_column(JSONB, default=list)
+    actual_changed_files: Mapped[list[str]] = mapped_column(JSONB, default=list)
+
+
 metadata = Base.metadata

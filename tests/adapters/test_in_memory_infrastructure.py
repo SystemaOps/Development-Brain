@@ -11,6 +11,7 @@ from brain.adapters.in_memory.event_log import InMemoryEventLogRepository
 from brain.adapters.in_memory.executor_registry import InMemoryExecutorRegistry
 from brain.adapters.in_memory.idempotency import InMemoryIdempotencyStore
 from brain.adapters.in_memory.knowledge_graph import InMemoryKnowledgeGraph
+from brain.adapters.in_memory.observability import InMemoryMetricsRepository
 from brain.adapters.in_memory.policies import InMemoryApprovalRepository
 from brain.adapters.in_memory.repositories import (
     InMemoryRepositoryChangeSetRepository,
@@ -28,6 +29,7 @@ from brain.ports.event_log import EventLogRepository
 from brain.ports.executor_registry import ExecutorRegistry
 from brain.ports.idempotency import IdempotencyStore
 from brain.ports.knowledge_graph import KnowledgeGraphRepository
+from brain.ports.observability import MetricsRepository
 from brain.ports.policies import ApprovalRepository
 from brain.ports.repository_scan import (
     RepositoryChangeSetRepository,
@@ -44,6 +46,7 @@ from tests.contracts.event_log import EventLogRepositoryContract
 from tests.contracts.executor_registry import ExecutorRegistryContract
 from tests.contracts.idempotency import IdempotencyStoreContract
 from tests.contracts.knowledge_graph import KnowledgeGraphRepositoryContract
+from tests.contracts.metrics import MetricsRepositoryContract
 from tests.contracts.repository_scan import (
     RepositoryChangeSetRepositoryContract,
     RepositorySnapshotRepositoryContract,
@@ -120,6 +123,12 @@ class TestInMemoryApprovalRepository(ApprovalRepositoryContract):
     @pytest.fixture
     def approvals(self) -> ApprovalRepository:
         return InMemoryApprovalRepository()
+
+
+class TestInMemoryMetricsRepository(MetricsRepositoryContract):
+    @pytest.fixture
+    def metrics(self) -> MetricsRepository:
+        return InMemoryMetricsRepository()
 
 
 class TestInMemoryRepositorySnapshotRepository(RepositorySnapshotRepositoryContract):
