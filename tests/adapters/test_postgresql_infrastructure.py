@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 from brain.adapters.postgresql.repositories import (
+    PostgresApprovalRepository,
     PostgresContextCapsuleRepository,
     PostgresEventLogRepository,
     PostgresIdempotencyStore,
@@ -17,6 +18,7 @@ from brain.adapters.postgresql.repositories import (
 from brain.ports.context import ContextCapsuleRepository
 from brain.ports.event_log import EventLogRepository
 from brain.ports.idempotency import IdempotencyStore
+from brain.ports.policies import ApprovalRepository
 from brain.ports.repository_scan import (
     RepositoryChangeSetRepository,
     RepositorySnapshotRepository,
@@ -24,6 +26,7 @@ from brain.ports.repository_scan import (
 from brain.ports.verification import VerificationRunRepository
 from brain.ports.work_management_repo import WorkManagementIntegrationRepository
 from brain.ports.workflow import WorkflowCheckpointRepository
+from tests.contracts.approval import ApprovalRepositoryContract
 from tests.contracts.context_capsule import ContextCapsuleRepositoryContract
 from tests.contracts.event_log import EventLogRepositoryContract
 from tests.contracts.idempotency import IdempotencyStoreContract
@@ -36,6 +39,12 @@ from tests.contracts.work_management_integration import (
     WorkManagementIntegrationRepositoryContract,
 )
 from tests.contracts.workflow_checkpoint import WorkflowCheckpointRepositoryContract
+
+
+class TestPostgresApprovalRepository(ApprovalRepositoryContract):
+    @pytest.fixture
+    def approvals(self, postgres_session) -> ApprovalRepository:
+        return PostgresApprovalRepository(postgres_session)
 
 
 class TestPostgresWorkflowCheckpointRepository(WorkflowCheckpointRepositoryContract):

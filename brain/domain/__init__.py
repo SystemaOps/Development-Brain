@@ -138,6 +138,15 @@ from brain.domain.planning import (
     PlanStatus,
     RequirementClarity,
 )
+from brain.domain.policies import (
+    Approval,
+    ApprovalDecision,
+    ApprovalType,
+    PolicyAction,
+    PolicyRule,
+    PolicySet,
+    RiskLevel,
+)
 from brain.domain.projects import Project, ProjectStatus
 from brain.domain.repositories import Repository
 from brain.domain.repository_scan import (
@@ -224,6 +233,10 @@ __all__ = [
     "AdrSections",
     "AmbiguityAssessment",
     "ApprovalState",
+    "Approval",
+    "ApprovalDecision",
+    "ApprovalState",
+    "ApprovalType",
     "ArchitectureRule",
     "Artifact",
     "ArtifactId",
@@ -328,6 +341,9 @@ __all__ = [
     "PlanStatus",
     "PLANNING_GRAPH",
     "PlanningContextCapsule",
+    "PolicyAction",
+    "PolicyRule",
+    "PolicySet",
     "PRReadiness",
     "Priority",
     "Project",
@@ -363,6 +379,7 @@ __all__ = [
     "RetrievalSource",
     "RetryPolicyType",
     "RevisionScope",
+    "RiskLevel",
     "SemanticChunk",
     "SemanticRecord",
     "SoftwareComponent",

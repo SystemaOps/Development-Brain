@@ -654,4 +654,28 @@ class WorkflowCheckpointRow(Base):
     __table_args__ = (Index("ix_workflow_checkpoints_workflow", "workflow_id"),)
 
 
+class ApprovalRow(Base):
+    """A persisted human-approval request (Phase 17)."""
+
+    __tablename__ = "approvals"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    approval_type: Mapped[str] = mapped_column(String(30))
+    workflow_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    work_item_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    execution_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    requested_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    decided_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    decision: Mapped[str] = mapped_column(String(30))
+    reason: Mapped[str] = mapped_column(Text, default="")
+    requested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    approval_metadata: Mapped[dict[str, object]] = mapped_column(JSONB, default=dict)
+
+    __table_args__ = (
+        Index("ix_approvals_work_item", "work_item_id"),
+        Index("ix_approvals_workflow", "workflow_id"),
+    )
+
+
 metadata = Base.metadata

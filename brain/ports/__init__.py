@@ -28,6 +28,7 @@ from brain.ports.parsing import (
     ParserSelectionPolicy,
 )
 from brain.ports.planning import PlanRepository
+from brain.ports.policies import ApprovalRepository, PolicyProvider
 from brain.ports.pull_request import PullRequest, PullRequestPort
 from brain.ports.repositories import (
     ActorRepository,
@@ -61,6 +62,7 @@ from brain.ports.workflow import WorkflowCheckpointRepository
 
 __all__ = [
     "ActorRepository",
+    "ApprovalRepository",
     "ArtifactRepository",
     "ArtifactStore",
     "CheckpointStore",
@@ -91,6 +93,7 @@ __all__ = [
     "ParserRegistry",
     "ParserSelectionPolicy",
     "PlanRepository",
+    "PolicyProvider",
     "ProjectRepository",
     "PullRequest",
     "PullRequestPort",

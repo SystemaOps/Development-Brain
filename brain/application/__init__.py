@@ -6,6 +6,7 @@ import adapters or provider SDKs: every dependency is an interface from
 adapters and against PostgreSQL alike.
 """
 
+from brain.application.approval_gate import ApprovalGate
 from brain.application.brain_tools import TOOL_REGISTRY, BrainTools
 from brain.application.code_intelligence import CodeIndexResult, CodeIntelligenceService
 from brain.application.context_engine import (
@@ -40,6 +41,7 @@ from brain.application.impact_analysis import ImpactAnalysis, ImpactAnalysisServ
 from brain.application.jit_retrieval import JustInTimeRetrieval
 from brain.application.lexical_search import LexicalSearchService, tokenize
 from brain.application.planning import PlanningResult, PlanningService
+from brain.application.policy_service import PolicyEvaluation, PolicyService, RiskAssessment
 from brain.application.projections import CanonicalStateProjection
 from brain.application.revisions import IncrementalRevisionHandler
 from brain.application.semantic_indexing import IndexingResult, SemanticIndexingService
@@ -56,6 +58,7 @@ from brain.application.workspace_manager import Workspace, WorkspaceManager
 
 __all__ = [
     "TOOL_REGISTRY",
+    "ApprovalGate",
     "BrainTools",
     "BudgetAllocator",
     "BuildResult",
@@ -88,8 +91,11 @@ __all__ = [
     "ProcessOutcome",
     "PlanningResult",
     "PlanningService",
+    "PolicyEvaluation",
+    "PolicyService",
     "RetrievalCandidate",
     "RetryDecision",
+    "RiskAssessment",
     "SemanticIndexingService",
     "SyncResult",
     "TokenEstimator",

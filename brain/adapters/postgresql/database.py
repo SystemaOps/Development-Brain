@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import (
 from brain.adapters.postgresql.config import DatabaseSettings
 from brain.adapters.postgresql.repositories import (
     PostgresActorRepository,
+    PostgresApprovalRepository,
     PostgresArtifactRepository,
     PostgresCodeGraphRepository,
     PostgresContextCapsuleRepository,
@@ -84,6 +85,7 @@ class PostgresRepositories:
         self.verification_runs = PostgresVerificationRunRepository(session)
         self.work_management_integrations = PostgresWorkManagementIntegrationRepository(session)
         self.workflow_checkpoints = PostgresWorkflowCheckpointRepository(session)
+        self.approvals = PostgresApprovalRepository(session)
         self.idempotency = PostgresIdempotencyStore(session)
         self.event_log = PostgresEventLogRepository(session)
         self.repository_snapshots = PostgresRepositorySnapshotRepository(session)

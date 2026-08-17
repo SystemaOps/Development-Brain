@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from brain.adapters.postgresql.serialization import dump_model, dump_models, dump_uuids
 from brain.adapters.postgresql.tables import (
     ActorRow,
+    ApprovalRow,
     ArtifactRow,
     CodeFileRow,
     CodeRelationRow,
@@ -100,6 +101,7 @@ from brain.domain.planning import (
     PlanItem,
     PlanStatus,
 )
+from brain.domain.policies import Approval, ApprovalDecision, ApprovalType
 from brain.domain.projects import Project
 from brain.domain.repositories import Repository
 from brain.domain.repository_scan import (
@@ -2071,3 +2073,81 @@ class PostgresWorkflowCheckpointRepository(_PostgresRepository):
             select(WorkflowCheckpointRow).order_by(WorkflowCheckpointRow.updated_at)
         )
         return [WorkflowState.model_validate(row.state) for row in result.scalars().all()]
+
+
+class PostgresApprovalRepository(_PostgresRepository):
+    """Durable human-approval requests (Phase 17)."""
+
+    async def save_approval(self, approval: Approval) -> Approval:
+        stmt = pg_insert(ApprovalRow).values(
+            id=approval.id,
+            approval_type=approval.approval_type.value,
+            workflow_id=approval.workflow_id,
+            work_item_id=approval.work_item_id,
+            execution_id=approval.execution_id,
+            requested_by=approval.requested_by,
+            decided_by=approval.decided_by,
+            decision=approval.decision.value,
+            reason=approval.reason,
+            requested_at=approval.requested_at,
+            decided_at=approval.decided_at,
+            approval_metadata=dict(approval.metadata),
+        )
+        await self._session.execute(
+            stmt.on_conflict_do_update(
+                index_elements=["id"],
+                set_={
+                    "approval_type": approval.approval_type.value,
+                    "workflow_id": approval.workflow_id,
+                    "work_item_id": approval.work_item_id,
+                    "execution_id": approval.execution_id,
+                    "requested_by": approval.requested_by,
+                    "decided_by": approval.decided_by,
+                    "decision": approval.decision.value,
+                    "reason": approval.reason,
+                    "requested_at": approval.requested_at,
+                    "decided_at": approval.decided_at,
+                    "approval_metadata": dict(approval.metadata),
+                },
+            )
+        )
+        await self._session.flush()
+        return approval
+
+    async def get_approval(self, approval_id: uuid.UUID) -> Approval | None:
+        row = await self._session.get(ApprovalRow, approval_id)
+        return _approval_from_row(row) if row is not None else None
+
+    async def list_open_for_work_item(self, work_item_id: WorkItemId) -> list[Approval]:
+        result = await self._session.execute(
+            select(ApprovalRow).where(
+                ApprovalRow.work_item_id == work_item_id,
+                ApprovalRow.decision == "pending",
+            )
+        )
+        return [_approval_from_row(row) for row in result.scalars().all()]
+
+    async def list_for_workflow(self, workflow_id: WorkflowId) -> list[Approval]:
+        result = await self._session.execute(
+            select(ApprovalRow)
+            .where(ApprovalRow.workflow_id == workflow_id)
+            .order_by(ApprovalRow.requested_at)
+        )
+        return [_approval_from_row(row) for row in result.scalars().all()]
+
+
+def _approval_from_row(row: ApprovalRow) -> Approval:
+    return Approval(
+        id=row.id,
+        approval_type=ApprovalType(row.approval_type),
+        workflow_id=WorkflowId(row.workflow_id) if row.workflow_id else None,
+        work_item_id=WorkItemId(row.work_item_id) if row.work_item_id else None,
+        execution_id=ExecutionId(row.execution_id) if row.execution_id else None,
+        requested_by=ActorId(row.requested_by) if row.requested_by else None,
+        decided_by=ActorId(row.decided_by) if row.decided_by else None,
+        decision=ApprovalDecision(row.decision),
+        reason=row.reason,
+        requested_at=row.requested_at,
+        decided_at=row.decided_at,
+        metadata=dict(row.approval_metadata or {}),
+    )

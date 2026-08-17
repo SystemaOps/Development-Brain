@@ -11,6 +11,7 @@ from brain.adapters.in_memory.event_log import InMemoryEventLogRepository
 from brain.adapters.in_memory.executor_registry import InMemoryExecutorRegistry
 from brain.adapters.in_memory.idempotency import InMemoryIdempotencyStore
 from brain.adapters.in_memory.knowledge_graph import InMemoryKnowledgeGraph
+from brain.adapters.in_memory.policies import InMemoryApprovalRepository
 from brain.adapters.in_memory.repositories import (
     InMemoryRepositoryChangeSetRepository,
     InMemoryRepositorySnapshotRepository,
@@ -27,6 +28,7 @@ from brain.ports.event_log import EventLogRepository
 from brain.ports.executor_registry import ExecutorRegistry
 from brain.ports.idempotency import IdempotencyStore
 from brain.ports.knowledge_graph import KnowledgeGraphRepository
+from brain.ports.policies import ApprovalRepository
 from brain.ports.repository_scan import (
     RepositoryChangeSetRepository,
     RepositorySnapshotRepository,
@@ -35,6 +37,7 @@ from brain.ports.semantic_index import SemanticIndex
 from brain.ports.verification import VerificationRunRepository
 from brain.ports.work_management_repo import WorkManagementIntegrationRepository
 from brain.ports.workflow import WorkflowCheckpointRepository
+from tests.contracts.approval import ApprovalRepositoryContract
 from tests.contracts.context_capsule import ContextCapsuleRepositoryContract
 from tests.contracts.event_bus import EventBusContract
 from tests.contracts.event_log import EventLogRepositoryContract
@@ -111,6 +114,12 @@ class TestInMemoryWorkflowCheckpointRepository(WorkflowCheckpointRepositoryContr
     @pytest.fixture
     def workflow_checkpoints(self) -> WorkflowCheckpointRepository:
         return InMemoryWorkflowCheckpointRepository()
+
+
+class TestInMemoryApprovalRepository(ApprovalRepositoryContract):
+    @pytest.fixture
+    def approvals(self) -> ApprovalRepository:
+        return InMemoryApprovalRepository()
 
 
 class TestInMemoryRepositorySnapshotRepository(RepositorySnapshotRepositoryContract):

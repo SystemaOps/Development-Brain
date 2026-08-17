@@ -14,6 +14,7 @@ from brain.adapters.documentation import (
 from brain.adapters.embeddings import HashEmbeddingService
 from brain.adapters.executors import FakeExecutor, PiExecutor
 from brain.adapters.in_memory.executor_registry import InMemoryExecutorRegistry
+from brain.adapters.in_memory.policies import InMemoryApprovalRepository
 from brain.adapters.topology import (
     ApiInterfaceDetector,
     DeploymentTopologyDetector,
@@ -44,6 +45,7 @@ __all__ = [
     "FakePullRequestAdapter",
     "GitMarkdownDocumentationAdapter",
     "HashEmbeddingService",
+    "InMemoryApprovalRepository",
     "InMemoryExecutorRegistry",
     "JiraAdapter",
     "ManifestTopologyDetector",
