@@ -45,6 +45,7 @@ from brain.adapters.postgresql.tables import (
     RepositorySnapshotRow,
     RequirementRow,
     ResourceRow,
+    RuntimeObservationRow,
     SoftwareComponentRow,
     SoftwareDomainRow,
     SyncConflictRow,
@@ -122,6 +123,12 @@ from brain.domain.repository_scan import (
     RepositorySnapshot,
 )
 from brain.domain.requirements import Requirement
+from brain.domain.runtime import (
+    CoverageRecord,
+    RuntimeDependency,
+    RuntimeEvidenceKind,
+    RuntimeObservation,
+)
 from brain.domain.software_model import (
     Interface,
     Resource,
@@ -2369,3 +2376,133 @@ def _impact_metrics_from_row(row: ImpactMetricsRow) -> ImpactAnalysisMetrics:
         predicted_files=list(row.predicted_files or []),
         actual_changed_files=list(row.actual_changed_files or []),
     )
+
+
+class PostgresRuntimeEvidenceRepository(_PostgresRepository):
+    """Durable runtime observations (Phase 19)."""
+
+    async def save_observation(self, observation: RuntimeObservation) -> RuntimeObservation:
+        stmt = pg_insert(RuntimeObservationRow).values(
+            id=observation.id,
+            kind=observation.kind.value,
+            project_id=observation.project_id,
+            repository_id=observation.repository_id,
+            revision=observation.revision,
+            execution_id=observation.execution_id,
+            work_item_id=observation.work_item_id,
+            source=observation.source,
+            target=observation.target,
+            symbols=observation.symbols,
+            detail=observation.detail,
+            occurred_at=observation.occurred_at,
+        )
+        await self._session.execute(stmt)
+        await self._session.flush()
+        return observation
+
+    async def list_for_revision(
+        self, repository_id: RepositoryId, revision: str
+    ) -> list[RuntimeObservation]:
+        result = await self._session.execute(
+            select(RuntimeObservationRow)
+            .where(
+                RuntimeObservationRow.repository_id == repository_id,
+                RuntimeObservationRow.revision == revision,
+            )
+            .order_by(RuntimeObservationRow.occurred_at)
+        )
+        return [_runtime_observation_from_row(row) for row in result.scalars().all()]
+
+    async def list_for_execution(self, execution_id: ExecutionId) -> list[RuntimeObservation]:
+        result = await self._session.execute(
+            select(RuntimeObservationRow)
+            .where(RuntimeObservationRow.execution_id == execution_id)
+            .order_by(RuntimeObservationRow.occurred_at)
+        )
+        return [_runtime_observation_from_row(row) for row in result.scalars().all()]
+
+    async def list_for_project(self, project_id: ProjectId) -> list[RuntimeObservation]:
+        result = await self._session.execute(
+            select(RuntimeObservationRow)
+            .where(RuntimeObservationRow.project_id == project_id)
+            .order_by(RuntimeObservationRow.occurred_at)
+        )
+        return [_runtime_observation_from_row(row) for row in result.scalars().all()]
+
+    async def coverage_for_revision(
+        self, repository_id: RepositoryId, revision: str
+    ) -> list[CoverageRecord]:
+        rows = await self.list_for_revision(repository_id, revision)
+        grouped: dict[str, dict[str, list[str]]] = {}
+        by_test_path: dict[str, str] = {}
+        for obs in rows:
+            if obs.kind != RuntimeEvidenceKind.COVERAGE:
+                continue
+            bucket = grouped.setdefault(obs.source, {})
+            bucket.setdefault(obs.target, []).extend(obs.symbols)
+            by_test_path[obs.source] = str(obs.detail.get("test_path", ""))
+        return [
+            CoverageRecord(
+                test_name=test_name,
+                test_path=by_test_path.get(test_name, ""),
+                executed_files=sorted(bucket),
+                executed_symbols={path: sorted(set(symbols)) for path, symbols in bucket.items()},
+            )
+            for test_name, bucket in grouped.items()
+        ]
+
+    async def dependencies_for_revision(
+        self, repository_id: RepositoryId, revision: str
+    ) -> list[RuntimeDependency]:
+        rows = await self.list_for_revision(repository_id, revision)
+        grouped: dict[tuple[str, str, str], list[RuntimeObservation]] = {}
+        for obs in rows:
+            relation = _runtime_relation_for_kind(obs.kind)
+            if relation is None or not obs.source or not obs.target:
+                continue
+            grouped.setdefault((relation, obs.source, obs.target), []).append(obs)
+        return [
+            RuntimeDependency(
+                relation=relation,
+                source=source,
+                target=target,
+                evidence_count=len(observations),
+                observations=[obs.id for obs in observations],
+            )
+            for (relation, source, target), observations in grouped.items()
+        ]
+
+    async def observations_for_symbol(
+        self, repository_id: RepositoryId, revision: str, symbol: str
+    ) -> list[RuntimeObservation]:
+        rows = await self.list_for_revision(repository_id, revision)
+        return [obs for obs in rows if symbol in obs.symbols]
+
+
+def _runtime_observation_from_row(row: RuntimeObservationRow) -> RuntimeObservation:
+    return RuntimeObservation(
+        id=row.id,
+        kind=RuntimeEvidenceKind(row.kind),
+        project_id=ProjectId(row.project_id) if row.project_id else None,
+        repository_id=RepositoryId(row.repository_id) if row.repository_id else None,
+        revision=row.revision,
+        execution_id=ExecutionId(row.execution_id) if row.execution_id else None,
+        work_item_id=WorkItemId(row.work_item_id) if row.work_item_id else None,
+        source=row.source,
+        target=row.target,
+        symbols=list(row.symbols or []),
+        detail=dict(row.detail or {}),
+        occurred_at=row.occurred_at,
+    )
+
+
+def _runtime_relation_for_kind(kind: RuntimeEvidenceKind) -> str | None:
+    if kind == RuntimeEvidenceKind.SERVICE_CALL:
+        return "SERVICE_CALLS"
+    if kind == RuntimeEvidenceKind.DATABASE_ACCESS:
+        return "QUERY_ACCESSES"
+    if kind == RuntimeEvidenceKind.MESSAGE_PUBLISH:
+        return "PUBLISHES_TO"
+    if kind == RuntimeEvidenceKind.MESSAGE_CONSUME:
+        return "CONSUMES_FROM"
+    return None

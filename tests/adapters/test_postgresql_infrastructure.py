@@ -12,6 +12,7 @@ from brain.adapters.postgresql.repositories import (
     PostgresMetricsRepository,
     PostgresRepositoryChangeSetRepository,
     PostgresRepositorySnapshotRepository,
+    PostgresRuntimeEvidenceRepository,
     PostgresVerificationRunRepository,
     PostgresWorkflowCheckpointRepository,
     PostgresWorkManagementIntegrationRepository,
@@ -25,6 +26,7 @@ from brain.ports.repository_scan import (
     RepositoryChangeSetRepository,
     RepositorySnapshotRepository,
 )
+from brain.ports.runtime import RuntimeEvidenceRepository
 from brain.ports.verification import VerificationRunRepository
 from brain.ports.work_management_repo import WorkManagementIntegrationRepository
 from brain.ports.workflow import WorkflowCheckpointRepository
@@ -37,6 +39,7 @@ from tests.contracts.repository_scan import (
     RepositoryChangeSetRepositoryContract,
     RepositorySnapshotRepositoryContract,
 )
+from tests.contracts.runtime import RuntimeEvidenceRepositoryContract
 from tests.contracts.verification_run import VerificationRunRepositoryContract
 from tests.contracts.work_management_integration import (
     WorkManagementIntegrationRepositoryContract,
@@ -54,6 +57,12 @@ class TestPostgresMetricsRepository(MetricsRepositoryContract):
     @pytest.fixture
     def metrics(self, postgres_session) -> MetricsRepository:
         return PostgresMetricsRepository(postgres_session)
+
+
+class TestPostgresRuntimeEvidenceRepository(RuntimeEvidenceRepositoryContract):
+    @pytest.fixture
+    def runtime(self, postgres_session) -> RuntimeEvidenceRepository:
+        return PostgresRuntimeEvidenceRepository(postgres_session)
 
 
 class TestPostgresWorkflowCheckpointRepository(WorkflowCheckpointRepositoryContract):

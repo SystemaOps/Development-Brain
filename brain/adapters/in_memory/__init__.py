@@ -35,6 +35,7 @@ from brain.adapters.in_memory.repositories import (
     InMemoryVerificationResultRepository,
     InMemoryWorkItemRepository,
 )
+from brain.adapters.in_memory.runtime import InMemoryRuntimeEvidenceRepository
 from brain.adapters.in_memory.semantic_index import InMemorySemanticIndex
 from brain.adapters.in_memory.verification import InMemoryVerificationRunRepository
 from brain.adapters.in_memory.work_management import (
@@ -67,6 +68,7 @@ __all__ = [
     "InMemoryRepositoryRepository",
     "InMemoryRepositorySnapshotRepository",
     "InMemoryRequirementRepository",
+    "InMemoryRuntimeEvidenceRepository",
     "InMemorySemanticIndex",
     "InMemoryVerificationResultRepository",
     "InMemoryVerificationRunRepository",

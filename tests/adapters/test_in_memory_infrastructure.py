@@ -17,6 +17,7 @@ from brain.adapters.in_memory.repositories import (
     InMemoryRepositoryChangeSetRepository,
     InMemoryRepositorySnapshotRepository,
 )
+from brain.adapters.in_memory.runtime import InMemoryRuntimeEvidenceRepository
 from brain.adapters.in_memory.semantic_index import InMemorySemanticIndex
 from brain.adapters.in_memory.verification import InMemoryVerificationRunRepository
 from brain.adapters.in_memory.work_management import (
@@ -35,6 +36,7 @@ from brain.ports.repository_scan import (
     RepositoryChangeSetRepository,
     RepositorySnapshotRepository,
 )
+from brain.ports.runtime import RuntimeEvidenceRepository
 from brain.ports.semantic_index import SemanticIndex
 from brain.ports.verification import VerificationRunRepository
 from brain.ports.work_management_repo import WorkManagementIntegrationRepository
@@ -51,6 +53,7 @@ from tests.contracts.repository_scan import (
     RepositoryChangeSetRepositoryContract,
     RepositorySnapshotRepositoryContract,
 )
+from tests.contracts.runtime import RuntimeEvidenceRepositoryContract
 from tests.contracts.semantic_index import SemanticIndexContract
 from tests.contracts.verification_run import VerificationRunRepositoryContract
 from tests.contracts.work_management_integration import (
@@ -129,6 +132,12 @@ class TestInMemoryMetricsRepository(MetricsRepositoryContract):
     @pytest.fixture
     def metrics(self) -> MetricsRepository:
         return InMemoryMetricsRepository()
+
+
+class TestInMemoryRuntimeEvidenceRepository(RuntimeEvidenceRepositoryContract):
+    @pytest.fixture
+    def runtime(self) -> RuntimeEvidenceRepository:
+        return InMemoryRuntimeEvidenceRepository()
 
 
 class TestInMemoryRepositorySnapshotRepository(RepositorySnapshotRepositoryContract):

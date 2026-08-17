@@ -746,4 +746,28 @@ class ImpactMetricsRow(Base):
     actual_changed_files: Mapped[list[str]] = mapped_column(JSONB, default=list)
 
 
+class RuntimeObservationRow(Base):
+    """One observed runtime fact (Phase 19)."""
+
+    __tablename__ = "runtime_observations"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    kind: Mapped[str] = mapped_column(String(30))
+    project_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    repository_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    revision: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    execution_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    work_item_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    source: Mapped[str] = mapped_column(Text, default="")
+    target: Mapped[str] = mapped_column(Text, default="")
+    symbols: Mapped[list[str]] = mapped_column(JSONB, default=list)
+    detail: Mapped[dict[str, object]] = mapped_column(JSONB, default=dict)
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        Index("ix_runtime_observations_revision", "repository_id", "revision"),
+        Index("ix_runtime_observations_execution", "execution_id"),
+    )
+
+
 metadata = Base.metadata

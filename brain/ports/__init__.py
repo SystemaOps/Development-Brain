@@ -48,6 +48,7 @@ from brain.ports.repository_scan import (
     RepositoryChangeSetRepository,
     RepositorySnapshotRepository,
 )
+from brain.ports.runtime import RuntimeEvidenceRepository
 from brain.ports.semantic_index import SemanticIndex
 from brain.ports.software_catalog import SoftwareCatalogPort
 from brain.ports.source_control import SourceControlPort
@@ -104,6 +105,7 @@ __all__ = [
     "RepositoryRepository",
     "RepositorySnapshotRepository",
     "RequirementRepository",
+    "RuntimeEvidenceRepository",
     "SemanticIndex",
     "SoftwareCatalogPort",
     "SoftwareCatalogRepository",

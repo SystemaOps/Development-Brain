@@ -52,6 +52,13 @@ from brain.application.planning import PlanningResult, PlanningService
 from brain.application.policy_service import PolicyEvaluation, PolicyService, RiskAssessment
 from brain.application.projections import CanonicalStateProjection
 from brain.application.revisions import IncrementalRevisionHandler
+from brain.application.runtime import (
+    AdvancedTestSelector,
+    CoverageImporter,
+    OtelTraceImporter,
+    RuntimeEvidenceIngester,
+    RuntimeReconciler,
+)
 from brain.application.semantic_indexing import IndexingResult, SemanticIndexingService
 from brain.application.token_estimation import TokenEstimator
 from brain.application.topology import TopologyDiscoveryResult, TopologyDiscoveryService
@@ -67,6 +74,7 @@ from brain.application.workspace_manager import Workspace, WorkspaceManager
 __all__ = [
     "TOOL_REGISTRY",
     "ApprovalGate",
+    "AdvancedTestSelector",
     "BrainTools",
     "BudgetAllocator",
     "BuildResult",
@@ -80,6 +88,7 @@ __all__ = [
     "ContextMetricsBuilder",
     "ContextOutcomeEvaluator",
     "ContextRanker",
+    "CoverageImporter",
     "DocumentationCatalogSyncService",
     "DocumentIngestionResult",
     "DocumentIngestionService",
@@ -101,6 +110,7 @@ __all__ = [
     "MetricsCollector",
     "MetricsReporter",
     "ObservabilityService",
+    "OtelTraceImporter",
     "ProcessOutcome",
     "PlanningResult",
     "PlanningService",
@@ -109,6 +119,8 @@ __all__ = [
     "RetrievalCandidate",
     "RetryDecision",
     "RiskAssessment",
+    "RuntimeEvidenceIngester",
+    "RuntimeReconciler",
     "SemanticIndexingService",
     "StructuredLogger",
     "SyncResult",
