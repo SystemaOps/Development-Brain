@@ -24,6 +24,7 @@ from brain.adapters.postgresql.tables import (
     CodeRelationRow,
     CodeSymbolRow,
     ContextCapsuleRow,
+    ContextFeedbackRow,
     ContextMetricsRow,
     ContextOutcomeRow,
     DecisionRow,
@@ -34,6 +35,7 @@ from brain.adapters.postgresql.tables import (
     EvidenceRow,
     ExecutionMetricsRow,
     ExecutionRow,
+    ExecutorQualityRow,
     ExternalReferenceRow,
     IdempotencyKeyRow,
     ImpactMetricsRow,
@@ -105,6 +107,11 @@ from brain.domain.observability import (
     ExecutionMetrics,
     ImpactAnalysisMetrics,
     SelectedContextItem,
+)
+from brain.domain.optimization import (
+    ContextFeedbackRecord,
+    ContextRankingWeights,
+    ExecutorQualityEntry,
 )
 from brain.domain.planning import (
     AmbiguityAssessment,
@@ -2506,3 +2513,141 @@ def _runtime_relation_for_kind(kind: RuntimeEvidenceKind) -> str | None:
     if kind == RuntimeEvidenceKind.MESSAGE_CONSUME:
         return "CONSUMES_FROM"
     return None
+
+
+class PostgresExecutorQualityRepository(_PostgresRepository):
+    """Durable per-task-type executor quality (Phase 20)."""
+
+    async def save_entry(self, entry: ExecutorQualityEntry) -> ExecutorQualityEntry:
+        values = {
+            "id": uuid.uuid4(),
+            "executor_id": entry.executor_id,
+            "task_type": entry.task_type,
+            "successes": entry.successes,
+            "failures": entry.failures,
+            "total_tokens": entry.total_tokens,
+            "total_retries": entry.total_retries,
+            "total_duration_seconds": entry.total_duration_seconds,
+            "updated_at": entry.updated_at,
+        }
+        stmt = pg_insert(ExecutorQualityRow).values(**values)
+        await self._session.execute(
+            stmt.on_conflict_do_update(
+                constraint="uq_executor_quality",
+                set_={
+                    "successes": entry.successes,
+                    "failures": entry.failures,
+                    "total_tokens": entry.total_tokens,
+                    "total_retries": entry.total_retries,
+                    "total_duration_seconds": entry.total_duration_seconds,
+                    "updated_at": entry.updated_at,
+                },
+            )
+        )
+        await self._session.flush()
+        return entry
+
+    async def get_entry(self, executor_id: ActorId, task_type: str) -> ExecutorQualityEntry | None:
+        result = await self._session.execute(
+            select(ExecutorQualityRow).where(
+                ExecutorQualityRow.executor_id == executor_id,
+                ExecutorQualityRow.task_type == task_type,
+            )
+        )
+        row = result.scalar_one_or_none()
+        return _quality_entry_from_row(row) if row is not None else None
+
+    async def list_for_executor(self, executor_id: ActorId) -> list[ExecutorQualityEntry]:
+        result = await self._session.execute(
+            select(ExecutorQualityRow).where(ExecutorQualityRow.executor_id == executor_id)
+        )
+        return [_quality_entry_from_row(row) for row in result.scalars().all()]
+
+    async def list_by_task_type(self, task_type: str) -> list[ExecutorQualityEntry]:
+        result = await self._session.execute(
+            select(ExecutorQualityRow).where(ExecutorQualityRow.task_type == task_type)
+        )
+        return [_quality_entry_from_row(row) for row in result.scalars().all()]
+
+
+class PostgresContextFeedbackRepository(_PostgresRepository):
+    """Durable context ranking feedback (Phase 20)."""
+
+    async def save_feedback(self, record: ContextFeedbackRecord) -> ContextFeedbackRecord:
+        self._session.add(
+            ContextFeedbackRow(
+                id=record.id,
+                work_item_id=record.work_item_id,
+                execution_id=record.execution_id,
+                outcome=record.outcome,
+                signal=record.signal,
+                previous_weights=record.previous_weights.model_dump(mode="json"),
+                adjusted_weights=record.adjusted_weights.model_dump(mode="json"),
+                recorded_at=record.recorded_at,
+            )
+        )
+        await self._session.flush()
+        return record
+
+    async def list_recent(
+        self, work_item_id: WorkItemId | None = None, limit: int = 100
+    ) -> list[ContextFeedbackRecord]:
+        query = select(ContextFeedbackRow)
+        if work_item_id is not None:
+            query = query.where(ContextFeedbackRow.work_item_id == work_item_id)
+        query = query.order_by(ContextFeedbackRow.recorded_at.desc()).limit(limit)
+        result = await self._session.execute(query)
+        return [_context_feedback_from_row(row) for row in reversed(result.scalars().all())]
+
+
+def _quality_entry_from_row(row: ExecutorQualityRow) -> ExecutorQualityEntry:
+    return ExecutorQualityEntry(
+        executor_id=ActorId(row.executor_id),
+        task_type=row.task_type,
+        successes=row.successes or 0,
+        failures=row.failures or 0,
+        total_tokens=row.total_tokens or 0,
+        total_retries=row.total_retries or 0,
+        total_duration_seconds=row.total_duration_seconds or 0.0,
+        updated_at=row.updated_at,
+    )
+
+
+def _context_feedback_from_row(row: ContextFeedbackRow) -> ContextFeedbackRecord:
+    previous = row.previous_weights or {}
+    adjusted = row.adjusted_weights or {}
+    return ContextFeedbackRecord(
+        id=row.id,
+        work_item_id=WorkItemId(row.work_item_id),
+        execution_id=ExecutionId(row.execution_id) if row.execution_id else None,
+        outcome=row.outcome,
+        signal=row.signal,
+        previous_weights=_weights_from_dict(previous),
+        adjusted_weights=_weights_from_dict(adjusted),
+        recorded_at=row.recorded_at,
+    )
+
+
+def _weights_from_dict(data: dict[str, object]) -> ContextRankingWeights:
+    return ContextRankingWeights(
+        retrieval_weight=_to_float(data.get("retrieval_weight"), 1.0),
+        graph_distance_weight=_to_float(data.get("graph_distance_weight"), 1.0),
+        entity_priorities=_to_str_float_map(data.get("entity_priorities")),
+        token_allocation=_to_str_float_map(data.get("token_allocation")),
+    )
+
+
+def _to_float(value: object, default: float) -> float:
+    if isinstance(value, (int, float)):
+        return float(value)
+    return default
+
+
+def _to_str_float_map(value: object) -> dict[str, float]:
+    if not isinstance(value, dict):
+        return {}
+    result: dict[str, float] = {}
+    for key, item in value.items():
+        if isinstance(key, str) and isinstance(item, (int, float)):
+            result[key] = float(item)
+    return result

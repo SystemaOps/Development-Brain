@@ -18,6 +18,10 @@ from brain.adapters.in_memory.observability import (
     InMemoryLogSink,
     InMemoryMetricsRepository,
 )
+from brain.adapters.in_memory.optimization import (
+    InMemoryContextFeedbackRepository,
+    InMemoryExecutorQualityRepository,
+)
 from brain.adapters.in_memory.planning import InMemoryPlanRepository
 from brain.adapters.in_memory.policies import InMemoryApprovalRepository
 from brain.adapters.in_memory.repositories import (
@@ -51,6 +55,7 @@ __all__ = [
     "InMemoryCheckpointStore",
     "InMemoryCodeGraphRepository",
     "InMemoryContextCapsuleRepository",
+    "InMemoryContextFeedbackRepository",
     "InMemoryDecisionRepository",
     "InMemoryDocumentRepository",
     "InMemoryEventBus",
@@ -58,6 +63,8 @@ __all__ = [
     "InMemoryExecutorRegistry",
     "InMemoryEvidenceRepository",
     "InMemoryExecutionRepository",
+    "InMemoryExecutorRegistry",
+    "InMemoryExecutorQualityRepository",
     "InMemoryIdempotencyStore",
     "InMemoryKnowledgeGraph",
     "InMemoryLogSink",

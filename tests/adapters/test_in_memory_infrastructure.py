@@ -12,6 +12,10 @@ from brain.adapters.in_memory.executor_registry import InMemoryExecutorRegistry
 from brain.adapters.in_memory.idempotency import InMemoryIdempotencyStore
 from brain.adapters.in_memory.knowledge_graph import InMemoryKnowledgeGraph
 from brain.adapters.in_memory.observability import InMemoryMetricsRepository
+from brain.adapters.in_memory.optimization import (
+    InMemoryContextFeedbackRepository,
+    InMemoryExecutorQualityRepository,
+)
 from brain.adapters.in_memory.policies import InMemoryApprovalRepository
 from brain.adapters.in_memory.repositories import (
     InMemoryRepositoryChangeSetRepository,
@@ -31,6 +35,10 @@ from brain.ports.executor_registry import ExecutorRegistry
 from brain.ports.idempotency import IdempotencyStore
 from brain.ports.knowledge_graph import KnowledgeGraphRepository
 from brain.ports.observability import MetricsRepository
+from brain.ports.optimization import (
+    ContextFeedbackRepository,
+    ExecutorQualityRepository,
+)
 from brain.ports.policies import ApprovalRepository
 from brain.ports.repository_scan import (
     RepositoryChangeSetRepository,
@@ -49,6 +57,10 @@ from tests.contracts.executor_registry import ExecutorRegistryContract
 from tests.contracts.idempotency import IdempotencyStoreContract
 from tests.contracts.knowledge_graph import KnowledgeGraphRepositoryContract
 from tests.contracts.metrics import MetricsRepositoryContract
+from tests.contracts.optimization import (
+    ContextFeedbackRepositoryContract,
+    ExecutorQualityRepositoryContract,
+)
 from tests.contracts.repository_scan import (
     RepositoryChangeSetRepositoryContract,
     RepositorySnapshotRepositoryContract,
@@ -138,6 +150,18 @@ class TestInMemoryRuntimeEvidenceRepository(RuntimeEvidenceRepositoryContract):
     @pytest.fixture
     def runtime(self) -> RuntimeEvidenceRepository:
         return InMemoryRuntimeEvidenceRepository()
+
+
+class TestInMemoryExecutorQualityRepository(ExecutorQualityRepositoryContract):
+    @pytest.fixture
+    def quality(self) -> ExecutorQualityRepository:
+        return InMemoryExecutorQualityRepository()
+
+
+class TestInMemoryContextFeedbackRepository(ContextFeedbackRepositoryContract):
+    @pytest.fixture
+    def feedback(self) -> ContextFeedbackRepository:
+        return InMemoryContextFeedbackRepository()
 
 
 class TestInMemoryRepositorySnapshotRepository(RepositorySnapshotRepositoryContract):

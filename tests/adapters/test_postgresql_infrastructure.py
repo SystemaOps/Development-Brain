@@ -7,7 +7,9 @@ import pytest
 from brain.adapters.postgresql.repositories import (
     PostgresApprovalRepository,
     PostgresContextCapsuleRepository,
+    PostgresContextFeedbackRepository,
     PostgresEventLogRepository,
+    PostgresExecutorQualityRepository,
     PostgresIdempotencyStore,
     PostgresMetricsRepository,
     PostgresRepositoryChangeSetRepository,
@@ -21,6 +23,10 @@ from brain.ports.context import ContextCapsuleRepository
 from brain.ports.event_log import EventLogRepository
 from brain.ports.idempotency import IdempotencyStore
 from brain.ports.observability import MetricsRepository
+from brain.ports.optimization import (
+    ContextFeedbackRepository,
+    ExecutorQualityRepository,
+)
 from brain.ports.policies import ApprovalRepository
 from brain.ports.repository_scan import (
     RepositoryChangeSetRepository,
@@ -35,6 +41,10 @@ from tests.contracts.context_capsule import ContextCapsuleRepositoryContract
 from tests.contracts.event_log import EventLogRepositoryContract
 from tests.contracts.idempotency import IdempotencyStoreContract
 from tests.contracts.metrics import MetricsRepositoryContract
+from tests.contracts.optimization import (
+    ContextFeedbackRepositoryContract,
+    ExecutorQualityRepositoryContract,
+)
 from tests.contracts.repository_scan import (
     RepositoryChangeSetRepositoryContract,
     RepositorySnapshotRepositoryContract,
@@ -63,6 +73,18 @@ class TestPostgresRuntimeEvidenceRepository(RuntimeEvidenceRepositoryContract):
     @pytest.fixture
     def runtime(self, postgres_session) -> RuntimeEvidenceRepository:
         return PostgresRuntimeEvidenceRepository(postgres_session)
+
+
+class TestPostgresExecutorQualityRepository(ExecutorQualityRepositoryContract):
+    @pytest.fixture
+    def quality(self, postgres_session) -> ExecutorQualityRepository:
+        return PostgresExecutorQualityRepository(postgres_session)
+
+
+class TestPostgresContextFeedbackRepository(ContextFeedbackRepositoryContract):
+    @pytest.fixture
+    def feedback(self, postgres_session) -> ContextFeedbackRepository:
+        return PostgresContextFeedbackRepository(postgres_session)
 
 
 class TestPostgresWorkflowCheckpointRepository(WorkflowCheckpointRepositoryContract):

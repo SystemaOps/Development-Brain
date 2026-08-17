@@ -48,6 +48,14 @@ from brain.application.observability import (
     ObservabilityService,
     StructuredLogger,
 )
+from brain.application.optimization import (
+    BanditRouter,
+    ContextRankingFeedbackService,
+    ExecutorQualityTracker,
+    ModelRouter,
+    TaskComplexityService,
+    TestSelectionOptimizer,
+)
 from brain.application.planning import PlanningResult, PlanningService
 from brain.application.policy_service import PolicyEvaluation, PolicyService, RiskAssessment
 from brain.application.projections import CanonicalStateProjection
@@ -75,6 +83,7 @@ __all__ = [
     "TOOL_REGISTRY",
     "ApprovalGate",
     "AdvancedTestSelector",
+    "BanditRouter",
     "BrainTools",
     "BudgetAllocator",
     "BuildResult",
@@ -88,12 +97,14 @@ __all__ = [
     "ContextMetricsBuilder",
     "ContextOutcomeEvaluator",
     "ContextRanker",
+    "ContextRankingFeedbackService",
     "CoverageImporter",
     "DocumentationCatalogSyncService",
     "DocumentIngestionResult",
     "DocumentIngestionService",
     "DocumentSyncResult",
     "ExecutionRequestBuilder",
+    "ExecutorQualityTracker",
     "GraphIntegrityChecker",
     "GraphIntegrityReport",
     "GraphProjectionResult",
@@ -109,6 +120,7 @@ __all__ = [
     "LexicalSearchService",
     "MetricsCollector",
     "MetricsReporter",
+    "ModelRouter",
     "ObservabilityService",
     "OtelTraceImporter",
     "ProcessOutcome",
@@ -124,6 +136,8 @@ __all__ = [
     "SemanticIndexingService",
     "StructuredLogger",
     "SyncResult",
+    "TaskComplexityService",
+    "TestSelectionOptimizer",
     "TokenEstimator",
     "TopologyDiscoveryResult",
     "TopologyDiscoveryService",

@@ -770,4 +770,42 @@ class RuntimeObservationRow(Base):
     )
 
 
+class ExecutorQualityRow(Base):
+    """Per-task-type executor quality (Phase 20)."""
+
+    __tablename__ = "executor_quality"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    executor_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    task_type: Mapped[str] = mapped_column(String(100))
+    successes: Mapped[int] = mapped_column(BigInteger, default=0)
+    failures: Mapped[int] = mapped_column(BigInteger, default=0)
+    total_tokens: Mapped[int] = mapped_column(BigInteger, default=0)
+    total_retries: Mapped[int] = mapped_column(BigInteger, default=0)
+    total_duration_seconds: Mapped[float] = mapped_column(Float, default=0.0)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        UniqueConstraint("executor_id", "task_type", name="uq_executor_quality"),
+        Index("ix_executor_quality_task_type", "task_type"),
+    )
+
+
+class ContextFeedbackRow(Base):
+    """Context ranking feedback (Phase 20)."""
+
+    __tablename__ = "context_feedback"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    work_item_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    execution_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    outcome: Mapped[str] = mapped_column(String(50))
+    signal: Mapped[str] = mapped_column(Text, default="")
+    previous_weights: Mapped[dict[str, object]] = mapped_column(JSONB, default=dict)
+    adjusted_weights: Mapped[dict[str, object]] = mapped_column(JSONB, default=dict)
+    recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (Index("ix_context_feedback_work_item", "work_item_id"),)
+
+
 metadata = Base.metadata

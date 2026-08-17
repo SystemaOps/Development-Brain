@@ -22,6 +22,10 @@ from brain.ports.executor_registry import ExecutorRegistry
 from brain.ports.idempotency import IdempotencyStore
 from brain.ports.knowledge_graph import GraphEntity, GraphRelation, KnowledgeGraphRepository
 from brain.ports.observability import LogSink, MetricsRepository
+from brain.ports.optimization import (
+    ContextFeedbackRepository,
+    ExecutorQualityRepository,
+)
 from brain.ports.parsing import (
     DocumentParser,
     EntityExtractor,
@@ -94,6 +98,8 @@ __all__ = [
     "LanguageParser",
     "LogSink",
     "MetricsRepository",
+    "ContextFeedbackRepository",
+    "ExecutorQualityRepository",
     "ParserRegistry",
     "ParserSelectionPolicy",
     "PlanRepository",
