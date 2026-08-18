@@ -75,10 +75,12 @@ class BrainContainer:
         pull_requests: PullRequestPort | None,
         capabilities: CapabilityRegistry,
         services: dict[str, object],
+        session: AsyncSession | None = None,
     ) -> None:
         self.settings = settings
         self.engine = engine
         self.session_factory = session_factory
+        self.session = session
         self.repositories = repositories
         self.graph = graph
         self.semantic_index = semantic_index
@@ -162,6 +164,12 @@ class BrainContainer:
                 except Exception:  # noqa: BLE001
                     logger.warning("error closing %s", type(client).__name__, exc_info=True)
 
+        if self.session is not None:
+            try:
+                await self.session.close()
+            except Exception:  # noqa: BLE001
+                logger.warning("error closing database session", exc_info=True)
+
         await self.engine.dispose()
 
 
@@ -178,7 +186,6 @@ async def create_brain_container(
     engine, session_factory = build_postgres(settings)
     session = session_factory()
     repositories = create_repositories(session)
-
     # 2. Knowledge graph + semantic index (lazy adapters or in-memory fallback).
     graph = build_graph(settings)
     semantic_index = build_semantic_index(settings)
@@ -237,6 +244,7 @@ async def create_brain_container(
         pull_requests=pull_requests,
         capabilities=capabilities,
         services=services,
+        session=session,
     )
 
 

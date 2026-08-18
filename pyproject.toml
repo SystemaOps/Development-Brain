@@ -7,6 +7,7 @@ dependencies = [
     "alembic>=1.13",
     "asyncpg>=0.29",
     "beautifulsoup4>=4.12",
+    "fastapi>=0.115",
     "markdown-it-py>=3",
     "neo4j>=6.2.0",
     "pydantic>=2.7",
@@ -14,6 +15,7 @@ dependencies = [
     "pypdf>=4",
     "pyyaml>=6",
     "sqlalchemy>=2.0",
+    "uvicorn>=0.30",
     "weaviate-client>=4.23.0",
 ]
 
