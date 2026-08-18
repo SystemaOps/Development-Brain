@@ -23,7 +23,10 @@ from brain.adapters.in_memory.optimization import (
     InMemoryExecutorQualityRepository,
 )
 from brain.adapters.in_memory.planning import InMemoryPlanRepository
-from brain.adapters.in_memory.policies import InMemoryApprovalRepository
+from brain.adapters.in_memory.policies import (
+    DefaultPolicyProvider,
+    InMemoryApprovalRepository,
+)
 from brain.adapters.in_memory.repositories import (
     InMemoryActorRepository,
     InMemoryArtifactRepository,
@@ -57,6 +60,7 @@ __all__ = [
     "InMemoryContextCapsuleRepository",
     "InMemoryContextFeedbackRepository",
     "InMemoryDecisionRepository",
+    "DefaultPolicyProvider",
     "InMemoryDocumentRepository",
     "InMemoryEventBus",
     "InMemoryEventLogRepository",

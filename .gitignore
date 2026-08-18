@@ -2,6 +2,8 @@
 # 1. React / Frontend (Node & Bundlers)
 # ==========================================
 AGENT.md
+AGENT_2.md
+RUNTIME_PHASE_BY_PHASE_PLAN.md
 
 # Dependencies
 node_modules/

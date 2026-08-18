@@ -1,11 +1,18 @@
-"""In-memory approval repository reference implementation."""
+"""In-memory policies reference implementations (Phase 17)."""
 
 from __future__ import annotations
 
 import uuid
 
 from brain.domain.identity import WorkflowId, WorkItemId
-from brain.domain.policies import Approval
+from brain.domain.policies import (
+    Approval,
+    ApprovalType,
+    PolicyAction,
+    PolicyRule,
+    PolicySet,
+    RiskLevel,
+)
 
 
 class InMemoryApprovalRepository:
@@ -32,3 +39,27 @@ class InMemoryApprovalRepository:
         return [
             approval for approval in self._approvals.values() if approval.workflow_id == workflow_id
         ]
+
+
+class DefaultPolicyProvider:
+    """Default permissive policy set for the runtime container.
+
+    High-risk work requires an execution approval; everything else is allowed
+    automatically.  Configured policy can replace this provider later.
+    """
+
+    def __init__(self, policy_set: PolicySet | None = None) -> None:
+        self._policy_set = policy_set or PolicySet(
+            name="default",
+            rules=[
+                PolicyRule(
+                    name="high risk requires approval",
+                    risk_levels=[RiskLevel.HIGH],
+                    action=PolicyAction.REQUIRE_APPROVAL,
+                    approval_type=ApprovalType.EXECUTION,
+                )
+            ],
+        )
+
+    async def get_policy_set(self) -> PolicySet:
+        return self._policy_set
