@@ -20,6 +20,7 @@ from brain.application.context_engine import ContextEngineService
 from brain.application.planning import PlanningService
 from brain.application.verification_engine import VerificationEngine
 from brain.application.workflow_engine import WorkflowEngine
+from brain.bootstrap.capabilities import CapabilityRegistry
 from brain.bootstrap.providers import (
     build_documentation,
     build_executor_registry,
@@ -33,6 +34,10 @@ from brain.bootstrap.providers import (
     build_work_management,
 )
 from brain.bootstrap.settings import BrainSettings
+from brain.domain.capabilities import (
+    CapabilityName,
+    CapabilityStatus,
+)
 from brain.domain.executor import ExecutorDescriptor
 from brain.ports.documentation import DocumentationPort
 from brain.ports.knowledge_graph import KnowledgeGraphRepository
@@ -68,7 +73,7 @@ class BrainContainer:
         source_control: SourceControlPort | None,
         document_conversion: Any | None,
         pull_requests: PullRequestPort | None,
-        capabilities: dict[str, str],
+        capabilities: CapabilityRegistry,
         services: dict[str, object],
     ) -> None:
         self.settings = settings
@@ -118,8 +123,22 @@ class BrainContainer:
     # --- lifecycle --------------------------------------------------------
 
     def capabilities(self) -> dict[str, str]:
-        """Snapshot of runtime capability statuses (Task 21.7/21.8)."""
-        return dict(self._capabilities)
+        """Snapshot of runtime capability statuses (name -> status)."""
+        return {
+            name: descriptor.health.status.value
+            for name, descriptor in self._capabilities.snapshot().items()
+        }
+
+    def capability_registry(self) -> CapabilityRegistry:
+        """The registry itself, for health checks and readiness evaluation."""
+        return self._capabilities
+
+    def is_ready(self) -> bool:
+        """Readiness: all required capabilities must be usable."""
+        return self._capabilities.is_ready()
+
+    def ready_problems(self) -> list[str]:
+        return self._capabilities.ready_problems()
 
     def unit_of_work(self) -> PostgresUnitOfWork:
         return PostgresUnitOfWork(self.session_factory)
@@ -187,21 +206,15 @@ async def create_brain_container(
         executor_registry=executor_registry,
     )
 
-    capabilities = {
-        "postgres": "AVAILABLE",
-        "neo4j": "AVAILABLE" if settings.storage_graph.uri else "DISABLED",
-        "weaviate": "AVAILABLE" if settings.storage_semantic.host else "DISABLED",
-        "redis": "AVAILABLE" if settings.storage_queue.url else "DISABLED",
-        "work_management": work_management_status,
-        "software_catalog": software_catalog_status,
-        "documentation_git": "AVAILABLE" if settings.documentation.git_enabled else "DISABLED",
-        "documentation_xwiki": "AVAILABLE" if settings.documentation.xwiki_enabled else "DISABLED",
-        "document_conversion": "AVAILABLE" if settings.document_conversion.enabled else "DISABLED",
-        "source_control": "AVAILABLE" if source_control is not None else "DISABLED",
-        "coding_executor": "AVAILABLE"
-        if settings.executors.coding_provider in {"fake", ""}
-        else "DISABLED",
-    }
+    capabilities = _build_capability_registry(
+        settings,
+        session_factory,
+        graph,
+        semantic_index,
+        work_management_status,
+        software_catalog_status,
+        source_control is not None,
+    )
 
     return BrainContainer(
         settings=settings,
@@ -225,6 +238,122 @@ async def create_brain_container(
         capabilities=capabilities,
         services=services,
     )
+
+
+def _build_capability_registry(
+    settings: BrainSettings,
+    session_factory: async_sessionmaker[AsyncSession],
+    graph: KnowledgeGraphRepository,
+    semantic_index: SemanticIndex,
+    work_management_status: str,
+    software_catalog_status: str,
+    source_control_available: bool = False,
+) -> CapabilityRegistry:
+    """Construct the runtime capability registry with health probes."""
+    from brain.bootstrap.health import (
+        make_neo4j_probe,
+        make_postgres_probe,
+        make_weaviate_probe,
+    )
+
+    registry = CapabilityRegistry()
+
+    registry.register_health(
+        CapabilityName.POSTGRES,
+        provider="postgres",
+        required=True,
+        status=CapabilityStatus.AVAILABLE,
+        probe=make_postgres_probe(session_factory),
+    )
+    registry.register_health(
+        CapabilityName.NEO4J,
+        provider="neo4j",
+        required=False,
+        status=(
+            CapabilityStatus.AVAILABLE if settings.storage_graph.uri else CapabilityStatus.DISABLED
+        ),
+        probe=make_neo4j_probe(graph),
+    )
+    registry.register_health(
+        CapabilityName.WEAVIATE,
+        provider="weaviate",
+        required=False,
+        status=(
+            CapabilityStatus.AVAILABLE
+            if settings.storage_semantic.host
+            else CapabilityStatus.DISABLED
+        ),
+        probe=make_weaviate_probe(semantic_index),
+    )
+    registry.register_health(
+        CapabilityName.REDIS,
+        provider="redis",
+        required=False,
+        status=(
+            CapabilityStatus.AVAILABLE if settings.storage_queue.url else CapabilityStatus.DISABLED
+        ),
+    )
+    registry.register_health(
+        CapabilityName.WORK_MANAGEMENT,
+        provider=settings.work_management.provider,
+        required=settings.work_management.required,
+        status=CapabilityStatus(work_management_status),
+    )
+    registry.register_health(
+        CapabilityName.DOCUMENTATION_GIT,
+        provider="git",
+        required=False,
+        status=(
+            CapabilityStatus.AVAILABLE
+            if settings.documentation.git_enabled
+            else CapabilityStatus.DISABLED
+        ),
+    )
+    registry.register_health(
+        CapabilityName.DOCUMENTATION_XWIKI,
+        provider="xwiki",
+        required=settings.documentation.xwiki_required,
+        status=(
+            CapabilityStatus.AVAILABLE
+            if settings.documentation.xwiki_enabled
+            else CapabilityStatus.DISABLED
+        ),
+    )
+    registry.register_health(
+        CapabilityName.DOCUMENT_CONVERSION,
+        provider=settings.document_conversion.provider,
+        required=settings.document_conversion.required,
+        status=(
+            CapabilityStatus.AVAILABLE
+            if settings.document_conversion.enabled
+            else CapabilityStatus.DISABLED
+        ),
+    )
+    registry.register_health(
+        CapabilityName.SOFTWARE_CATALOG,
+        provider=settings.software_catalog.provider,
+        required=False,
+        status=CapabilityStatus(software_catalog_status),
+    )
+    registry.register_health(
+        CapabilityName.SOURCE_CONTROL,
+        provider=settings.source_control.provider,
+        required=False,
+        status=(
+            CapabilityStatus.AVAILABLE if source_control_available else CapabilityStatus.DISABLED
+        ),
+    )
+    registry.register_health(
+        CapabilityName.CODING_EXECUTOR,
+        provider=settings.executors.coding_provider,
+        required=False,
+        status=(
+            CapabilityStatus.AVAILABLE
+            if settings.executors.coding_provider in {"fake", ""}
+            else CapabilityStatus.DISABLED
+        ),
+    )
+    return registry
 
 
 __all__ = ["BrainContainer", "create_brain_container"]

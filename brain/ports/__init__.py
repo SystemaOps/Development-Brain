@@ -5,6 +5,7 @@ never pulls in a provider SDK, database, workflow engine, or coding agent.
 """
 
 from brain.ports.artifact_store import ArtifactStore
+from brain.ports.capabilities import CapabilityRegistry, HealthCheckPort
 from brain.ports.checkpoint_store import CheckpointStore
 from brain.ports.ci_validation import CIValidationPort
 from brain.ports.code_intelligence import (
@@ -71,6 +72,7 @@ __all__ = [
     "ApprovalRepository",
     "ArtifactRepository",
     "ArtifactStore",
+    "CapabilityRegistry",
     "CheckpointStore",
     "CIValidationPort",
     "CodeGraphRepository",
@@ -93,6 +95,7 @@ __all__ = [
     "ExecutorRegistry",
     "GraphEntity",
     "GraphRelation",
+    "HealthCheckPort",
     "IdempotencyStore",
     "KnowledgeGraphRepository",
     "LanguageParser",

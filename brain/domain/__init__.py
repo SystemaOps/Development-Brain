@@ -6,6 +6,12 @@ engines, or coding agents.  The domain depends only on Pydantic.
 
 from brain.domain.actors import Actor, ActorType
 from brain.domain.artifacts import Artifact, ArtifactType
+from brain.domain.capabilities import (
+    CapabilityDescriptor,
+    CapabilityHealth,
+    CapabilityName,
+    CapabilityStatus,
+)
 from brain.domain.code_intelligence import (
     CodeRelation,
     CodeRelationType,
@@ -278,6 +284,10 @@ __all__ = [
     "BanditReward",
     "BudgetAllocation",
     "CandidateKind",
+    "CapabilityDescriptor",
+    "CapabilityHealth",
+    "CapabilityName",
+    "CapabilityStatus",
     "CanonicalEvent",
     "CandidateRequirement",
     "CodingContextCapsule",
