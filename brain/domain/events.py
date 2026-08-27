@@ -39,6 +39,9 @@ class EventType(StrEnum):
 
     HUMAN_FEEDBACK_RECEIVED = "human_feedback_received"
     KNOWLEDGE_CONFLICT_DETECTED = "knowledge_conflict_detected"
+    OBSERVATION_CREATED = "observation_created"
+    OBSERVATION_ACKNOWLEDGED = "observation_acknowledged"
+    OBSERVATION_RESOLVED = "observation_resolved"
 
 
 class EventEnvelope(BaseModel):

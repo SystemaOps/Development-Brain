@@ -159,6 +159,27 @@ class KnowledgeConflictDetected(CanonicalEvent):
     source_b: str
 
 
+class ObservationCreated(CanonicalEvent):
+    event_type: ClassVar[EventType] = EventType.OBSERVATION_CREATED
+    observation_id: uuid.UUID
+    project_id: ProjectId
+    observation_type: str
+    title: str
+    body: str = ""
+
+
+class ObservationAcknowledged(CanonicalEvent):
+    event_type: ClassVar[EventType] = EventType.OBSERVATION_ACKNOWLEDGED
+    observation_id: uuid.UUID
+    project_id: ProjectId
+
+
+class ObservationResolved(CanonicalEvent):
+    event_type: ClassVar[EventType] = EventType.OBSERVATION_RESOLVED
+    observation_id: uuid.UUID
+    project_id: ProjectId
+
+
 EVENT_TYPE_TO_MODEL: dict[EventType, type[CanonicalEvent]] = {
     cls.event_type: cls for cls in CanonicalEvent.__subclasses__()
 }
@@ -234,6 +255,9 @@ __all__ = [
     "FeedbackVerdict",
     "HumanFeedbackReceived",
     "KnowledgeConflictDetected",
+    "ObservationAcknowledged",
+    "ObservationCreated",
+    "ObservationResolved",
     "ProjectCreated",
     "PullRequestCreated",
     "PullRequestRequested",

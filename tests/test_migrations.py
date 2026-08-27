@@ -62,6 +62,7 @@ EXPECTED_TABLES = {
     "executor_quality",
     "context_feedback",
     "command_failures",
+    "observations",
 }
 
 pytestmark = pytest.mark.skipif(

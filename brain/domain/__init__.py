@@ -56,6 +56,9 @@ from brain.domain.event_types import (
     FeedbackVerdict,
     HumanFeedbackReceived,
     KnowledgeConflictDetected,
+    ObservationAcknowledged,
+    ObservationCreated,
+    ObservationResolved,
     ProjectCreated,
     PullRequestCreated,
     PullRequestRequested,
@@ -132,6 +135,13 @@ from brain.domain.observability import (
     LogLevel,
     MetricsSnapshot,
     SelectedContextItem,
+)
+from brain.domain.observations import (
+    Observation,
+    ObservationSeverity,
+    ObservationStatus,
+    ObservationType,
+    ObservationVisibility,
 )
 from brain.domain.optimization import (
     BanditReward,
@@ -403,6 +413,14 @@ __all__ = [
     "PRReadiness",
     "Priority",
     "Project",
+    "Observation",
+    "ObservationSeverity",
+    "ObservationStatus",
+    "ObservationType",
+    "ObservationVisibility",
+    "ObservationAcknowledged",
+    "ObservationCreated",
+    "ObservationResolved",
     "ProjectCreated",
     "ProjectId",
     "ProjectStatus",

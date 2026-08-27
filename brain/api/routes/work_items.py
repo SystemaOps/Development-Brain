@@ -162,10 +162,3 @@ async def work_item_executions(work_item_id: uuid.UUID, request: Request) -> dic
         "work_item_id": str(work_item_id),
         "executions": [e.model_dump(mode="json") for e in executions],
     }
-
-
-@router.get("/api/v1/work-items/{work_item_id}/observations")
-async def work_item_observations(work_item_id: uuid.UUID, request: Request) -> dict[str, object]:
-    del request
-    # Phase 26 introduces the engineering journal; empty for now.
-    return {"work_item_id": str(work_item_id), "observations": []}

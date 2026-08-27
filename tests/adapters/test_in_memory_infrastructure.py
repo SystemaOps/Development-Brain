@@ -13,6 +13,7 @@ from brain.adapters.in_memory.executor_registry import InMemoryExecutorRegistry
 from brain.adapters.in_memory.idempotency import InMemoryIdempotencyStore
 from brain.adapters.in_memory.knowledge_graph import InMemoryKnowledgeGraph
 from brain.adapters.in_memory.observability import InMemoryMetricsRepository
+from brain.adapters.in_memory.observations import InMemoryObservationRepository
 from brain.adapters.in_memory.optimization import (
     InMemoryContextFeedbackRepository,
     InMemoryExecutorQualityRepository,
@@ -37,6 +38,7 @@ from brain.ports.executor_registry import ExecutorRegistry
 from brain.ports.idempotency import IdempotencyStore
 from brain.ports.knowledge_graph import KnowledgeGraphRepository
 from brain.ports.observability import MetricsRepository
+from brain.ports.observations import ObservationRepository
 from brain.ports.optimization import (
     ContextFeedbackRepository,
     ExecutorQualityRepository,
@@ -60,6 +62,7 @@ from tests.contracts.executor_registry import ExecutorRegistryContract
 from tests.contracts.idempotency import IdempotencyStoreContract
 from tests.contracts.knowledge_graph import KnowledgeGraphRepositoryContract
 from tests.contracts.metrics import MetricsRepositoryContract
+from tests.contracts.observations import ObservationRepositoryContract
 from tests.contracts.optimization import (
     ContextFeedbackRepositoryContract,
     ExecutorQualityRepositoryContract,
@@ -171,6 +174,12 @@ class TestInMemoryContextFeedbackRepository(ContextFeedbackRepositoryContract):
     @pytest.fixture
     def feedback(self) -> ContextFeedbackRepository:
         return InMemoryContextFeedbackRepository()
+
+
+class TestInMemoryObservationRepository(ObservationRepositoryContract):
+    @pytest.fixture
+    def observations(self) -> ObservationRepository:
+        return InMemoryObservationRepository()
 
 
 class TestInMemoryRepositorySnapshotRepository(RepositorySnapshotRepositoryContract):

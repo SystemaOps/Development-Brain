@@ -53,6 +53,7 @@ from brain.application.graph_projection import GraphProjectionService
 from brain.application.hybrid_retrieval import HybridRetrievalService
 from brain.application.jit_retrieval import JustInTimeRetrieval
 from brain.application.observability import ObservabilityService
+from brain.application.observations import ObservationService
 from brain.application.optimization import (
     ContextRankingFeedbackService,
     ExecutorQualityTracker,
@@ -338,6 +339,10 @@ def build_services(
         metrics=repos.metrics,
         logs=InMemoryLogSink(),
     )
+    observations = ObservationService(
+        observations=repos.observations,
+        event_bus=events,
+    )
     policy = PolicyService(
         policies=DefaultPolicyProvider(),
     )
@@ -362,6 +367,7 @@ def build_services(
         "semantic_indexing": semantic_indexing,
         "graph_projection": projection,
         "observability": observability,
+        "observations": observations,
         "policy": policy,
         "executor_quality": quality,
         "model_router": model_router,

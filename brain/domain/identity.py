@@ -30,6 +30,7 @@ WorkflowId = NewType("WorkflowId", uuid.UUID)
 RepositorySnapshotId = NewType("RepositorySnapshotId", uuid.UUID)
 RepositoryChangeSetId = NewType("RepositoryChangeSetId", uuid.UUID)
 PlanId = NewType("PlanId", uuid.UUID)
+ObservationId = NewType("ObservationId", uuid.UUID)
 
 
 def new_project_id() -> ProjectId:
@@ -98,3 +99,7 @@ def new_repository_change_set_id() -> RepositoryChangeSetId:
 
 def new_plan_id() -> PlanId:
     return PlanId(uuid.uuid4())
+
+
+def new_observation_id() -> ObservationId:
+    return ObservationId(uuid.uuid4())

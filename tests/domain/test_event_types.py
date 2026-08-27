@@ -17,6 +17,9 @@ from brain.domain import (
     ExternalReference,
     HumanFeedbackReceived,
     KnowledgeConflictDetected,
+    ObservationAcknowledged,
+    ObservationCreated,
+    ObservationResolved,
     Project,
     ProjectCreated,
     PullRequestCreated,
@@ -129,6 +132,23 @@ def _sample(model: type[CanonicalEvent]) -> CanonicalEvent:
             claim_b="b",
             source_a="src-a",
             source_b="src-b",
+        )
+    if model is ObservationCreated:
+        return ObservationCreated(
+            observation_id=uuid.uuid4(),
+            project_id=project_id,
+            observation_type="discovery",
+            title="Found something",
+        )
+    if model is ObservationAcknowledged:
+        return ObservationAcknowledged(
+            observation_id=uuid.uuid4(),
+            project_id=project_id,
+        )
+    if model is ObservationResolved:
+        return ObservationResolved(
+            observation_id=uuid.uuid4(),
+            project_id=project_id,
         )
     raise AssertionError(f"no sample for {model.__name__}")
 

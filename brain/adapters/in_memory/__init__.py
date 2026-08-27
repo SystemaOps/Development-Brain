@@ -19,6 +19,7 @@ from brain.adapters.in_memory.observability import (
     InMemoryLogSink,
     InMemoryMetricsRepository,
 )
+from brain.adapters.in_memory.observations import InMemoryObservationRepository
 from brain.adapters.in_memory.optimization import (
     InMemoryContextFeedbackRepository,
     InMemoryExecutorQualityRepository,
@@ -75,6 +76,7 @@ __all__ = [
     "InMemoryKnowledgeGraph",
     "InMemoryLogSink",
     "InMemoryMetricsRepository",
+    "InMemoryObservationRepository",
     "InMemoryPlanRepository",
     "InMemoryProjectRepository",
     "InMemoryRepositoryChangeSetRepository",

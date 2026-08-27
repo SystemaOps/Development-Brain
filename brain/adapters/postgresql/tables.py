@@ -826,4 +826,42 @@ class CommandFailureRow(Base):
     __table_args__ = (Index("ix_command_failures_command", "command_id"),)
 
 
+class ObservationRow(Base):
+    """Canonical engineering journal entries (Phase 26)."""
+
+    __tablename__ = "observations"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    project_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    work_item_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    execution_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    requirement_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    repository_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    repository_revision: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    context_capsule_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    verification_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    artifact_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    evidence_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    decision_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    observation_type: Mapped[str] = mapped_column(String(50))
+    severity: Mapped[str] = mapped_column(String(20))
+    visibility: Mapped[str] = mapped_column(String(20))
+    status: Mapped[str] = mapped_column(String(20), default="open")
+    title: Mapped[str] = mapped_column(String(255))
+    body: Mapped[str] = mapped_column(Text, default="")
+    source: Mapped[str] = mapped_column(String(100), default="brain")
+    evidence_refs: Mapped[list[uuid.UUID]] = mapped_column(JSONB, default=list)
+    requires_human_attention: Mapped[bool] = mapped_column(Boolean, default=False)
+    dedup_key: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    __table_args__ = (
+        Index("ix_observations_project", "project_id"),
+        Index("ix_observations_work_item", "work_item_id"),
+        Index("ix_observations_dedup", "dedup_key"),
+    )
+
+
 metadata = Base.metadata

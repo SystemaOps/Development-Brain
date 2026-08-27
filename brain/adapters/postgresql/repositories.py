@@ -41,6 +41,7 @@ from brain.adapters.postgresql.tables import (
     IdempotencyKeyRow,
     ImpactMetricsRow,
     InterfaceRow,
+    ObservationRow,
     PlanRow,
     ProjectRow,
     RepositoryChangeSetRow,
@@ -95,6 +96,7 @@ from brain.domain.identity import (
     DocumentVersionId,
     EvidenceId,
     ExecutionId,
+    ObservationId,
     PlanId,
     ProjectId,
     RepositoryId,
@@ -109,6 +111,13 @@ from brain.domain.observability import (
     ExecutionMetrics,
     ImpactAnalysisMetrics,
     SelectedContextItem,
+)
+from brain.domain.observations import (
+    Observation,
+    ObservationSeverity,
+    ObservationStatus,
+    ObservationType,
+    ObservationVisibility,
 )
 from brain.domain.optimization import (
     ContextFeedbackRecord,
@@ -2701,4 +2710,137 @@ def _command_failure_from_row(row: CommandFailureRow) -> CommandFailure:
         correlation_id=row.correlation_id,
         retry_eligible=row.retry_eligible,
         occurred_at=row.occurred_at,
+    )
+
+
+class PostgresObservationRepository(_PostgresRepository):
+    """Durable engineering journal entries (Phase 26)."""
+
+    async def save(self, observation: Observation) -> Observation:
+        stmt = pg_insert(ObservationRow).values(
+            id=observation.id,
+            project_id=observation.project_id,
+            work_item_id=observation.work_item_id,
+            execution_id=observation.execution_id,
+            requirement_id=observation.requirement_id,
+            repository_id=observation.repository_id,
+            repository_revision=observation.repository_revision,
+            context_capsule_id=observation.context_capsule_id,
+            verification_id=observation.verification_id,
+            artifact_id=observation.artifact_id,
+            evidence_id=observation.evidence_id,
+            decision_id=observation.decision_id,
+            observation_type=observation.observation_type.value,
+            severity=observation.severity.value,
+            visibility=observation.visibility.value,
+            status=observation.status.value,
+            title=observation.title,
+            body=observation.body,
+            source=observation.source,
+            evidence_refs=observation.evidence_refs,
+            requires_human_attention=observation.requires_human_attention,
+            dedup_key=observation.dedup_key,
+            created_at=observation.created_at,
+            acknowledged_at=observation.acknowledged_at,
+            resolved_at=observation.resolved_at,
+        )
+        await self._session.execute(
+            stmt.on_conflict_do_update(
+                index_elements=["id"],
+                set_={
+                    "work_item_id": observation.work_item_id,
+                    "execution_id": observation.execution_id,
+                    "requirement_id": observation.requirement_id,
+                    "repository_id": observation.repository_id,
+                    "repository_revision": observation.repository_revision,
+                    "context_capsule_id": observation.context_capsule_id,
+                    "verification_id": observation.verification_id,
+                    "artifact_id": observation.artifact_id,
+                    "evidence_id": observation.evidence_id,
+                    "decision_id": observation.decision_id,
+                    "observation_type": observation.observation_type.value,
+                    "severity": observation.severity.value,
+                    "visibility": observation.visibility.value,
+                    "status": observation.status.value,
+                    "title": observation.title,
+                    "body": observation.body,
+                    "source": observation.source,
+                    "evidence_refs": observation.evidence_refs,
+                    "requires_human_attention": observation.requires_human_attention,
+                    "dedup_key": observation.dedup_key,
+                    "created_at": observation.created_at,
+                    "acknowledged_at": observation.acknowledged_at,
+                    "resolved_at": observation.resolved_at,
+                },
+            )
+        )
+        await self._session.flush()
+        return observation
+
+    async def get(self, observation_id: ObservationId) -> Observation | None:
+        result = await self._session.execute(
+            select(ObservationRow).where(ObservationRow.id == observation_id)
+        )
+        row = result.scalar_one_or_none()
+        return _observation_from_row(row) if row is not None else None
+
+    async def list_by_project(self, project_id: ProjectId) -> list[Observation]:
+        result = await self._session.execute(
+            select(ObservationRow)
+            .where(ObservationRow.project_id == project_id)
+            .order_by(ObservationRow.created_at.desc())
+        )
+        return [_observation_from_row(row) for row in result.scalars().all()]
+
+    async def list_by_work_item(self, work_item_id: WorkItemId) -> list[Observation]:
+        result = await self._session.execute(
+            select(ObservationRow)
+            .where(ObservationRow.work_item_id == work_item_id)
+            .order_by(ObservationRow.created_at.desc())
+        )
+        return [_observation_from_row(row) for row in result.scalars().all()]
+
+    async def list_recent(self, limit: int = 100) -> list[Observation]:
+        result = await self._session.execute(
+            select(ObservationRow).order_by(ObservationRow.created_at.desc()).limit(limit)
+        )
+        return [_observation_from_row(row) for row in reversed(result.scalars().all())]
+
+    async def find_by_dedup_key(self, dedup_key: str) -> Observation | None:
+        result = await self._session.execute(
+            select(ObservationRow).where(ObservationRow.dedup_key == dedup_key)
+        )
+        row = result.scalar_one_or_none()
+        return _observation_from_row(row) if row is not None else None
+
+
+def _observation_from_row(row: ObservationRow) -> Observation:
+    return Observation(
+        id=ObservationId(row.id),
+        project_id=ProjectId(row.project_id),
+        work_item_id=WorkItemId(row.work_item_id) if row.work_item_id else None,
+        execution_id=ExecutionId(row.execution_id) if row.execution_id else None,
+        requirement_id=RequirementId(row.requirement_id) if row.requirement_id else None,
+        repository_id=RepositoryId(row.repository_id) if row.repository_id else None,
+        repository_revision=row.repository_revision,
+        context_capsule_id=ContextCapsuleId(row.context_capsule_id)
+        if row.context_capsule_id
+        else None,
+        verification_id=VerificationId(row.verification_id) if row.verification_id else None,
+        artifact_id=ArtifactId(row.artifact_id) if row.artifact_id else None,
+        evidence_id=EvidenceId(row.evidence_id) if row.evidence_id else None,
+        decision_id=DecisionId(row.decision_id) if row.decision_id else None,
+        observation_type=ObservationType(row.observation_type),
+        severity=ObservationSeverity(row.severity),
+        visibility=ObservationVisibility(row.visibility),
+        status=ObservationStatus(row.status),
+        title=row.title,
+        body=row.body,
+        source=row.source,
+        evidence_refs=list(row.evidence_refs or []),
+        requires_human_attention=row.requires_human_attention or False,
+        dedup_key=row.dedup_key,
+        created_at=row.created_at,
+        acknowledged_at=row.acknowledged_at,
+        resolved_at=row.resolved_at,
     )

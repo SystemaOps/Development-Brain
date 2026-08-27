@@ -13,6 +13,7 @@ from brain.adapters.postgresql.repositories import (
     PostgresExecutorQualityRepository,
     PostgresIdempotencyStore,
     PostgresMetricsRepository,
+    PostgresObservationRepository,
     PostgresRepositoryChangeSetRepository,
     PostgresRepositorySnapshotRepository,
     PostgresRuntimeEvidenceRepository,
@@ -25,6 +26,7 @@ from brain.ports.context import ContextCapsuleRepository
 from brain.ports.event_log import EventLogRepository
 from brain.ports.idempotency import IdempotencyStore
 from brain.ports.observability import MetricsRepository
+from brain.ports.observations import ObservationRepository
 from brain.ports.optimization import (
     ContextFeedbackRepository,
     ExecutorQualityRepository,
@@ -44,6 +46,7 @@ from tests.contracts.context_capsule import ContextCapsuleRepositoryContract
 from tests.contracts.event_log import EventLogRepositoryContract
 from tests.contracts.idempotency import IdempotencyStoreContract
 from tests.contracts.metrics import MetricsRepositoryContract
+from tests.contracts.observations import ObservationRepositoryContract
 from tests.contracts.optimization import (
     ContextFeedbackRepositoryContract,
     ExecutorQualityRepositoryContract,
@@ -94,6 +97,12 @@ class TestPostgresContextFeedbackRepository(ContextFeedbackRepositoryContract):
     @pytest.fixture
     def feedback(self, postgres_session) -> ContextFeedbackRepository:
         return PostgresContextFeedbackRepository(postgres_session)
+
+
+class TestPostgresObservationRepository(ObservationRepositoryContract):
+    @pytest.fixture
+    def observations(self, postgres_session) -> ObservationRepository:
+        return PostgresObservationRepository(postgres_session)
 
 
 class TestPostgresWorkflowCheckpointRepository(WorkflowCheckpointRepositoryContract):

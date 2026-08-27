@@ -48,6 +48,7 @@ from brain.application.observability import (
     ObservabilityService,
     StructuredLogger,
 )
+from brain.application.observations import ObservationPolicy, ObservationService
 from brain.application.optimization import (
     BanditRouter,
     ContextRankingFeedbackService,
@@ -121,6 +122,8 @@ __all__ = [
     "MetricsCollector",
     "MetricsReporter",
     "ModelRouter",
+    "ObservationPolicy",
+    "ObservationService",
     "ObservabilityService",
     "OtelTraceImporter",
     "ProcessOutcome",
