@@ -4,9 +4,11 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Request
 
+from brain.api.commands import enqueue_command
 from brain.api.dependencies import get_container
 from brain.api.schemas import AcceptedResult
 from brain.bootstrap.container import BrainContainer
+from brain.domain.commands import CommandType
 
 router = APIRouter()
 
@@ -30,6 +32,17 @@ async def system_version() -> dict[str, str]:
 
 @router.post("/api/v1/system/reconcile", response_model=AcceptedResult, status_code=202)
 async def system_reconcile(request: Request) -> AcceptedResult:
-    del request
-    # Phase 24+ enqueues a ReconcileProjectCommand; for now it is accepted.
-    return AcceptedResult(command_id="reconcile")
+    container: BrainContainer = get_container(request)
+    # Global reconciliation enqueues a command; projects resolve later.
+    from brain.domain.commands import ReconcileProjectCommand
+    from brain.domain.identity import ProjectId
+
+    project = await container.repositories.projects.list()
+    if not project:
+        return AcceptedResult(command_id="reconcile-none")
+    return await enqueue_command(
+        container,
+        CommandType.RECONCILE_PROJECT,
+        ReconcileProjectCommand(project_id=ProjectId(project[0].id)),
+        correlation_id=request.state.correlation_id,
+    )

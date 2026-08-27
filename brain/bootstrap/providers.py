@@ -45,6 +45,7 @@ from brain.adapters.topology.discovery import TopologyDiscoverer
 from brain.adapters.verification.command_runner import DeterministicCommandRunner
 from brain.adapters.weaviate.semantic_index import WeaviateSemanticIndex
 from brain.application.code_intelligence import CodeIntelligenceService
+from brain.application.command_dispatcher import CommandDispatcher
 from brain.application.context_engine import ContextEngineService
 from brain.application.document_ingestion import DocumentIngestionService
 from brain.application.execution_request_builder import ExecutionRequestBuilder
@@ -224,6 +225,26 @@ def build_source_control(settings: BrainSettings) -> SourceControlPort | None:
     return None
 
 
+def build_command_queue(settings: BrainSettings) -> object:
+    """Build the command queue.
+
+    ``BRAIN_REDIS_PROVIDER=redis`` uses the Redis adapter; the default
+    in-memory queue serves tests and local development behind the same port.
+    """
+    if settings.storage_queue.provider == "redis":
+        from redis.asyncio import from_url
+
+        from brain.adapters.queue.redis import RedisCommandQueue
+
+        return RedisCommandQueue(
+            from_url(settings.storage_queue.url, decode_responses=False),
+            queue_name=settings.storage_queue.queue_name,
+        )
+    from brain.adapters.in_memory.commands import InMemoryCommandQueue
+
+    return InMemoryCommandQueue()
+
+
 def build_services(
     settings: BrainSettings,
     repos: PostgresRepositories,
@@ -346,11 +367,14 @@ def build_services(
         "model_router": model_router,
         "ranking_feedback": ranking_feedback,
         "execution_request_builder": request_builder,
+        "command_queue": build_command_queue(settings),
+        "command_dispatcher": CommandDispatcher(),
     }
     return services
 
 
 __all__ = [
+    "build_command_queue",
     "build_documentation",
     "build_executor_registry",
     "build_graph",

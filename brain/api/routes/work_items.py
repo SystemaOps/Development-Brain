@@ -6,6 +6,7 @@ import uuid
 
 from fastapi import APIRouter, Request
 
+from brain.api.commands import enqueue_command
 from brain.api.dependencies import get_container
 from brain.api.errors import BrainAPIError
 from brain.api.schemas import (
@@ -15,6 +16,7 @@ from brain.api.schemas import (
     WorkItemUpdate,
 )
 from brain.bootstrap.container import BrainContainer
+from brain.domain.commands import CommandType
 from brain.domain.identity import ProjectId, WorkItemId
 from brain.domain.work_items import WorkItem, WorkItemType
 
@@ -75,27 +77,57 @@ async def update_work_item(
 
 @router.post("/api/v1/work-items/{work_item_id}/analyze", status_code=202)
 async def analyze_work_item(work_item_id: uuid.UUID, request: Request) -> AcceptedResult:
-    del work_item_id, request
-    return AcceptedResult(command_id="analyze")
+    from brain.domain.commands import AnalyzeWorkItemCommand
+
+    container: BrainContainer = get_container(request)
+    return await enqueue_command(
+        container,
+        CommandType.ANALYZE_WORK_ITEM,
+        AnalyzeWorkItemCommand(work_item_id=WorkItemId(work_item_id)),
+        correlation_id=request.state.correlation_id,
+    )
 
 
 @router.post("/api/v1/work-items/{work_item_id}/plan", status_code=202)
 async def plan_work_item(work_item_id: uuid.UUID, request: Request) -> AcceptedResult:
-    del work_item_id, request
-    return AcceptedResult(command_id="plan")
+    from brain.domain.commands import PlanWorkItemCommand
+
+    container: BrainContainer = get_container(request)
+    return await enqueue_command(
+        container,
+        CommandType.PLAN_WORK_ITEM,
+        PlanWorkItemCommand(work_item_id=WorkItemId(work_item_id)),
+        correlation_id=request.state.correlation_id,
+    )
 
 
 @router.post("/api/v1/work-items/{work_item_id}/context", status_code=202)
 async def build_work_item_context(work_item_id: uuid.UUID, request: Request) -> AcceptedResult:
-    del work_item_id, request
-    return AcceptedResult(command_id="build_context")
+    from brain.domain.commands import BuildContextCommand
+
+    container: BrainContainer = get_container(request)
+    return await enqueue_command(
+        container,
+        CommandType.BUILD_CONTEXT,
+        BuildContextCommand(work_item_id=WorkItemId(work_item_id)),
+        correlation_id=request.state.correlation_id,
+    )
 
 
 @router.post("/api/v1/work-items/{work_item_id}/run", status_code=202)
 async def run_work_item(work_item_id: uuid.UUID, request: Request) -> AcceptedResult:
-    del work_item_id, request
-    # Phase 24+ enqueues a RunWorkItemCommand; accepted for now.
-    return AcceptedResult(command_id="run")
+    container: BrainContainer = get_container(request)
+    work_item = await container.repositories.work_items.get(WorkItemId(work_item_id))
+    if work_item is None:
+        raise BrainAPIError("not_found", "work item not found", status_code=404)
+    from brain.domain.commands import RunWorkItemCommand
+
+    return await enqueue_command(
+        container,
+        CommandType.RUN_WORK_ITEM,
+        RunWorkItemCommand(work_item_id=work_item.id),
+        correlation_id=request.state.correlation_id,
+    )
 
 
 @router.post("/api/v1/work-items/{work_item_id}/pause", status_code=202)

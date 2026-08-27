@@ -69,9 +69,17 @@ async def update_project(
 
 @router.post("/api/v1/projects/{project_id}/analyze", status_code=202)
 async def analyze_project(project_id: uuid.UUID, request: Request) -> dict[str, str]:
-    del project_id, request
-    # Phase 24+ enqueues an AnalyzeProjectCommand; accepted for now.
-    return {"status": "ACCEPTED"}
+    from brain.api.commands import enqueue_command
+    from brain.domain.commands import AnalyzeProjectCommand, CommandType
+
+    container: BrainContainer = get_container(request)
+    result = await enqueue_command(
+        container,
+        CommandType.ANALYZE_PROJECT,
+        AnalyzeProjectCommand(project_id=ProjectId(project_id)),
+        correlation_id=request.state.correlation_id,
+    )
+    return result.model_dump(mode="json")
 
 
 @router.get("/api/v1/projects/{project_id}/topology")

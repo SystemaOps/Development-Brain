@@ -63,6 +63,7 @@ class RedisSettings(BaseSettings):
 
     url: str = "redis://localhost:6379/0"
     queue_name: str = "brain:commands"
+    provider: str = "inmemory"
 
 
 class ArtifactStoreSettings(BaseSettings):

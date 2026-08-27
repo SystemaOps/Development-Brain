@@ -64,8 +64,17 @@ async def document_versions(document_id: uuid.UUID, request: Request) -> dict[st
 
 @router.post("/api/v1/documents/{document_id}/ingest", status_code=202)
 async def ingest_document(document_id: uuid.UUID, request: Request) -> dict[str, str]:
-    del document_id, request
-    return {"status": "ACCEPTED"}
+    from brain.api.commands import enqueue_command
+    from brain.domain.commands import CommandType, IngestDocumentCommand
+
+    container: BrainContainer = get_container(request)
+    result = await enqueue_command(
+        container,
+        CommandType.INGEST_DOCUMENT,
+        IngestDocumentCommand(document_id=document_id),
+        correlation_id=request.state.correlation_id,
+    )
+    return result.model_dump(mode="json")
 
 
 @router.post("/api/v1/documents/{document_id}/reprocess", status_code=202)

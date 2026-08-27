@@ -66,16 +66,32 @@ async def get_repository(repository_id: uuid.UUID, request: Request) -> Reposito
 
 @router.post("/api/v1/repositories/{repository_id}/sync", status_code=202)
 async def sync_repository(repository_id: uuid.UUID, request: Request) -> dict[str, str]:
-    del repository_id, request
-    # Phase 24+ enqueues a SyncRepositoryCommand; accepted for now.
-    return {"status": "ACCEPTED"}
+    from brain.api.commands import enqueue_command
+    from brain.domain.commands import CommandType, SyncRepositoryCommand
+
+    container: BrainContainer = get_container(request)
+    result = await enqueue_command(
+        container,
+        CommandType.SYNC_REPOSITORY,
+        SyncRepositoryCommand(repository_id=RepositoryId(repository_id)),
+        correlation_id=request.state.correlation_id,
+    )
+    return result.model_dump(mode="json")
 
 
 @router.post("/api/v1/repositories/{repository_id}/ingest", status_code=202)
 async def ingest_repository(repository_id: uuid.UUID, request: Request) -> dict[str, str]:
-    del repository_id, request
-    # Phase 24+ enqueues an IngestRepositoryCommand; accepted for now.
-    return {"status": "ACCEPTED"}
+    from brain.api.commands import enqueue_command
+    from brain.domain.commands import CommandType, IngestRepositoryCommand
+
+    container: BrainContainer = get_container(request)
+    result = await enqueue_command(
+        container,
+        CommandType.INGEST_REPOSITORY,
+        IngestRepositoryCommand(repository_id=RepositoryId(repository_id)),
+        correlation_id=request.state.correlation_id,
+    )
+    return result.model_dump(mode="json")
 
 
 @router.get("/api/v1/repositories/{repository_id}/status")

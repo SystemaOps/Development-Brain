@@ -67,8 +67,21 @@ async def update_requirement(
 
 @router.post("/api/v1/requirements/extract", status_code=202)
 async def extract_requirements(request: Request) -> dict[str, str]:
-    del request
-    return {"status": "ACCEPTED"}
+    from brain.api.commands import enqueue_command
+    from brain.domain.commands import CommandType, ExtractRequirementsCommand
+    from brain.domain.identity import ProjectId
+
+    container: BrainContainer = get_container(request)
+    projects = await container.repositories.projects.list()
+    if not projects:
+        return {"status": "ACCEPTED", "command_id": "none"}
+    result = await enqueue_command(
+        container,
+        CommandType.EXTRACT_REQUIREMENTS,
+        ExtractRequirementsCommand(project_id=ProjectId(projects[0].id)),
+        correlation_id=request.state.correlation_id,
+    )
+    return result.model_dump(mode="json")
 
 
 @router.post("/api/v1/requirements/{requirement_id}/analyze", status_code=202)

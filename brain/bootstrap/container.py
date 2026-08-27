@@ -223,7 +223,10 @@ async def create_brain_container(
         source_control is not None,
     )
 
-    return BrainContainer(
+    # 6. Install canonical command handlers on the container dispatcher.
+    from brain.application.command_handlers import install_command_handlers
+
+    container_instance = BrainContainer(
         settings=settings,
         engine=engine,
         session_factory=session_factory,
@@ -246,6 +249,8 @@ async def create_brain_container(
         services=services,
         session=session,
     )
+    install_command_handlers(container=container_instance)
+    return container_instance
 
 
 def _build_capability_registry(
