@@ -27,9 +27,14 @@ from brain.domain.commands import (
     VerifyExecutionCommand,
     command_to_model,
 )
+from brain.domain.executions import ExecutionRequest
 from brain.domain.identity import (
+    DocumentId,
+    ExecutionId,
     ProjectId,
+    WorkItemId,
     new_execution_id,
+    new_workflow_id,
 )
 from brain.domain.repositories import Repository
 
@@ -75,32 +80,89 @@ class CommandHandlers:
         repository = await self._container.repositories.repositories.get(model.repository_id)
         if repository is None:
             return {"repository_id": model.repository_id, "status": "not_found"}
+        # Milestone 1: local source control is not wired; the revision stays.
         return {"repository_id": model.repository_id, "status": "synced"}
 
     async def _ingest_repository(self, envelope: CommandEnvelope) -> dict[str, object]:
         model = command_to_model(envelope)
         assert isinstance(model, IngestRepositoryCommand)
+        repository = await self._container.repositories.repositories.get(model.repository_id)
+        if repository is None:
+            return {"repository_id": model.repository_id, "status": "not_found"}
         return {"repository_id": model.repository_id, "status": "ingested"}
 
     async def _ingest_document(self, envelope: CommandEnvelope) -> dict[str, object]:
         model = command_to_model(envelope)
         assert isinstance(model, IngestDocumentCommand)
-        return {"document_id": model.document_id, "status": "ingested"}
+        document = await self._container.repositories.documents.get(DocumentId(model.document_id))
+        if document is None:
+            return {"document_id": model.document_id, "status": "not_found"}
+        from brain.application.document_ingestion import DocumentIngestionService
+        from brain.domain.documents import SourceArtifact
+
+        artifact = SourceArtifact(
+            source_uri=document.source.uri,
+            provider=document.source.provider,
+            mime_type=document.source.mime_type,
+        )
+        service = self._container.services["document_ingestion"]
+        assert isinstance(service, DocumentIngestionService)
+        result = await service.ingest(
+            artifact,
+            project_id=document.project_id,
+            document_type=document.type,
+        )
+        return {
+            "document_id": model.document_id,
+            "version_id": result.version.id,
+            "status": "ingested",
+        }
 
     async def _extract_requirements(self, envelope: CommandEnvelope) -> dict[str, object]:
         model = command_to_model(envelope)
         assert isinstance(model, ExtractRequirementsCommand)
-        return {"project_id": model.project_id, "status": "extracted"}
+        from brain.application.planning import PlanningService
+
+        service = self._container.services["planning"]
+        assert isinstance(service, PlanningService)
+        extracted = await service.extract_requirements(model.project_id)
+        return {
+            "project_id": model.project_id,
+            "extracted": len(extracted),
+            "status": "extracted",
+        }
 
     async def _analyze_work_item(self, envelope: CommandEnvelope) -> dict[str, object]:
         model = command_to_model(envelope)
         assert isinstance(model, AnalyzeWorkItemCommand)
-        return {"work_item_id": model.work_item_id, "status": "analyzed"}
+        work_item = await self._container.repositories.work_items.get(model.work_item_id)
+        if work_item is None:
+            return {"work_item_id": model.work_item_id, "status": "not_found"}
+        return {
+            "work_item_id": model.work_item_id,
+            "implementation_status": work_item.implementation_status.value,
+            "status": "analyzed",
+        }
 
     async def _plan_work_item(self, envelope: CommandEnvelope) -> dict[str, object]:
         model = command_to_model(envelope)
         assert isinstance(model, PlanWorkItemCommand)
-        return {"work_item_id": model.work_item_id, "status": "planned"}
+        work_item = await self._container.repositories.work_items.get(model.work_item_id)
+        if work_item is None:
+            return {"work_item_id": model.work_item_id, "status": "not_found"}
+        from brain.application.planning import PlanningService
+
+        service = self._container.services["planning"]
+        assert isinstance(service, PlanningService)
+        plan = await service.build_plan(
+            work_item.project_id,
+            title=work_item.title,
+        )
+        return {
+            "work_item_id": model.work_item_id,
+            "plan_id": plan.plan.id,
+            "status": "planned",
+        }
 
     async def _build_context(self, envelope: CommandEnvelope) -> dict[str, object]:
         model = command_to_model(envelope)
@@ -149,21 +211,66 @@ class CommandHandlers:
         model = command_to_model(envelope)
         assert isinstance(model, ExecuteWorkItemCommand)
         execution_id = model.execution_id or new_execution_id()
+        from brain.ports.executor import ExecutorPort
+
+        executor = self._container.services["executor"]
+        assert isinstance(executor, ExecutorPort)
+        request = _build_execution_request(
+            work_item_id=model.work_item_id,
+            execution_id=execution_id,
+        )
+        result = await executor.execute(request)
         return {
             "work_item_id": model.work_item_id,
             "execution_id": execution_id,
-            "status": "executed",
+            "status": result.status.value,
         }
 
     async def _verify_execution(self, envelope: CommandEnvelope) -> dict[str, object]:
         model = command_to_model(envelope)
         assert isinstance(model, VerifyExecutionCommand)
-        return {"execution_id": model.execution_id, "status": "verified"}
+        outcome = await self._container.verification.verify(
+            execution_id=model.execution_id,
+            work_item_id=model.work_item_id,
+            acceptance_criteria=[],
+            changed_files=[],
+        )
+        return {
+            "execution_id": model.execution_id,
+            "verdict": outcome.run.verdict.value,
+            "status": "verified",
+        }
 
     async def _create_pull_request(self, envelope: CommandEnvelope) -> dict[str, object]:
         model = command_to_model(envelope)
         assert isinstance(model, CreatePullRequestCommand)
-        return {"execution_id": model.execution_id, "status": "created"}
+        pr_port = self._container.pull_requests
+        if pr_port is None:
+            return {"execution_id": model.execution_id, "status": "no_pr_provider"}
+        execution = await self._container.repositories.executions.get(model.execution_id)
+        if execution is None:
+            return {"execution_id": model.execution_id, "status": "not_found"}
+        work_item = await self._container.repositories.work_items.get(model.work_item_id)
+        if work_item is None:
+            return {"work_item_id": model.work_item_id, "status": "not_found"}
+        repos = await self._container.repositories.repositories.list_by_project(
+            work_item.project_id
+        )
+        if not repos:
+            return {"execution_id": model.execution_id, "status": "no_repository"}
+        repository = repos[0]
+        ref = await pr_port.create_pull_request(
+            repository=repository,
+            source_branch=f"brain/{execution.id}",
+            target_branch=repository.default_branch,
+            title=work_item.title,
+            description=work_item.description,
+        )
+        return {
+            "execution_id": model.execution_id,
+            "pr_external_id": ref.external_id,
+            "status": "created",
+        }
 
     async def _reconcile_project(self, envelope: CommandEnvelope) -> dict[str, object]:
         model = command_to_model(envelope)
@@ -172,14 +279,26 @@ class CommandHandlers:
 
 
 def _dummy_repository(project_id: ProjectId) -> Repository:
-    from brain.domain.repositories import Repository
-
     return Repository(
         project_id=project_id,
         name="pending",
         clone_url="",
         default_branch="main",
         current_revision="HEAD",
+    )
+
+
+def _build_execution_request(
+    *,
+    work_item_id: WorkItemId,
+    execution_id: ExecutionId,
+) -> ExecutionRequest:
+    return ExecutionRequest(
+        execution_id=execution_id,
+        workflow_id=new_workflow_id(),
+        work_item_id=work_item_id,
+        repository_ref="",
+        base_revision="HEAD",
     )
 
 

@@ -6,6 +6,7 @@ import pytest
 
 from brain.adapters.postgresql.repositories import (
     PostgresApprovalRepository,
+    PostgresCommandFailureRepository,
     PostgresContextCapsuleRepository,
     PostgresContextFeedbackRepository,
     PostgresEventLogRepository,
@@ -19,6 +20,7 @@ from brain.adapters.postgresql.repositories import (
     PostgresWorkflowCheckpointRepository,
     PostgresWorkManagementIntegrationRepository,
 )
+from brain.ports.command_failure import CommandFailureRepository
 from brain.ports.context import ContextCapsuleRepository
 from brain.ports.event_log import EventLogRepository
 from brain.ports.idempotency import IdempotencyStore
@@ -37,6 +39,7 @@ from brain.ports.verification import VerificationRunRepository
 from brain.ports.work_management_repo import WorkManagementIntegrationRepository
 from brain.ports.workflow import WorkflowCheckpointRepository
 from tests.contracts.approval import ApprovalRepositoryContract
+from tests.contracts.command_failure import CommandFailureRepositoryContract
 from tests.contracts.context_capsule import ContextCapsuleRepositoryContract
 from tests.contracts.event_log import EventLogRepositoryContract
 from tests.contracts.idempotency import IdempotencyStoreContract
@@ -61,6 +64,12 @@ class TestPostgresApprovalRepository(ApprovalRepositoryContract):
     @pytest.fixture
     def approvals(self, postgres_session) -> ApprovalRepository:
         return PostgresApprovalRepository(postgres_session)
+
+
+class TestPostgresCommandFailureRepository(CommandFailureRepositoryContract):
+    @pytest.fixture
+    def command_failures(self, postgres_session) -> CommandFailureRepository:
+        return PostgresCommandFailureRepository(postgres_session)
 
 
 class TestPostgresMetricsRepository(MetricsRepositoryContract):

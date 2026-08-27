@@ -808,4 +808,22 @@ class ContextFeedbackRow(Base):
     __table_args__ = (Index("ix_context_feedback_work_item", "work_item_id"),)
 
 
+class CommandFailureRow(Base):
+    """Persisted command-processing failures (Phase 25)."""
+
+    __tablename__ = "command_failures"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    command_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    command_type: Mapped[str] = mapped_column(String(100))
+    attempt: Mapped[int] = mapped_column(BigInteger, default=1)
+    category: Mapped[str] = mapped_column(String(50))
+    message: Mapped[str] = mapped_column(Text, default="")
+    correlation_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    retry_eligible: Mapped[bool] = mapped_column(Boolean, default=True)
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (Index("ix_command_failures_command", "command_id"),)
+
+
 metadata = Base.metadata

@@ -23,6 +23,7 @@ from brain.adapters.postgresql.tables import (
     CodeFileRow,
     CodeRelationRow,
     CodeSymbolRow,
+    CommandFailureRow,
     ContextCapsuleRow,
     ContextFeedbackRow,
     ContextMetricsRow,
@@ -71,6 +72,7 @@ from brain.domain.code_intelligence import (
     SymbolKind,
     SymbolLocation,
 )
+from brain.domain.command_failure import CommandFailure, CommandFailureCategory
 from brain.domain.context import (
     BudgetAllocation,
     ContextCandidate,
@@ -2651,3 +2653,52 @@ def _to_str_float_map(value: object) -> dict[str, float]:
         if isinstance(key, str) and isinstance(item, (int, float)):
             result[key] = float(item)
     return result
+
+
+class PostgresCommandFailureRepository(_PostgresRepository):
+    """Durable command failures (Phase 25)."""
+
+    async def save(self, failure: CommandFailure) -> CommandFailure:
+        self._session.add(
+            CommandFailureRow(
+                id=failure.id,
+                command_id=failure.command_id,
+                command_type=failure.command_type,
+                attempt=failure.attempt,
+                category=failure.category.value,
+                message=failure.message,
+                correlation_id=failure.correlation_id,
+                retry_eligible=failure.retry_eligible,
+                occurred_at=failure.occurred_at,
+            )
+        )
+        await self._session.flush()
+        return failure
+
+    async def list_by_command(self, command_id: uuid.UUID) -> list[CommandFailure]:
+        result = await self._session.execute(
+            select(CommandFailureRow)
+            .where(CommandFailureRow.command_id == command_id)
+            .order_by(CommandFailureRow.occurred_at)
+        )
+        return [_command_failure_from_row(row) for row in result.scalars().all()]
+
+    async def list_recent(self, limit: int = 100) -> list[CommandFailure]:
+        result = await self._session.execute(
+            select(CommandFailureRow).order_by(CommandFailureRow.occurred_at.desc()).limit(limit)
+        )
+        return [_command_failure_from_row(row) for row in reversed(result.scalars().all())]
+
+
+def _command_failure_from_row(row: CommandFailureRow) -> CommandFailure:
+    return CommandFailure(
+        id=row.id,
+        command_id=row.command_id,
+        command_type=row.command_type,
+        attempt=row.attempt or 1,
+        category=CommandFailureCategory(row.category),
+        message=row.message,
+        correlation_id=row.correlation_id,
+        retry_eligible=row.retry_eligible,
+        occurred_at=row.occurred_at,
+    )

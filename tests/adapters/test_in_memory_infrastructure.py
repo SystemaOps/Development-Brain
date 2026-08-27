@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 from brain.adapters.embeddings.hash_embedding import HashEmbeddingService
+from brain.adapters.in_memory.command_failure import InMemoryCommandFailureRepository
 from brain.adapters.in_memory.context import InMemoryContextCapsuleRepository
 from brain.adapters.in_memory.event_bus import InMemoryEventBus
 from brain.adapters.in_memory.event_log import InMemoryEventLogRepository
@@ -28,6 +29,7 @@ from brain.adapters.in_memory.work_management import (
     InMemoryWorkManagementIntegrationRepository,
 )
 from brain.adapters.in_memory.workflow import InMemoryWorkflowCheckpointRepository
+from brain.ports.command_failure import CommandFailureRepository
 from brain.ports.context import ContextCapsuleRepository
 from brain.ports.event_bus import EventBus
 from brain.ports.event_log import EventLogRepository
@@ -50,6 +52,7 @@ from brain.ports.verification import VerificationRunRepository
 from brain.ports.work_management_repo import WorkManagementIntegrationRepository
 from brain.ports.workflow import WorkflowCheckpointRepository
 from tests.contracts.approval import ApprovalRepositoryContract
+from tests.contracts.command_failure import CommandFailureRepositoryContract
 from tests.contracts.context_capsule import ContextCapsuleRepositoryContract
 from tests.contracts.event_bus import EventBusContract
 from tests.contracts.event_log import EventLogRepositoryContract
@@ -114,6 +117,12 @@ class TestInMemoryContextCapsuleRepository(ContextCapsuleRepositoryContract):
     @pytest.fixture
     def capsule_repository(self) -> ContextCapsuleRepository:
         return InMemoryContextCapsuleRepository()
+
+
+class TestInMemoryCommandFailureRepository(CommandFailureRepositoryContract):
+    @pytest.fixture
+    def command_failures(self) -> CommandFailureRepository:
+        return InMemoryCommandFailureRepository()
 
 
 class TestInMemoryVerificationRunRepository(VerificationRunRepositoryContract):

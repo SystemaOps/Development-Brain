@@ -13,6 +13,8 @@ from brain.ports.code_intelligence import (
     CodeIntelligencePort,
     LanguageParser,
 )
+from brain.ports.command_failure import CommandFailureRepository
+from brain.ports.commands import CommandQueue
 from brain.ports.context import ContextCapsuleRepository
 from brain.ports.documentation import DocumentationPort
 from brain.ports.embeddings import EmbeddingService
@@ -75,6 +77,8 @@ __all__ = [
     "CapabilityRegistry",
     "CheckpointStore",
     "CIValidationPort",
+    "CommandFailureRepository",
+    "CommandQueue",
     "CodeGraphRepository",
     "CodeIntelligencePort",
     "CommandRunner",

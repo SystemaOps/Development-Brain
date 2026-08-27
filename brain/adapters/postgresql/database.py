@@ -22,6 +22,7 @@ from brain.adapters.postgresql.repositories import (
     PostgresApprovalRepository,
     PostgresArtifactRepository,
     PostgresCodeGraphRepository,
+    PostgresCommandFailureRepository,
     PostgresContextCapsuleRepository,
     PostgresContextFeedbackRepository,
     PostgresDecisionRepository,
@@ -102,6 +103,7 @@ class PostgresRepositories:
         self.runtime_evidence = PostgresRuntimeEvidenceRepository(session)
         self.executor_quality = PostgresExecutorQualityRepository(session)
         self.context_feedback = PostgresContextFeedbackRepository(session)
+        self.command_failures = PostgresCommandFailureRepository(session)
 
     @property
     def session(self) -> AsyncSession:

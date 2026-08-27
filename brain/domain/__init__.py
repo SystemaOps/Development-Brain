@@ -15,16 +15,14 @@ from brain.domain.capabilities import (
 from brain.domain.code_intelligence import (
     CodeRelation,
     CodeRelationType,
-    ImportStatement,
     ParsedFile,
     Symbol,
     SymbolIdentity,
     SymbolKind,
     SymbolLocation,
-    content_hash,
     is_test_path,
-    module_from_path,
 )
+from brain.domain.command_failure import CommandFailure, CommandFailureCategory
 from brain.domain.common import Priority
 from brain.domain.context import (
     BudgetAllocation,
@@ -314,6 +312,8 @@ __all__ = [
     "CheckStatus",
     "CodeRelation",
     "CodeRelationType",
+    "CommandFailure",
+    "CommandFailureCategory",
     "content_hash",
     "Decision",
     "DecisionId",
