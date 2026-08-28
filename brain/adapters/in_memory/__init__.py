@@ -13,6 +13,10 @@ from brain.adapters.in_memory.context import InMemoryContextCapsuleRepository
 from brain.adapters.in_memory.event_bus import InMemoryEventBus
 from brain.adapters.in_memory.event_log import InMemoryEventLogRepository
 from brain.adapters.in_memory.executor_registry import InMemoryExecutorRegistry
+from brain.adapters.in_memory.human_activity import (
+    InMemoryActivityProjectionRepository,
+    NullHumanActivityPort,
+)
 from brain.adapters.in_memory.idempotency import InMemoryIdempotencyStore
 from brain.adapters.in_memory.knowledge_graph import InMemoryKnowledgeGraph
 from brain.adapters.in_memory.observability import (
@@ -72,12 +76,14 @@ __all__ = [
     "InMemoryExecutionRepository",
     "InMemoryExecutorRegistry",
     "InMemoryExecutorQualityRepository",
+    "InMemoryActivityProjectionRepository",
     "InMemoryIdempotencyStore",
     "InMemoryKnowledgeGraph",
     "InMemoryLogSink",
     "InMemoryMetricsRepository",
     "InMemoryObservationRepository",
     "InMemoryPlanRepository",
+    "NullHumanActivityPort",
     "InMemoryProjectRepository",
     "InMemoryRepositoryChangeSetRepository",
     "InMemoryRepositoryRepository",

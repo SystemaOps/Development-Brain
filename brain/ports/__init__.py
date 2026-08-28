@@ -22,6 +22,10 @@ from brain.ports.event_bus import EventBus, EventHandler
 from brain.ports.event_log import EventLogRepository
 from brain.ports.executor import ExecutorPort
 from brain.ports.executor_registry import ExecutorRegistry
+from brain.ports.human_activity import (
+    ActivityProjectionRepository,
+    HumanActivityPort,
+)
 from brain.ports.idempotency import IdempotencyStore
 from brain.ports.knowledge_graph import GraphEntity, GraphRelation, KnowledgeGraphRepository
 from brain.ports.observability import LogSink, MetricsRepository
@@ -101,6 +105,8 @@ __all__ = [
     "GraphEntity",
     "GraphRelation",
     "HealthCheckPort",
+    "HumanActivityPort",
+    "ActivityProjectionRepository",
     "IdempotencyStore",
     "KnowledgeGraphRepository",
     "LanguageParser",

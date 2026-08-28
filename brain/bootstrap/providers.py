@@ -23,6 +23,10 @@ from brain.adapters.executors.fake import FakeExecutor
 from brain.adapters.in_memory.artifact_store import InMemoryArtifactStore
 from brain.adapters.in_memory.event_bus import InMemoryEventBus
 from brain.adapters.in_memory.executor_registry import InMemoryExecutorRegistry
+from brain.adapters.in_memory.human_activity import (
+    InMemoryActivityProjectionRepository,
+    NullHumanActivityPort,
+)
 from brain.adapters.in_memory.knowledge_graph import InMemoryKnowledgeGraph
 from brain.adapters.in_memory.observability import InMemoryLogSink
 from brain.adapters.in_memory.policies import DefaultPolicyProvider
@@ -50,9 +54,11 @@ from brain.application.context_engine import ContextEngineService
 from brain.application.document_ingestion import DocumentIngestionService
 from brain.application.execution_request_builder import ExecutionRequestBuilder
 from brain.application.graph_projection import GraphProjectionService
+from brain.application.human_feedback import HumanFeedbackService
 from brain.application.hybrid_retrieval import HybridRetrievalService
 from brain.application.jit_retrieval import JustInTimeRetrieval
 from brain.application.observability import ObservabilityService
+from brain.application.observation_projection import ObservationProjectionService
 from brain.application.observations import ObservationService
 from brain.application.optimization import (
     ContextRankingFeedbackService,
@@ -343,6 +349,18 @@ def build_services(
         observations=repos.observations,
         event_bus=events,
     )
+    observation_projection = ObservationProjectionService(
+        projections=InMemoryActivityProjectionRepository(),
+        port=NullHumanActivityPort(),
+        observations=repos.observations,
+    )
+    feedback = HumanFeedbackService(
+        work_items=repos.work_items,
+        requirements=repos.requirements,
+        decisions=repos.decisions,
+        capsules=repos.context_capsules,
+        event_bus=events,
+    )
     policy = PolicyService(
         policies=DefaultPolicyProvider(),
     )
@@ -368,6 +386,8 @@ def build_services(
         "graph_projection": projection,
         "observability": observability,
         "observations": observations,
+        "observation_projection": observation_projection,
+        "human_feedback": feedback,
         "policy": policy,
         "executor_quality": quality,
         "model_router": model_router,

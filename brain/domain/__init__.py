@@ -99,6 +99,11 @@ from brain.domain.graph_reconciliation import (
     RelationClaim,
 )
 from brain.domain.graph_schema import GraphLabel, RelationType
+from brain.domain.human_activity import (
+    HumanActivityReference,
+    HumanFeedback,
+    ProjectionStatus,
+)
 from brain.domain.identity import (
     ActorId,
     ArtifactId,
@@ -370,7 +375,10 @@ __all__ = [
     "FileCategory",
     "GraphLabel",
     "GraphReconciler",
+    "HumanActivityReference",
+    "HumanFeedback",
     "HumanFeedbackReceived",
+    "ProjectionStatus",
     "HumanWorkStatus",
     "ImplementationStatus",
     "ImportStatement",

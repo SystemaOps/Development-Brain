@@ -36,6 +36,7 @@ from brain.application.graph_integrity import (
     IntegrityIssue,
 )
 from brain.application.graph_projection import GraphProjectionResult, GraphProjectionService
+from brain.application.human_feedback import HumanFeedbackService
 from brain.application.hybrid_retrieval import HybridRetrievalService, RetrievalCandidate
 from brain.application.impact_analysis import ImpactAnalysis, ImpactAnalysisService
 from brain.application.jit_retrieval import JustInTimeRetrieval
@@ -48,6 +49,7 @@ from brain.application.observability import (
     ObservabilityService,
     StructuredLogger,
 )
+from brain.application.observation_projection import ObservationProjectionService
 from brain.application.observations import ObservationPolicy, ObservationService
 from brain.application.optimization import (
     BanditRouter,
@@ -110,6 +112,7 @@ __all__ = [
     "GraphIntegrityReport",
     "GraphProjectionResult",
     "GraphProjectionService",
+    "HumanFeedbackService",
     "HybridRetrievalService",
     "ImpactAnalysis",
     "ImpactAnalysisService",
@@ -123,6 +126,7 @@ __all__ = [
     "MetricsReporter",
     "ModelRouter",
     "ObservationPolicy",
+    "ObservationProjectionService",
     "ObservationService",
     "ObservabilityService",
     "OtelTraceImporter",

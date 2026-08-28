@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import uuid
+
 import pytest
 
 from brain.adapters.embeddings.hash_embedding import HashEmbeddingService
@@ -10,6 +12,10 @@ from brain.adapters.in_memory.context import InMemoryContextCapsuleRepository
 from brain.adapters.in_memory.event_bus import InMemoryEventBus
 from brain.adapters.in_memory.event_log import InMemoryEventLogRepository
 from brain.adapters.in_memory.executor_registry import InMemoryExecutorRegistry
+from brain.adapters.in_memory.human_activity import (
+    InMemoryActivityProjectionRepository,
+    NullHumanActivityPort,
+)
 from brain.adapters.in_memory.idempotency import InMemoryIdempotencyStore
 from brain.adapters.in_memory.knowledge_graph import InMemoryKnowledgeGraph
 from brain.adapters.in_memory.observability import InMemoryMetricsRepository
@@ -35,6 +41,10 @@ from brain.ports.context import ContextCapsuleRepository
 from brain.ports.event_bus import EventBus
 from brain.ports.event_log import EventLogRepository
 from brain.ports.executor_registry import ExecutorRegistry
+from brain.ports.human_activity import (
+    ActivityProjectionRepository,
+    HumanActivityPort,
+)
 from brain.ports.idempotency import IdempotencyStore
 from brain.ports.knowledge_graph import KnowledgeGraphRepository
 from brain.ports.observability import MetricsRepository
@@ -59,6 +69,7 @@ from tests.contracts.context_capsule import ContextCapsuleRepositoryContract
 from tests.contracts.event_bus import EventBusContract
 from tests.contracts.event_log import EventLogRepositoryContract
 from tests.contracts.executor_registry import ExecutorRegistryContract
+from tests.contracts.human_activity import ActivityProjectionRepositoryContract
 from tests.contracts.idempotency import IdempotencyStoreContract
 from tests.contracts.knowledge_graph import KnowledgeGraphRepositoryContract
 from tests.contracts.metrics import MetricsRepositoryContract
@@ -90,6 +101,37 @@ class TestInMemoryIdempotencyStore(IdempotencyStoreContract):
     @pytest.fixture
     def idempotency(self) -> IdempotencyStore:
         return InMemoryIdempotencyStore()
+
+
+class TestInMemoryActivityProjectionRepository(ActivityProjectionRepositoryContract):
+    @pytest.fixture
+    def projections(self) -> ActivityProjectionRepository:
+        return InMemoryActivityProjectionRepository()
+
+
+class TestNullHumanActivityPort:
+    @pytest.fixture
+    def port(self) -> HumanActivityPort:
+        return NullHumanActivityPort()
+
+    async def test_null_port_skips_publication(self, port: HumanActivityPort) -> None:
+        from brain.domain.external_reference import ExternalReference
+        from brain.domain.identity import ProjectId
+        from brain.domain.observations import (
+            Observation,
+            ObservationType,
+        )
+
+        observation = Observation(
+            project_id=ProjectId(uuid.uuid4()),
+            observation_type=ObservationType.DISCOVERY,
+            title="t",
+        )
+        reference = await port.publish_observation(
+            target=ExternalReference(provider="openproject", external_id="1"),
+            observation=observation,
+        )
+        assert reference.status.value == "skipped"
 
 
 class TestInMemoryEventLogRepository(EventLogRepositoryContract):

@@ -79,5 +79,19 @@ async def resolve_observation(observation_id: uuid.UUID, request: Request) -> di
 
 @router.post("/api/v1/work-items/{work_item_id}/feedback")
 async def work_item_feedback(work_item_id: uuid.UUID, request: Request) -> dict[str, object]:
-    del work_item_id, request
-    return {"status": "received"}
+    from brain.application.human_feedback import HumanFeedbackService
+
+    container: BrainContainer = get_container(request)
+    service = container.services["human_feedback"]
+    assert isinstance(service, HumanFeedbackService)
+    body = await request.json()
+    feedback = await service.receive(
+        author=str(body.get("author", "human")),
+        provider=str(body.get("provider", "api")),
+        external_comment_id=str(body.get("external_comment_id", "")),
+        work_item_id=WorkItemId(work_item_id),
+        message=str(body.get("message", "")),
+        verdict=str(body.get("verdict", "note")),
+    )
+    result = await service.resume_workflow(feedback, verdict=str(body.get("verdict", "note")))
+    return {"status": "received", "feedback_id": str(feedback.id), **result}
