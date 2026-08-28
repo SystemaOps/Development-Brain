@@ -19,6 +19,7 @@ from brain.domain.identity import (
     ContextCapsuleId,
     ExecutionId,
     ProjectId,
+    VerificationId,
     WorkflowId,
     WorkItemId,
     new_workflow_id,
@@ -80,6 +81,9 @@ class WorkflowState(BaseModel):
     max_retries: int = 3
     approval_state: ApprovalState = ApprovalState.NOT_REQUIRED
     last_error: str | None = None
+    verification_id: VerificationId | None = None
+    waiting_for_human: bool = False
+    correlation_id: uuid.UUID | None = None
     started_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 

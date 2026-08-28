@@ -19,6 +19,7 @@ from collections.abc import Iterator
 import brain.adapters
 import brain.application
 import brain.domain
+import brain.orchestration
 import brain.ports
 
 # Top-level modules that leak provider/implementation concerns into the core.
@@ -121,6 +122,19 @@ def test_application_never_imports_adapters_or_providers() -> None:
         assert not (top & PROVIDER_MODULES), (
             f"{module.__name__} imports provider modules {top & PROVIDER_MODULES}"
         )
+
+
+def test_orchestration_never_imports_provider_adapters_or_sdks() -> None:
+    """Orchestrator nodes must call application services, not adapters (Task 28.7).
+
+    LangGraph is the workflow engine itself and is allowed; provider
+    integration SDKs (Neo4j, Weaviate, OpenProject, Jira, ...) are not.
+    """
+    blocked = PROVIDER_MODULES - {"langgraph", "langchain"}
+    for module in _iter_modules(brain.orchestration):
+        top = _imported_top_levels(_module_source(module))
+        assert "adapters" not in top, f"{module.__name__} imports adapters"
+        assert not (top & blocked), f"{module.__name__} imports provider modules {top & blocked}"
 
 
 def test_domain_has_no_external_dependencies_beyond_pydantic() -> None:
