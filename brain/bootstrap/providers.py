@@ -71,6 +71,7 @@ from brain.application.semantic_indexing import SemanticIndexingService
 from brain.application.topology import TopologyDiscoveryService
 from brain.application.verification_engine import VerificationEngine
 from brain.application.workflow_engine import WorkflowEngine
+from brain.application.xwiki_sync import XWikiMappingService
 from brain.bootstrap.settings import BrainSettings
 from brain.domain.executor import (
     ExecutorCapabilities,
@@ -218,10 +219,20 @@ def build_documentation(settings: BrainSettings) -> list[DocumentationPort]:
 
     Git-markdown documentation needs a source-control transport; until a
     runtime transport exists the port list stays empty and the capability is
-    reported separately.
+    reported separately.  XWiki is enabled via ``BRAIN_DOCUMENTATION_XWIKI_*``.
     """
-    del settings
-    return []
+    ports: list[DocumentationPort] = []
+    if settings.documentation.xwiki_enabled and settings.documentation.xwiki_url:
+        from brain.adapters.documentation.xwiki import XWikiDocumentationAdapter
+        from brain.adapters.documentation.xwiki_http import XWikiHTTPTransport
+
+        ports.append(
+            XWikiDocumentationAdapter(
+                transport=XWikiHTTPTransport(base_url=settings.documentation.xwiki_url),
+                wiki="xwiki",
+            )
+        )
+    return ports
 
 
 def build_software_catalog(
@@ -431,6 +442,7 @@ def build_services(
     ranking_feedback = ContextRankingFeedbackService(feedback=repos.context_feedback)
     request_builder = ExecutionRequestBuilder()
     document_conversion = build_document_conversion(settings)
+    xwiki_mapping = XWikiMappingService(event_bus=events)
 
     services: dict[str, object] = {
         "events": events,
@@ -457,6 +469,7 @@ def build_services(
         "ranking_feedback": ranking_feedback,
         "execution_request_builder": request_builder,
         "document_conversion": document_conversion,
+        "xwiki_mapping": xwiki_mapping,
         "command_queue": build_command_queue(settings),
         "command_dispatcher": CommandDispatcher(),
     }
