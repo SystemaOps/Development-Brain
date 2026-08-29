@@ -197,7 +197,6 @@ async def create_brain_container(
         settings, repositories.software_catalog
     )
     source_control = build_source_control(settings)
-    document_conversion = None
     pull_requests = build_pull_request(settings)
 
     # 4. Executor registry with the Milestone-1 default executor.
@@ -212,6 +211,7 @@ async def create_brain_container(
         semantic=semantic_index,
         executor_registry=executor_registry,
     )
+    document_conversion = services.get("document_conversion")
 
     capabilities = _build_capability_registry(
         settings,
@@ -338,7 +338,7 @@ def _build_capability_registry(
         required=settings.document_conversion.required,
         status=(
             CapabilityStatus.AVAILABLE
-            if settings.document_conversion.enabled
+            if (settings.document_conversion.enabled and settings.document_conversion.base_url)
             else CapabilityStatus.DISABLED
         ),
     )

@@ -68,7 +68,11 @@ async def test_gate_core_only_composition_constructs_and_closes() -> None:
     assert caps["documentation_xwiki"] == "DISABLED"
     assert caps["source_control"] == "DISABLED"
     assert container.documentation_ports == []
-    assert container.document_conversion is None
+    # Document conversion exists as a null-converter service: native ingestion
+    # works, conversion capability is DISABLED.
+    assert caps["document_conversion"] == "DISABLED"
+    assert container.document_conversion is not None
+    assert container.document_conversion.converter is None
 
     # Core application services are present.
     for key in (

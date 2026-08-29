@@ -104,6 +104,7 @@ class DocumentationSettings(BaseSettings):
 
 class DocumentConversionSettings(ProviderCapabilitySettings):
     provider: str = "native"
+    base_url: str = ""
 
 
 class SoftwareCatalogSettings(ProviderCapabilitySettings):

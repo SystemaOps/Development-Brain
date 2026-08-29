@@ -226,6 +226,23 @@ def build_pull_request(settings: BrainSettings) -> PullRequestPort | None:
     return None
 
 
+def build_document_conversion(settings: BrainSettings) -> object | None:
+    """Build the optional document conversion capability.
+
+    ``BRAIN_DOC_CONVERSION_URL`` enables Docling Serve; when disabled the
+    service exists with a null converter so native ingestion keeps working
+    and conversion fails with a clear capability error.
+    """
+    from brain.application.document_conversion import DocumentConversionService
+
+    url = settings.document_conversion.base_url or ""
+    if settings.document_conversion.enabled and url:
+        from brain.adapters.document_conversion.docling import DoclingServeAdapter
+
+        return DocumentConversionService(converter=DoclingServeAdapter(base_url=url))
+    return DocumentConversionService(converter=None)
+
+
 def build_source_control(settings: BrainSettings) -> SourceControlPort | None:
     """Build a source-control port (Milestone 1: none)."""
     del settings
@@ -368,6 +385,7 @@ def build_services(
     model_router = ModelRouter(quality=repos.executor_quality)
     ranking_feedback = ContextRankingFeedbackService(feedback=repos.context_feedback)
     request_builder = ExecutionRequestBuilder()
+    document_conversion = build_document_conversion(settings)
 
     services: dict[str, object] = {
         "events": events,
@@ -393,6 +411,7 @@ def build_services(
         "model_router": model_router,
         "ranking_feedback": ranking_feedback,
         "execution_request_builder": request_builder,
+        "document_conversion": document_conversion,
         "command_queue": build_command_queue(settings),
         "command_dispatcher": CommandDispatcher(),
     }
