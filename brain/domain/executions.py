@@ -46,6 +46,9 @@ class Execution(BaseModel):
     completed_at: datetime | None = None
     parent_execution_id: ExecutionId | None = None
     correlation_id: uuid.UUID = Field(default_factory=uuid.uuid4)
+    base_branch: str | None = None
+    working_branch: str | None = None
+    worktree_path: str | None = None
 
 
 class ExecutionPermissions(BaseModel):
@@ -72,6 +75,9 @@ class ExecutionRequest(BaseModel):
     work_item_id: WorkItemId
     repository_ref: str
     base_revision: str
+    base_branch: str | None = None
+    working_branch: str | None = None
+    worktree_path: str | None = None
     workspace_path: str | None = None
     context_capsule_id: ContextCapsuleId | None = None
     permissions: ExecutionPermissions = Field(default_factory=ExecutionPermissions)

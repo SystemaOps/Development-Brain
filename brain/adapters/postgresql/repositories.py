@@ -777,6 +777,9 @@ def _execution_row(execution: Execution) -> ExecutionRow:
         completed_at=execution.completed_at,
         parent_execution_id=execution.parent_execution_id,
         correlation_id=execution.correlation_id,
+        base_branch=execution.base_branch,
+        working_branch=execution.working_branch,
+        worktree_path=execution.worktree_path,
     )
 
 
@@ -790,6 +793,9 @@ def _apply_execution(row: ExecutionRow, execution: Execution) -> None:
     row.completed_at = execution.completed_at
     row.parent_execution_id = execution.parent_execution_id
     row.correlation_id = execution.correlation_id
+    row.base_branch = execution.base_branch
+    row.working_branch = execution.working_branch
+    row.worktree_path = execution.worktree_path
 
 
 def _decision_row(decision: Decision) -> DecisionRow:
@@ -961,6 +967,9 @@ def _execution_from_row(row: ExecutionRow) -> Execution:
             "completed_at": row.completed_at,
             "parent_execution_id": row.parent_execution_id,
             "correlation_id": row.correlation_id,
+            "base_branch": row.base_branch,
+            "working_branch": row.working_branch,
+            "worktree_path": row.worktree_path,
         }
     )
 

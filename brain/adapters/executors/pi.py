@@ -38,8 +38,70 @@ class PiExecutor(ExecutorPort):
 
     async def execute(self, request: ExecutionRequest) -> ExecutionResult:
         payload = _request_to_payload(request)
-        response = await self._transport.round_trip(payload)
+        try:
+            response = await self._transport.round_trip(payload)
+        except Exception as exc:  # noqa: BLE001 - failure isolation (Task 37.6)
+            return ExecutionResult(
+                execution_id=request.execution_id,
+                status=ExecutionStatus.FAILED,
+                blockers=[f"pi transport failure: {exc}"],
+                observations=["Pi execution failed; worker process stays alive"],
+            )
         return _result_from_payload(request.execution_id, response)
+
+
+class PiHTTPTransport:
+    """HTTP transport to a Pi executor service (Task 37.2)."""
+
+    def __init__(
+        self,
+        base_url: str,
+        *,
+        api_key: str = "",
+        timeout_seconds: int = 120,
+    ) -> None:
+
+        self._base_url = base_url.rstrip("/")
+        self._timeout = timeout_seconds
+        self._headers = {"Content-Type": "application/json"}
+        if api_key:
+            self._headers["Authorization"] = f"Bearer {api_key}"
+
+    async def round_trip(self, payload: dict[str, Any]) -> dict[str, Any]:
+        import urllib.error
+        import urllib.request
+
+        request = urllib.request.Request(
+            f"{self._base_url}/execute",
+            data=json.dumps(payload).encode("utf-8"),
+            headers=self._headers,
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=self._timeout) as response:  # noqa: S310
+                body = response.read().decode("utf-8")
+                return dict(json.loads(body))
+        except urllib.error.HTTPError as exc:
+            raise PiExecutionError(
+                f"pi /execute -> {exc.code}: {exc.read().decode('utf-8', errors='replace')}"
+            ) from exc
+        except (urllib.error.URLError, OSError) as exc:
+            raise PiExecutionError(f"pi unreachable: {exc}") from exc
+
+
+def build_pi_transport(
+    *,
+    pi_url: str = "",
+    pi_api_key: str = "",
+) -> PiTransport:
+    """Pick the Pi transport: HTTP when a URL is configured, else subprocess."""
+    if pi_url:
+        return PiHTTPTransport(base_url=pi_url, api_key=pi_api_key)
+    return _SubprocessPiTransport(command=[])
+
+
+class PiExecutionError(RuntimeError):
+    """Raised when the Pi service cannot complete a request."""
 
 
 class _SubprocessPiTransport:
@@ -87,12 +149,24 @@ def _request_to_payload(request: ExecutionRequest) -> dict[str, Any]:
         "work_item_id": str(request.work_item_id),
         "repository_ref": request.repository_ref,
         "base_revision": request.base_revision,
+        "base_branch": request.base_branch,
+        "working_branch": request.working_branch,
+        "worktree_path": request.worktree_path,
         "workspace_path": request.workspace_path,
         "context_capsule_id": str(request.context_capsule_id)
         if request.context_capsule_id
         else None,
         "permissions": request.permissions.model_dump(mode="json"),
-        "tools": ["brain_get_task", "brain_get_symbol_context", "brain_find_related_files"],
+        "tools": [
+            "brain_get_task",
+            "brain_get_symbol_context",
+            "brain_find_related_files",
+            "brain_find_related_tests",
+            "brain_get_requirement",
+            "brain_get_architecture_constraints",
+            "brain_search_project_knowledge",
+            "brain_request_more_context",
+        ],
     }
 
 
@@ -126,4 +200,4 @@ def _status_from(value: str) -> ExecutionStatus:
         return ExecutionStatus.COMPLETED
 
 
-__all__ = ["PiExecutor", "PiTransport"]
+__all__ = ["PiExecutor", "PiExecutionError", "PiHTTPTransport", "PiTransport", "build_pi_transport"]

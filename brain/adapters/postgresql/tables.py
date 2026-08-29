@@ -201,6 +201,9 @@ class ExecutionRow(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     parent_execution_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     correlation_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    base_branch: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    working_branch: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    worktree_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
     __table_args__ = (Index("ix_executions_work_item_id", "work_item_id"),)
 

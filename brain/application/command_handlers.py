@@ -7,6 +7,8 @@ these so the API, worker, and CLI converge on the same behavior.
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 from brain.application.command_dispatcher import CommandDispatcher
 from brain.bootstrap.container import BrainContainer
 from brain.domain.commands import (
@@ -33,6 +35,7 @@ from brain.domain.identity import (
     ExecutionId,
     ProjectId,
     WorkItemId,
+    new_actor_id,
     new_execution_id,
     new_workflow_id,
 )
@@ -211,19 +214,91 @@ class CommandHandlers:
         model = command_to_model(envelope)
         assert isinstance(model, ExecuteWorkItemCommand)
         execution_id = model.execution_id or new_execution_id()
+        from brain.application.workspace_manager import WorkspaceManager
+        from brain.domain.executions import Execution, ExecutionStatus
         from brain.ports.executor import ExecutorPort
 
         executor = self._container.services["executor"]
         assert isinstance(executor, ExecutorPort)
+        work_item = await self._container.repositories.work_items.get(model.work_item_id)
+        project = (
+            await self._container.repositories.projects.get(work_item.project_id)
+            if work_item is not None
+            else None
+        )
+        repositories = (
+            await self._container.repositories.repositories.list_by_project(work_item.project_id)
+            if work_item is not None
+            else []
+        )
+        repository: Repository | None = repositories[0] if repositories else None
+
+        # Task 37.5: every execution records repository, base branch, base
+        # commit, worktree and working branch.
+        workspace_manager = self._container.services["workspace_manager"]
+        assert isinstance(workspace_manager, WorkspaceManager)
+        workspace = None
+        if work_item is not None and repository is not None and project is not None:
+            workspace = await workspace_manager.create_workspace(
+                repository,
+                base_revision=None,
+                task_label="work-item",
+            )
+
         request = _build_execution_request(
             work_item_id=model.work_item_id,
             execution_id=execution_id,
         )
+        if workspace is not None:
+            request = request.model_copy(
+                update={
+                    "repository_ref": workspace.repository.clone_url,
+                    "base_revision": workspace.base_revision,
+                    "base_branch": workspace.branch_name,
+                    "working_branch": workspace.branch_name,
+                    "worktree_path": workspace.path or None,
+                    "workspace_path": workspace.path or None,
+                }
+            )
+
+        if work_item is not None:
+            await self._container.repositories.executions.create(
+                Execution(
+                    id=execution_id,
+                    workflow_id=request.workflow_id,
+                    work_item_id=model.work_item_id,
+                    executor_id=new_actor_id(),
+                    status=ExecutionStatus.STARTED,
+                    base_branch=request.base_branch,
+                    working_branch=request.working_branch,
+                    worktree_path=request.worktree_path,
+                )
+            )
+
         result = await executor.execute(request)
+        execution = await self._container.repositories.executions.get(execution_id)
+        if execution is not None:
+            # Task 37.6: a failed execution is persisted (evidence/log refs in
+            # blockers) and never terminates the worker process.
+            updated = execution.model_copy(
+                update={
+                    "status": result.status,
+                    "completed_at": datetime.now(UTC)
+                    if result.status
+                    in {
+                        ExecutionStatus.COMPLETED,
+                        ExecutionStatus.FAILED,
+                        ExecutionStatus.CANCELLED,
+                    }
+                    else None,
+                }
+            )
+            await self._container.repositories.executions.update(updated)
         return {
             "work_item_id": model.work_item_id,
             "execution_id": execution_id,
             "status": result.status.value,
+            "blockers": result.blockers,
         }
 
     async def _verify_execution(self, envelope: CommandEnvelope) -> dict[str, object]:

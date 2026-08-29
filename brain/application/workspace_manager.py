@@ -26,16 +26,26 @@ class Workspace:
 
 
 class WorkspaceManager:
-    """Manage isolated executor workspaces."""
+    """Manage isolated executor workspaces.
+
+    Without a configured :class:`SourceControlPort` the manager degrades to a
+    non-isolated planner: callers must then provide a workspace path, and the
+    executor performs best-effort work without worktree isolation (Task 37.5).
+    """
 
     def __init__(
         self,
         *,
-        source_control: SourceControlPort,
+        source_control: SourceControlPort | None,
         workspace_root: str = "/tmp/brain-workspaces",
     ) -> None:
         self._source_control = source_control
         self._workspace_root = workspace_root
+
+    @property
+    def isolated(self) -> bool:
+        """Whether real worktree isolation is available."""
+        return self._source_control is not None
 
     async def create_workspace(
         self,
@@ -44,6 +54,16 @@ class WorkspaceManager:
         base_revision: str | None = None,
         task_label: str = "task",
     ) -> Workspace:
+        if self._source_control is None:
+            workspace_id = uuid.uuid4()
+            revision = base_revision or "HEAD"
+            return Workspace(
+                workspace_id=workspace_id,
+                repository=repository,
+                branch_name=f"brain/{task_label}/{workspace_id.hex[:8]}",
+                path="",
+                base_revision=revision,
+            )
         await self._source_control.clone_or_fetch(repository)
         revision = base_revision or await self._source_control.get_current_revision(repository)
         workspace_id = uuid.uuid4()

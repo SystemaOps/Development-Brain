@@ -71,6 +71,7 @@ from brain.application.semantic_indexing import SemanticIndexingService
 from brain.application.topology import TopologyDiscoveryService
 from brain.application.verification_engine import VerificationEngine
 from brain.application.workflow_engine import WorkflowEngine
+from brain.application.workspace_manager import WorkspaceManager
 from brain.application.xwiki_sync import XWikiMappingService
 from brain.bootstrap.settings import BrainSettings
 from brain.domain.executor import (
@@ -79,6 +80,7 @@ from brain.domain.executor import (
     ExecutorKind,
 )
 from brain.ports.documentation import DocumentationPort
+from brain.ports.executor import ExecutorPort
 from brain.ports.human_activity import HumanActivityPort
 from brain.ports.knowledge_graph import KnowledgeGraphRepository
 from brain.ports.pull_request import PullRequestPort
@@ -269,7 +271,7 @@ def build_software_catalog(
 async def build_executor_registry(
     settings: BrainSettings,
 ) -> InMemoryExecutorRegistry:
-    """Build the executor registry and register the Milestone-1 default."""
+    """Build the executor registry and register the configured coding provider."""
     registry = InMemoryExecutorRegistry()
     if settings.executors.coding_provider in {"fake", ""}:
         await registry.register(
@@ -283,7 +285,44 @@ async def build_executor_registry(
                 ),
             )
         )
+    elif settings.executors.coding_provider == "pi":
+        await registry.register(
+            ExecutorDescriptor(
+                name="pi",
+                kind=ExecutorKind.PI,
+                capabilities=ExecutorCapabilities(
+                    coding=True,
+                    tool_support=True,
+                    context_window=128000,
+                    supported_tools=[
+                        "brain_get_task",
+                        "brain_get_symbol_context",
+                        "brain_find_related_files",
+                        "brain_find_related_tests",
+                        "brain_get_requirement",
+                        "brain_get_architecture_constraints",
+                        "brain_search_project_knowledge",
+                        "brain_request_more_context",
+                    ],
+                ),
+            )
+        )
     return registry
+
+
+def build_coding_executor(settings: BrainSettings) -> ExecutorPort:
+    """The concrete coding executor for the workflow engine (Task 37.2)."""
+    if settings.executors.coding_provider == "pi":
+        from brain.adapters.executors.pi import PiExecutor, build_pi_transport
+
+        return PiExecutor(
+            transport=build_pi_transport(
+                pi_url=settings.executors.pi_url,
+                pi_api_key=settings.executors.pi_api_key,
+            )
+        )
+
+    return FakeExecutor()
 
 
 def build_pull_request(settings: BrainSettings) -> PullRequestPort | None:
@@ -345,6 +384,7 @@ def build_services(
     graph: KnowledgeGraphRepository,
     semantic: SemanticIndex,
     executor_registry: InMemoryExecutorRegistry,
+    source_control: SourceControlPort | None = None,
 ) -> dict[str, object]:
     """Construct application services bound to a repository bundle."""
     events = InMemoryEventBus()
@@ -384,7 +424,7 @@ def build_services(
         code_graph=repos.code_graph,
         project_commands={},
     )
-    executor = FakeExecutor()
+    executor = build_coding_executor(settings)
     workflow = WorkflowEngine(
         checkpoints=repos.workflow_checkpoints,
         context_builder=context_engine,
@@ -455,6 +495,7 @@ def build_services(
     model_router = ModelRouter(quality=repos.executor_quality)
     ranking_feedback = ContextRankingFeedbackService(feedback=repos.context_feedback)
     request_builder = ExecutionRequestBuilder()
+    workspace_manager = WorkspaceManager(source_control=source_control)
     document_conversion = build_document_conversion(settings)
     xwiki_mapping = XWikiMappingService(event_bus=events)
 
@@ -482,6 +523,7 @@ def build_services(
         "model_router": model_router,
         "ranking_feedback": ranking_feedback,
         "execution_request_builder": request_builder,
+        "workspace_manager": workspace_manager,
         "document_conversion": document_conversion,
         "xwiki_mapping": xwiki_mapping,
         "command_queue": build_command_queue(settings),

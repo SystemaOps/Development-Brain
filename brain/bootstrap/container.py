@@ -210,6 +210,7 @@ async def create_brain_container(
         graph=graph,
         semantic=semantic_index,
         executor_registry=executor_registry,
+        source_control=source_control,
     )
     document_conversion = services.get("document_conversion")
 
@@ -380,9 +381,10 @@ def _build_capability_registry(
         required=False,
         status=(
             CapabilityStatus.AVAILABLE
-            if settings.executors.coding_provider in {"fake", ""}
+            if settings.executors.coding_provider in {"fake", "", "pi"}
             else CapabilityStatus.DISABLED
         ),
+        detail=("pi executor configured" if settings.executors.coding_provider == "pi" else ""),
     )
     return registry
 

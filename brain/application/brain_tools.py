@@ -26,6 +26,8 @@ TOOL_REGISTRY = {
     "brain_find_related_tests",
     "brain_get_requirement",
     "brain_get_decisions",
+    "brain_get_architecture_constraints",
+    "brain_search_project_knowledge",
     "brain_request_more_context",
 }
 
@@ -100,6 +102,27 @@ class BrainTools:
         return [
             {"content": c.content, "reason": c.reason}
             for c in await self._jit.request_more_context(work_item_id)
+        ]
+
+    async def brain_get_architecture_constraints(
+        self,
+        project_id: ProjectId,
+        query: str = "architecture constraint",
+    ) -> list[dict[str, object]]:
+        return [
+            {"content": c.content, "reason": c.reason}
+            for c in await self._jit.search_project_knowledge(query, project_id=project_id)
+        ]
+
+    async def brain_search_project_knowledge(
+        self,
+        query: str,
+        *,
+        project_id: ProjectId | None = None,
+    ) -> list[dict[str, object]]:
+        return [
+            {"content": c.content, "reason": c.reason}
+            for c in await self._jit.search_project_knowledge(query, project_id=project_id)
         ]
 
 
