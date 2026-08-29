@@ -1,7 +1,74 @@
-# Local development / test infrastructure for the Software Development Brain.
-# Start with:   docker compose up -d
-# The adapters default to the URLs below, so no configuration is required.
+# Software Development Brain — core runtime (Phase 32).
+# Starts the Brain platform: API, worker, scheduler, migration, and the core
+# storage services (PostgreSQL, Neo4j, Weaviate, Redis, MinIO).
+#   docker compose up -d
+# Migration model: a one-shot brain-migrate service runs `alembic upgrade head`
+# once; API/worker/scheduler start only after it completes successfully, so
+# replicas never race migrations.
 services:
+  brain-migrate:
+    image: brain:latest
+    container_name: brain-migrate
+    environment: &brain-env
+      BRAIN_DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/brain
+      BRAIN_NEO4J_URI: bolt://neo4j:7687
+      BRAIN_NEO4J_USER: neo4j
+      BRAIN_NEO4J_PASSWORD: password
+      BRAIN_WEAVIATE_HOST: weaviate
+      BRAIN_WEAVIATE_PORT: "8080"
+      BRAIN_WEAVIATE_GRPC_PORT: "50051"
+      BRAIN_REDIS_URL: redis://redis:6379/0
+      BRAIN_REDIS_PROVIDER: redis
+      BRAIN_ARTIFACTS_PROVIDER: local
+    command: ["python", "-m", "brain.bootstrap.migrate"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  brain-api:
+    image: brain:latest
+    container_name: brain-api
+    environment:
+      <<: *brain-env
+      BRAIN_API_HOST: 0.0.0.0
+      BRAIN_API_PORT: "8000"
+    ports:
+      - "8000:8000"
+    command: ["brain-api"]
+    depends_on:
+      brain-migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  brain-worker:
+    image: brain:latest
+    container_name: brain-worker
+    environment:
+      <<: *brain-env
+    command: ["brain-worker"]
+    depends_on:
+      brain-migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  brain-scheduler:
+    image: brain:latest
+    container_name: brain-scheduler
+    environment:
+      <<: *brain-env
+      BRAIN_SCHEDULER_INTERVAL: "60"
+    command: ["brain-scheduler"]
+    depends_on:
+      brain-migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
   postgres:
     image: postgres:17-alpine
     container_name: brain-postgres
@@ -57,7 +124,42 @@ services:
       timeout: 5s
       retries: 30
 
+  redis:
+    image: redis:7-alpine
+    container_name: brain-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - brain-redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    container_name: brain-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: brain
+      MINIO_ROOT_PASSWORD: brain-secret
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - brain-miniodata:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
 volumes:
   brain-pgdata:
   brain-neo4jdata:
   brain-weaviatedata:
+  brain-redisdata:
+  brain-miniodata:
+
+
