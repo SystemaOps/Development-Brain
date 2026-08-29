@@ -1,0 +1,51 @@
+# Optional XWiki overlay (Phase 35).
+# Enable with:  docker compose -f compose.yaml -f compose.xwiki.yaml up -d
+# XWiki enriches Brain knowledge as an optional documentation source; the core
+# remains fully capable without it.
+services:
+  xwiki:
+    image: xwiki:17-mariadb-tomcat
+    container_name: brain-xwiki
+    depends_on:
+      xwiki-db:
+        condition: service_healthy
+    ports:
+      - "8082:8080"
+    environment:
+      DB_USER: xwiki
+      DB_PASSWORD: xwiki-secret
+      DB_DATABASE: xwiki
+      DB_HOST: xwiki-db
+    volumes:
+      - brain-xwikidata:/usr/local/xwiki
+
+  xwiki-db:
+    image: mariadb:11
+    container_name: brain-xwiki-db
+    environment:
+      MARIADB_USER: xwiki
+      MARIADB_PASSWORD: xwiki-secret
+      MARIADB_ROOT_PASSWORD: root-secret
+      MARIADB_DATABASE: xwiki
+    volumes:
+      - brain-xwikidbdata:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mariadb-admin ping -u root -proot-secret || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  brain-api:
+    environment: &xwiki-env
+      BRAIN_DOCUMENTATION_XWIKI_ENABLED: "true"
+      BRAIN_DOCUMENTATION_XWIKI_URL: http://xwiki:8080
+
+  brain-worker:
+    environment: *xwiki-env
+
+  brain-scheduler:
+    environment: *xwiki-env
+
+volumes:
+  brain-xwikidata:
+  brain-xwikidbdata:

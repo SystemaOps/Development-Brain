@@ -1,0 +1,29 @@
+# Optional Backstage overlay (Phase 36).
+# Enable with:  docker compose -f compose.yaml -f compose.backstage.yaml up -d
+# Backstage provides higher-confidence declared topology when available, but
+# the Brain remains fully capable of deriving topology itself (Task 36.5).
+# Backstage is optional and not universal: the Brain must not expect every
+# organization to maintain it.
+services:
+  backstage:
+    image: backstage/backstage:latest
+    container_name: brain-backstage
+    ports:
+      - "7007:7007"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:7007/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  brain-api:
+    environment: &backstage-env
+      BRAIN_SOFTWARE_CATALOG_PROVIDER: backstage
+      BRAIN_SOFTWARE_CATALOG_EXTERNAL_URL: http://backstage:7007
+      BRAIN_SOFTWARE_CATALOG_EXTERNAL_ENABLED: "true"
+
+  brain-worker:
+    environment: *backstage-env
+
+  brain-scheduler:
+    environment: *backstage-env

@@ -1,0 +1,12 @@
+.git
+.gitignore
+.venv
+.mypy_cache
+.pytest_cache
+.ruff_cache
+dist
+docs
+tests
+*.md
+compose.yaml
+Dockerfile

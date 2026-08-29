@@ -1,0 +1,68 @@
+[project]
+name = "brain"
+version = "0.1.0"
+description = "Software Development Brain: a persistent, version-aware software-engineering intelligence layer."
+requires-python = ">=3.12"
+dependencies = [
+    "alembic>=1.13",
+    "asyncpg>=0.29",
+    "beautifulsoup4>=4.12",
+    "fastapi>=0.115",
+    "langgraph>=1.2.11",
+    "markdown-it-py>=3",
+    "neo4j>=6.2.0",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    "pypdf>=4",
+    "pyyaml>=6",
+    "redis>=5.0",
+    "sqlalchemy>=2.0",
+    "typer>=0.27.2",
+    "uvicorn>=0.30",
+    "weaviate-client>=4.23.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.5",
+    "mypy>=1.10",
+    "types-pyyaml>=6.0.12.20260815",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project.scripts]
+brain-api = "brain.api.runner:main"
+brain-worker = "brain.workers.main:main"
+brain-scheduler = "brain.scheduler.main:main"
+brainctl = "brain.cli.main:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["brain"]
+
+[tool.uv]
+package = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unused_configs = true
+exclude = ["tests/"]
+
+[tool.coverage.run]
+source = ["brain"]

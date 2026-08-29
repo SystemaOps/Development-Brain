@@ -1,0 +1,36 @@
+# Optional Docling Serve overlay (Phase 33).
+# Enable with:  docker compose -f compose.yaml -f compose.docling.yaml up -d
+# When enabled, brain-api/worker/scheduler get BRAIN_DOC_CONVERSION_URL and
+# the document-conversion capability becomes AVAILABLE.
+services:
+  docling:
+    image: ds4sd/docling-serve:latest
+    container_name: brain-docling
+    ports:
+      - "5001:5001"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5001/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  brain-api:
+    environment: &docling-env
+      BRAIN_DOC_CONVERSION_ENABLED: "true"
+      BRAIN_DOC_CONVERSION_BASE_URL: http://docling:5001
+      BRAIN_DOC_CONVERSION_PROVIDER: docling_serve
+    depends_on:
+      docling:
+        condition: service_healthy
+
+  brain-worker:
+    environment: *docling-env
+    depends_on:
+      docling:
+        condition: service_healthy
+
+  brain-scheduler:
+    environment: *docling-env
+    depends_on:
+      docling:
+        condition: service_healthy
