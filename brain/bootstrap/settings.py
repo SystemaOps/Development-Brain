@@ -88,6 +88,9 @@ class ProviderCapabilitySettings(BaseSettings):
 class WorkManagementSettings(ProviderCapabilitySettings):
     provider: str = "internal"
     base_url: str = ""
+    api_key: str = ""
+    project_id: str = ""
+    brain_actor_id: str = ""
 
 
 class DocumentationSettings(BaseSettings):

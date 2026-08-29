@@ -78,6 +78,7 @@ from brain.domain.executor import (
     ExecutorKind,
 )
 from brain.ports.documentation import DocumentationPort
+from brain.ports.human_activity import HumanActivityPort
 from brain.ports.knowledge_graph import KnowledgeGraphRepository
 from brain.ports.pull_request import PullRequestPort
 from brain.ports.semantic_index import SemanticIndex
@@ -148,25 +149,68 @@ def probe_http(url: str, timeout: float = 2.0) -> bool:
         return False
 
 
+def build_human_activity_port(settings: BrainSettings) -> HumanActivityPort:
+    """Build the human-activity projection port (Task 34.7).
+
+    OpenProject is the reference adapter; when not configured a null adapter
+    safely no-ops so no workflow fails without a human-comment system.
+    """
+    wm = settings.work_management
+    if wm.provider == "openproject" and wm.base_url and wm.api_key:
+        from brain.adapters.human_activity.openproject import (
+            OpenProjectActivityAdapter,
+        )
+        from brain.adapters.work_management.openproject_http import (
+            OpenProjectHTTPTransport,
+        )
+
+        return OpenProjectActivityAdapter(
+            transport=OpenProjectHTTPTransport(base_url=wm.base_url, api_key=wm.api_key)
+        )
+
+    return NullHumanActivityPort()
+
+
 def build_work_management(settings: BrainSettings) -> tuple[WorkManagementPort | None, str]:
     """Build a work-management adapter from settings.
 
     Returns ``(adapter, status)`` where status is one of
     ``AVAILABLE`` / ``UNAVAILABLE`` / ``DISABLED`` / ``MISCONFIGURED``.
-    External providers require an HTTP transport, which lands in a later
-    integration phase; a configured-but-unbuildable provider reports
-    ``UNAVAILABLE`` without raising.
+    External providers use an HTTP transport; a configured-but-unreachable
+    provider reports ``UNAVAILABLE`` without raising.
     """
     wm = settings.work_management
     if not wm.enabled:
         return None, "DISABLED"
     if wm.provider in {"", "internal"}:
         return None, "AVAILABLE"
-    if not wm.base_url:
+    if not wm.base_url or not wm.api_key:
         return None, "MISCONFIGURED"
-    if probe_http(wm.base_url):
-        return None, "AVAILABLE"
-    return None, "UNAVAILABLE"
+    if not probe_http(wm.base_url):
+        return None, "UNAVAILABLE"
+    return _build_openproject(settings), "AVAILABLE"
+
+
+def _build_openproject(settings: BrainSettings) -> WorkManagementPort:
+    """Construct the OpenProject adapter with an HTTP transport."""
+    import uuid
+
+    from brain.adapters.work_management.openproject import OpenProjectAdapter
+    from brain.adapters.work_management.openproject_http import (
+        OpenProjectHTTPTransport,
+    )
+    from brain.domain.identity import ProjectId
+
+    wm = settings.work_management
+    project_id = ProjectId(uuid.UUID(wm.project_id))
+    transport = OpenProjectHTTPTransport(
+        base_url=wm.base_url,
+        api_key=wm.api_key,
+    )
+    return OpenProjectAdapter(
+        transport=transport,
+        project_id=project_id,
+    )
 
 
 def build_documentation(settings: BrainSettings) -> list[DocumentationPort]:
@@ -366,9 +410,10 @@ def build_services(
         observations=repos.observations,
         event_bus=events,
     )
+    activity_port = build_human_activity_port(settings)
     observation_projection = ObservationProjectionService(
         projections=InMemoryActivityProjectionRepository(),
-        port=NullHumanActivityPort(),
+        port=activity_port,
         observations=repos.observations,
     )
     feedback = HumanFeedbackService(

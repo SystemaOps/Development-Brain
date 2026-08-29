@@ -8,6 +8,8 @@ exceptions during normal workflows.
 
 from __future__ import annotations
 
+import uuid
+
 from brain.bootstrap.capabilities import CapabilityRegistry
 from brain.bootstrap.container import create_brain_container
 from brain.bootstrap.settings import (
@@ -171,7 +173,12 @@ async def test_gate_core_healthy_readiness() -> None:
 async def test_gate_optional_provider_unavailable_still_ready() -> None:
     settings = _settings()
     settings.work_management = WorkManagementSettings(
-        enabled=True, provider="openproject", required=False, base_url="http://127.0.0.1:1"
+        enabled=True,
+        provider="openproject",
+        required=False,
+        base_url="http://127.0.0.1:1",
+        api_key="key",
+        project_id=str(uuid.uuid4()),
     )
     container = await create_brain_container(settings)
     assert container.capabilities()["work_management"] == "UNAVAILABLE"

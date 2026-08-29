@@ -8,6 +8,8 @@ yields ``UNAVAILABLE`` instead of failing container construction.
 
 from __future__ import annotations
 
+import uuid
+
 from brain.bootstrap.container import BrainContainer, create_brain_container
 from brain.bootstrap.settings import (
     ArtifactStoreSettings,
@@ -115,6 +117,8 @@ async def test_gate_optional_provider_unreachable_does_not_fail_container() -> N
         provider="openproject",
         required=False,
         base_url="http://127.0.0.1:1",
+        api_key="key",
+        project_id=str(uuid.uuid4()),
     )
     container = await create_brain_container(settings)
     assert container.work_management is None
