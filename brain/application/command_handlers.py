@@ -319,32 +319,22 @@ class CommandHandlers:
     async def _create_pull_request(self, envelope: CommandEnvelope) -> dict[str, object]:
         model = command_to_model(envelope)
         assert isinstance(model, CreatePullRequestCommand)
-        pr_port = self._container.pull_requests
-        if pr_port is None:
-            return {"execution_id": model.execution_id, "status": "no_pr_provider"}
-        execution = await self._container.repositories.executions.get(model.execution_id)
-        if execution is None:
-            return {"execution_id": model.execution_id, "status": "not_found"}
-        work_item = await self._container.repositories.work_items.get(model.work_item_id)
-        if work_item is None:
-            return {"work_item_id": model.work_item_id, "status": "not_found"}
-        repos = await self._container.repositories.repositories.list_by_project(
-            work_item.project_id
-        )
-        if not repos:
-            return {"execution_id": model.execution_id, "status": "no_repository"}
-        repository = repos[0]
-        ref = await pr_port.create_pull_request(
-            repository=repository,
-            source_branch=f"brain/{execution.id}",
-            target_branch=repository.default_branch,
-            title=work_item.title,
-            description=work_item.description,
+        service = self._container.services.get("pull_request_service")
+        if service is None:
+            return {"execution_id": model.execution_id, "status": "no_pr_service"}
+        from brain.application.pull_request_service import PullRequestService
+
+        assert isinstance(service, PullRequestService)
+        result = await service.create_pull_request(
+            execution_id=model.execution_id,
+            work_item_id=model.work_item_id,
         )
         return {
             "execution_id": model.execution_id,
-            "pr_external_id": ref.external_id,
-            "status": "created",
+            "pr_external_id": result.external_ref.external_id if result.external_ref else None,
+            "observation_id": result.observation_id,
+            "reasons": result.reasons,
+            "status": "created" if result.created else "blocked",
         }
 
     async def _reconcile_project(self, envelope: CommandEnvelope) -> dict[str, object]:

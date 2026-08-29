@@ -23,6 +23,7 @@ from brain.domain import (
     Project,
     ProjectCreated,
     PullRequestCreated,
+    PullRequestMerged,
     PullRequestRequested,
     Repository,
     RepositoryRegistered,
@@ -117,6 +118,13 @@ def _sample(model: type[CanonicalEvent]) -> CanonicalEvent:
             project_id=project_id,
             work_item_id=new_work_item_id(),
             external_ref=ExternalReference(provider="github", external_id="42"),
+        )
+    if model is PullRequestMerged:
+        return PullRequestMerged(
+            external_ref=ExternalReference(
+                provider="gitlab", external_id="7", external_type="merge_request"
+            ),
+            repository_id=RepositoryId(uuid.uuid4()),
         )
     if model is HumanFeedbackReceived:
         return HumanFeedbackReceived(

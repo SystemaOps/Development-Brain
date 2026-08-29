@@ -148,6 +148,17 @@ class AutomationPolicySettings(BaseSettings):
     auto_create_pr: bool = False
 
 
+class PullRequestSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_prefix="BRAIN_PULL_REQUEST_", env_file=".env", extra="ignore"
+    )
+
+    provider: str = "fake"
+    gitlab_url: str = ""
+    gitlab_api_key: str = ""
+    gitlab_project: str = ""
+
+
 class HumanApprovalSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="BRAIN_APPROVAL_", env_file=".env", extra="ignore")
 
@@ -182,6 +193,7 @@ class BrainSettings(BaseSettings):
     executors: ExecutorSettings = Field(default_factory=ExecutorSettings)
     verification: VerificationSettings = Field(default_factory=VerificationSettings)
     automation: AutomationPolicySettings = Field(default_factory=AutomationPolicySettings)
+    pull_requests: PullRequestSettings = Field(default_factory=PullRequestSettings)
     human_approval: HumanApprovalSettings = Field(default_factory=HumanApprovalSettings)
 
 

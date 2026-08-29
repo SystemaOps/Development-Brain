@@ -83,6 +83,43 @@ async def openproject_webhook(request: Request) -> dict[str, object]:
     return result
 
 
+@router.post("/api/v1/webhooks/gitlab")
+async def gitlab_webhook(request: Request) -> dict[str, object]:
+    """Normalize a GitLab merge-request webhook (Task 38.5).
+
+    A ``merge`` event on a merge request normalizes to PullRequestMerged ->
+    RepositoryRevisionChanged and re-ingestion is enqueued so merged code
+    returns into Brain knowledge.
+    """
+    container: BrainContainer = get_container(request)
+    body = await request.json()
+    object_kind = str(body.get("object_kind") or "")
+    if object_kind != "merge_request":
+        return {"accepted": True, "event_type": "ignored", "kind": object_kind}
+
+    attributes = body.get("object_attributes") or {}
+    state = str(attributes.get("state") or "")
+    if state != "merged":
+        return {"accepted": True, "event_type": "ignored", "state": state}
+
+    ref = ExternalReference(
+        provider="gitlab",
+        external_id=str(attributes.get("iid") or ""),
+        external_type="merge_request",
+        namespace=str(attributes.get("target_project_id") or ""),
+    )
+    service = container.services["pull_request_service"]
+    from brain.application.pull_request_service import PullRequestService
+
+    assert isinstance(service, PullRequestService)
+    envelope = await service.handle_merge(ref)
+    return {
+        "accepted": True,
+        "event_type": envelope.event_type.value,
+        "external_id": ref.external_id,
+    }
+
+
 def _extract_comment(body: dict[str, object]) -> dict[str, object] | None:
     """Extract a comment/activity payload from an OpenProject webhook, if any."""
     comment = body.get("comment")

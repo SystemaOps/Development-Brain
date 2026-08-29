@@ -36,6 +36,7 @@ class EventType(StrEnum):
 
     PULL_REQUEST_REQUESTED = "pull_request_requested"
     PULL_REQUEST_CREATED = "pull_request_created"
+    PULL_REQUEST_MERGED = "pull_request_merged"
 
     HUMAN_FEEDBACK_RECEIVED = "human_feedback_received"
     KNOWLEDGE_CONFLICT_DETECTED = "knowledge_conflict_detected"

@@ -269,6 +269,13 @@ async def create_brain_container(
         container=container_instance,
         observations=observations_service,
     )
+
+    # Pull request runtime service (Phase 38).
+    from brain.application.pull_request_service import PullRequestService
+
+    container_instance.services["pull_request_service"] = PullRequestService(
+        container=container_instance
+    )
     return container_instance
 
 

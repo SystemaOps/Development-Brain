@@ -326,7 +326,15 @@ def build_coding_executor(settings: BrainSettings) -> ExecutorPort:
 
 
 def build_pull_request(settings: BrainSettings) -> PullRequestPort | None:
-    """Build a pull-request port (Milestone 1: fake only)."""
+    """Build a pull-request port (Phase 38: fake + GitLab MR)."""
+    if settings.pull_requests.provider == "gitlab" and settings.pull_requests.gitlab_url:
+        from brain.adapters.pull_request.gitlab import GitLabPullRequestAdapter
+
+        return GitLabPullRequestAdapter(
+            base_url=settings.pull_requests.gitlab_url,
+            api_key=settings.pull_requests.gitlab_api_key,
+            project_id=settings.pull_requests.gitlab_project,
+        )
     if settings.automation.auto_create_pr:
         from brain.adapters.verification.fake_pr import FakePullRequestAdapter
 

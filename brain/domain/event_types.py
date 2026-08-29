@@ -141,6 +141,12 @@ class PullRequestCreated(CanonicalEvent):
     external_ref: ExternalReference
 
 
+class PullRequestMerged(CanonicalEvent):
+    event_type: ClassVar[EventType] = EventType.PULL_REQUEST_MERGED
+    external_ref: ExternalReference
+    repository_id: RepositoryId | None = None
+
+
 class HumanFeedbackReceived(CanonicalEvent):
     event_type: ClassVar[EventType] = EventType.HUMAN_FEEDBACK_RECEIVED
     work_item_id: WorkItemId
