@@ -250,6 +250,24 @@ async def create_brain_container(
         session=session,
     )
     install_command_handlers(container=container_instance)
+
+    # Backstage reconciliation service (Phase 36): declared vs discovered.
+    from brain.adapters.catalog.backstage import BackstageCatalogAdapter
+    from brain.application.backstage_reconciliation import (
+        BackstageReconciliationService,
+    )
+    from brain.application.observations import ObservationService
+
+    backstage_port = (
+        software_catalog if isinstance(software_catalog, BackstageCatalogAdapter) else None
+    )
+    observations_service = container_instance.services["observations"]
+    assert isinstance(observations_service, ObservationService)
+    container_instance.services["backstage_reconciliation"] = BackstageReconciliationService(
+        backstage=backstage_port,
+        container=container_instance,
+        observations=observations_service,
+    )
     return container_instance
 
 

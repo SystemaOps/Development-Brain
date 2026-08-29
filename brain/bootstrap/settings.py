@@ -114,6 +114,7 @@ class SoftwareCatalogSettings(ProviderCapabilitySettings):
     provider: str = "derived"
     external_type: str = "backstage"
     external_enabled: bool = False
+    external_url: str = ""
 
 
 class SourceControlSettings(ProviderCapabilitySettings):

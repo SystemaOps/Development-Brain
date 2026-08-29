@@ -238,10 +238,11 @@ def build_documentation(settings: BrainSettings) -> list[DocumentationPort]:
 def build_software_catalog(
     settings: BrainSettings, catalog: SoftwareCatalogRepository
 ) -> tuple[object, str]:
-    """Build the software-catalog port (derived default).
+    """Build the software-catalog port (derived default; Backstage optional).
 
     ``catalog`` is the :class:`SoftwareCatalogRepository` (a Postgres
     repository bundle attribute); it is wrapped in the derived catalog port.
+    Backstage is only used when explicitly enabled and configured (Task 36.5).
     """
     if settings.software_catalog.provider == "derived":
         from brain.adapters.topology.catalog import DerivedSoftwareCatalog
@@ -249,6 +250,19 @@ def build_software_catalog(
         return DerivedCatalogPortAdapter(
             derived=DerivedSoftwareCatalog(catalog=catalog)
         ), "AVAILABLE"
+    if settings.software_catalog.provider == "backstage":
+        from brain.adapters.catalog.backstage import BackstageCatalogAdapter
+        from brain.adapters.catalog.backstage_http import BackstageHTTPTransport
+
+        if settings.software_catalog.external_url:
+            return (
+                BackstageCatalogAdapter(
+                    transport=BackstageHTTPTransport(
+                        base_url=settings.software_catalog.external_url
+                    )
+                ),
+                "AVAILABLE",
+            )
     return None, "DISABLED"
 
 
