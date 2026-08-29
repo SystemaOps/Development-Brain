@@ -159,6 +159,22 @@ class PullRequestSettings(BaseSettings):
     gitlab_project: str = ""
 
 
+class SecuritySettings(BaseSettings):
+    """API/edge security (Phase 40).
+
+    Credentials are never persisted in the database; they live in the
+    environment or a secrets file only (Task 40.4).
+    """
+
+    model_config = SettingsConfigDict(env_prefix="BRAIN_", env_file=".env", extra="ignore")
+
+    api_keys: str = ""
+    webhook_openproject_secret: str = ""
+    webhook_gitlab_token: str = ""
+    auth_enabled: bool = False
+    rate_limit_enabled: bool = False
+
+
 class HumanApprovalSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="BRAIN_APPROVAL_", env_file=".env", extra="ignore")
 
@@ -194,6 +210,7 @@ class BrainSettings(BaseSettings):
     verification: VerificationSettings = Field(default_factory=VerificationSettings)
     automation: AutomationPolicySettings = Field(default_factory=AutomationPolicySettings)
     pull_requests: PullRequestSettings = Field(default_factory=PullRequestSettings)
+    security: SecuritySettings = Field(default_factory=SecuritySettings)
     human_approval: HumanApprovalSettings = Field(default_factory=HumanApprovalSettings)
 
 

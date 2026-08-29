@@ -811,6 +811,25 @@ class ContextFeedbackRow(Base):
     __table_args__ = (Index("ix_context_feedback_work_item", "work_item_id"),)
 
 
+class AuditEventRow(Base):
+    """Persisted audit trail (Task 40.7)."""
+
+    __tablename__ = "audit_events"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    action: Mapped[str] = mapped_column(String(50))
+    actor: Mapped[str] = mapped_column(String(255))
+    actor_role: Mapped[str] = mapped_column(String(50), default="")
+    project_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    work_item_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    execution_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    repository_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    details: Mapped[dict[str, object]] = mapped_column(JSONB, default=dict)
+
+    __table_args__ = (Index("ix_audit_events_action", "action"),)
+
+
 class CommandFailureRow(Base):
     """Persisted command-processing failures (Phase 25)."""
 

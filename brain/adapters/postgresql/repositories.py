@@ -20,6 +20,7 @@ from brain.adapters.postgresql.tables import (
     ActorRow,
     ApprovalRow,
     ArtifactRow,
+    AuditEventRow,
     CodeFileRow,
     CodeRelationRow,
     CodeSymbolRow,
@@ -64,6 +65,7 @@ from brain.adapters.postgresql.tables import (
 )
 from brain.domain.actors import Actor
 from brain.domain.artifacts import Artifact
+from brain.domain.audit import AuditAction, AuditEvent
 from brain.domain.code_intelligence import (
     CodeRelation,
     CodeRelationType,
@@ -2719,6 +2721,50 @@ def _command_failure_from_row(row: CommandFailureRow) -> CommandFailure:
         correlation_id=row.correlation_id,
         retry_eligible=row.retry_eligible,
         occurred_at=row.occurred_at,
+    )
+
+
+class PostgresAuditLog(_PostgresRepository):
+    """Persisted audit trail (Task 40.7)."""
+
+    async def record(self, event: AuditEvent) -> AuditEvent:
+        self._session.add(
+            AuditEventRow(
+                id=event.id,
+                occurred_at=event.occurred_at,
+                action=event.action.value,
+                actor=event.actor,
+                actor_role=event.actor_role,
+                project_id=event.project_id,
+                work_item_id=event.work_item_id,
+                execution_id=event.execution_id,
+                repository_id=event.repository_id,
+                details=event.details,
+            )
+        )
+        await self._session.flush()
+        return event
+
+    async def list(self, *, limit: int = 100, action: str | None = None) -> list[AuditEvent]:
+        query = select(AuditEventRow).order_by(AuditEventRow.occurred_at.desc())
+        if action is not None:
+            query = query.where(AuditEventRow.action == action)
+        rows = (await self._session.scalars(query.limit(limit))).all()
+        return [_audit_from_row(row) for row in rows]
+
+
+def _audit_from_row(row: AuditEventRow) -> AuditEvent:
+    return AuditEvent(
+        id=row.id,
+        occurred_at=row.occurred_at,
+        action=AuditAction(row.action),
+        actor=row.actor,
+        actor_role=row.actor_role,
+        project_id=row.project_id,
+        work_item_id=row.work_item_id,
+        execution_id=row.execution_id,
+        repository_id=row.repository_id,
+        details=row.details,
     )
 
 

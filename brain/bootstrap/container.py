@@ -214,6 +214,31 @@ async def create_brain_container(
     )
     document_conversion = services.get("document_conversion")
 
+    # 5b. Phase 40 hardening services: API keys, audit, metrics, rate limiter,
+    # workspace locks.
+    from brain.adapters.in_memory.api_keys import InMemoryApiKeyStore, seed_keys_from_env
+    from brain.application.audit import AuditService
+    from brain.application.metrics import MetricsService
+    from brain.application.rate_limiter import RateLimiter
+    from brain.application.workspace_locks import (
+        InMemoryWorkspaceLockStore,
+        WorkspaceLockManager,
+    )
+
+    api_key_store = InMemoryApiKeyStore()
+    await seed_keys_from_env(api_key_store, settings.security.api_keys)
+    audit_log = repositories.audit_log
+    audit_service = AuditService(log=audit_log)
+    metrics = MetricsService()
+    rate_limiter = RateLimiter()
+    workspace_locks = WorkspaceLockManager(store=InMemoryWorkspaceLockStore())
+    services["api_key_store"] = api_key_store
+    services["audit"] = audit_service
+    services["audit_log"] = audit_log
+    services["metrics"] = metrics
+    services["rate_limiter"] = rate_limiter
+    services["workspace_locks"] = workspace_locks
+
     capabilities = _build_capability_registry(
         settings,
         session_factory,

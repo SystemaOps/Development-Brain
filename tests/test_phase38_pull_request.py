@@ -28,6 +28,7 @@ from brain.bootstrap.settings import (
     PostgresSettings,
     PullRequestSettings,
     RedisSettings,
+    SecuritySettings,
     SourceControlSettings,
     VerificationSettings,
     WeaviateSettings,
@@ -65,6 +66,7 @@ def _settings(
         verification=VerificationSettings(require_pass_before_pr=True),
         pull_requests=pull_requests or PullRequestSettings(provider="fake"),
         automation=automation or AutomationPolicySettings(auto_create_pr=True),
+        security=SecuritySettings(webhook_gitlab_token="test-gitlab-token"),
     )
 
 
@@ -243,7 +245,9 @@ async def test_gitlab_webhook_normalizes_merge() -> None:
             "type": "http",
             "method": "POST",
             "path": "/api/v1/webhooks/gitlab",
-            "headers": [],
+            "headers": [
+                (b"x-gitlab-token", b"test-gitlab-token"),
+            ],
             "query_string": b"",
             "client": ("127.0.0.1", 1),
             "server": ("test", 80),
@@ -265,7 +269,7 @@ async def test_gitlab_webhook_normalizes_merge() -> None:
             return container
 
         with patch.object(webhooks, "get_container", fake_get_container):
-            result = await webhooks.gitlab_webhook(request)
+            result = await webhooks.gitlab_webhook(request, verified=request)
         assert result["event_type"] == "repository_revision_changed"
         assert result["external_id"] == "9"
     finally:

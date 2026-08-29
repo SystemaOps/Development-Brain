@@ -7,8 +7,11 @@ canonical events.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Request
+from typing import Annotated
 
+from fastapi import APIRouter, Depends, Request
+
+from brain.api.auth import verify_webhook
 from brain.api.commands import enqueue_command
 from brain.api.dependencies import get_container
 from brain.bootstrap.container import BrainContainer
@@ -28,8 +31,12 @@ _EVENT_TYPES = {
 
 
 @router.post("/api/v1/webhooks/openproject")
-async def openproject_webhook(request: Request) -> dict[str, object]:
-    """Normalize an OpenProject webhook to a canonical event."""
+async def openproject_webhook(
+    request: Request,
+    verified: Annotated[Request, Depends(verify_webhook("openproject"))],
+) -> dict[str, object]:
+    """Normalize an OpenProject webhook to a canonical event (40.3 auth)."""
+    del verified
     container: BrainContainer = get_container(request)
     body = await request.json()
     event_type_name = str(body.get("eventType") or body.get("event_type") or "")
@@ -84,13 +91,17 @@ async def openproject_webhook(request: Request) -> dict[str, object]:
 
 
 @router.post("/api/v1/webhooks/gitlab")
-async def gitlab_webhook(request: Request) -> dict[str, object]:
-    """Normalize a GitLab merge-request webhook (Task 38.5).
+async def gitlab_webhook(
+    request: Request,
+    verified: Annotated[Request, Depends(verify_webhook("gitlab"))],
+) -> dict[str, object]:
+    """Normalize a GitLab merge-request webhook (Task 38.5, 40.3 auth).
 
     A ``merge`` event on a merge request normalizes to PullRequestMerged ->
     RepositoryRevisionChanged and re-ingestion is enqueued so merged code
     returns into Brain knowledge.
     """
+    del verified
     container: BrainContainer = get_container(request)
     body = await request.json()
     object_kind = str(body.get("object_kind") or "")

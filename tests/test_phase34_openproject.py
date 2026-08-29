@@ -19,6 +19,7 @@ from brain.bootstrap.settings import (
     Neo4jSettings,
     PostgresSettings,
     RedisSettings,
+    SecuritySettings,
     SourceControlSettings,
     VerificationSettings,
     WeaviateSettings,
@@ -36,7 +37,21 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-def _settings(work_management: WorkManagementSettings | None = None) -> BrainSettings:
+def _signed_payload(payload: dict[str, object], secret: str) -> tuple[bytes, dict[str, str]]:
+    """Return (signed body, signature headers) for the OpenProject webhook."""
+    import hashlib
+    import hmac
+    import json
+
+    body = json.dumps(payload).encode("utf-8")
+    signature = "sha256=" + hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
+    return body, {"X-OpenProject-Signature": signature}
+
+
+def _settings(
+    work_management: WorkManagementSettings | None = None,
+    security: SecuritySettings | None = None,
+) -> BrainSettings:
     return BrainSettings(
         storage_state=PostgresSettings(
             url="postgresql+asyncpg://postgres:postgres@localhost:5432/brain"
@@ -48,6 +63,7 @@ def _settings(work_management: WorkManagementSettings | None = None) -> BrainSet
         documentation=DocumentationSettings(git_enabled=False, xwiki_enabled=False),
         source_control=SourceControlSettings(enabled=False),
         verification=VerificationSettings(require_pass_before_pr=True),
+        security=security or SecuritySettings(),
     )
 
 
@@ -83,12 +99,23 @@ class _FakeOpenProjectTransport:
 
 async def test_webhook_accepts_and_normalizes_event() -> None:
     """POST /api/v1/webhooks/openproject normalizes to a canonical event."""
+    import hashlib
+    import hmac
+    import json
+
     import httpx
 
     from brain.api.app import create_app
 
-    app = create_app(_settings())
+    secret = "test-op-secret"
+    app = create_app(_settings(security=SecuritySettings(webhook_openproject_secret=secret)))
     transport = httpx.ASGITransport(app=app)
+    payload = {
+        "eventType": "work_package:updated",
+        "work_package": {"id": "42", "subject": "Fix login"},
+    }
+    body = json.dumps(payload).encode("utf-8")
+    signature = "sha256=" + hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
     async with (
         httpx.AsyncClient(transport=transport, base_url="http://test") as client,
         app.router.lifespan_context(app),
@@ -99,10 +126,8 @@ async def test_webhook_accepts_and_normalizes_event() -> None:
 
         response = await client.post(
             "/api/v1/webhooks/openproject",
-            json={
-                "eventType": "work_package:updated",
-                "work_package": {"id": "42", "subject": "Fix login"},
-            },
+            content=body,
+            headers={"X-OpenProject-Signature": signature},
         )
         assert response.status_code == 200
         body = response.json()
@@ -126,7 +151,8 @@ async def test_assignment_automation_triggers_run_command() -> None:
             api_key="key",
             project_id=str(uuid.uuid4()),
             brain_actor_id=brain_actor,
-        )
+        ),
+        security=SecuritySettings(webhook_openproject_secret="op-secret"),
     )
     import httpx
 
@@ -142,16 +168,19 @@ async def test_assignment_automation_triggers_run_command() -> None:
         project = Project(name="op-assign")
         await app_container.repositories.projects.create(project)
 
+        payload = {
+            "eventType": "work_package:updated",
+            "work_package": {
+                "id": "7",
+                "subject": "Assigned task",
+                "assignee": {"href": f"/api/v3/users/{brain_actor}"},
+            },
+        }
+        body2, headers2 = _signed_payload(payload, "op-secret")
         response = await client.post(
             "/api/v1/webhooks/openproject",
-            json={
-                "eventType": "work_package:updated",
-                "work_package": {
-                    "id": "7",
-                    "subject": "Assigned task",
-                    "assignee": {"href": f"/api/v3/users/{brain_actor}"},
-                },
-            },
+            content=body2,
+            headers=headers2,
         )
         assert response.status_code == 200
         body = response.json()
@@ -178,7 +207,7 @@ async def test_human_comment_normalizes_to_feedback() -> None:
 
     from brain.api.app import create_app
 
-    app = create_app(_settings())
+    app = create_app(_settings(security=SecuritySettings(webhook_openproject_secret="op-secret")))
     transport = httpx.ASGITransport(app=app)
     async with (
         httpx.AsyncClient(transport=transport, base_url="http://test") as client,
@@ -198,17 +227,20 @@ async def test_human_comment_normalizes_to_feedback() -> None:
         )
         await app_container.repositories.work_items.create(work_item)
 
+        comment_payload = {
+            "eventType": "work_package:updated",
+            "work_package": {"id": "99", "subject": "Task"},
+            "comment": {
+                "id": "c-1",
+                "raw": "Please clarify the lockout policy.",
+                "author": {"name": "alice"},
+            },
+        }
+        body2, headers2 = _signed_payload(comment_payload, "op-secret")
         response = await client.post(
             "/api/v1/webhooks/openproject",
-            json={
-                "eventType": "work_package:updated",
-                "work_package": {"id": "99", "subject": "Task"},
-                "comment": {
-                    "id": "c-1",
-                    "raw": "Please clarify the lockout policy.",
-                    "author": {"name": "alice"},
-                },
-            },
+            content=body2,
+            headers=headers2,
         )
         assert response.status_code == 200
         body = response.json()

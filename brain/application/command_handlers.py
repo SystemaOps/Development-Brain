@@ -11,6 +11,7 @@ from datetime import UTC, datetime
 
 from brain.application.command_dispatcher import CommandDispatcher
 from brain.bootstrap.container import BrainContainer
+from brain.domain.audit import AuditAction
 from brain.domain.commands import (
     AnalyzeProjectCommand,
     AnalyzeWorkItemCommand,
@@ -39,6 +40,7 @@ from brain.domain.identity import (
     new_execution_id,
     new_workflow_id,
 )
+from brain.domain.observations import ObservationType
 from brain.domain.repositories import Repository
 
 
@@ -275,7 +277,32 @@ class CommandHandlers:
                 )
             )
 
-        result = await executor.execute(request)
+        # Task 40.6: one execution per repository at a time.  A conflicting
+        # automated change is marked BLOCKED instead of racing.
+        locks = self._container.services["workspace_locks"]
+        from brain.application.workspace_locks import WorkspaceLockManager
+
+        assert isinstance(locks, WorkspaceLockManager)
+        lock = None
+        if repository is not None:
+            lock = await locks.try_acquire(
+                repository.id, execution_id, request.working_branch or "brain"
+            )
+            if lock is None:
+                await self._mark_blocked(execution_id, model.work_item_id, envelope)
+                return {
+                    "work_item_id": model.work_item_id,
+                    "execution_id": execution_id,
+                    "status": "blocked",
+                    "reasons": ["repository is already being changed by another execution"],
+                }
+
+        try:
+            result = await executor.execute(request)
+        finally:
+            if lock is not None and repository is not None:
+                await locks.release(repository.id, execution_id)
+        await self._audit_execution(result, request, envelope)
         execution = await self._container.repositories.executions.get(execution_id)
         if execution is not None:
             # Task 37.6: a failed execution is persisted (evidence/log refs in
@@ -315,6 +342,85 @@ class CommandHandlers:
             "verdict": outcome.run.verdict.value,
             "status": "verified",
         }
+
+    async def _mark_blocked(
+        self,
+        execution_id: ExecutionId,
+        work_item_id: WorkItemId,
+        envelope: CommandEnvelope,
+    ) -> None:
+        """Mark an execution BLOCKED + journal it (Task 40.6)."""
+        from brain.domain.executions import ExecutionStatus
+
+        execution = await self._container.repositories.executions.get(execution_id)
+        if execution is not None:
+            await self._container.repositories.executions.update(
+                execution.model_copy(update={"status": ExecutionStatus.BLOCKED})
+            )
+        work_item = await self._container.repositories.work_items.get(work_item_id)
+        observations = self._container.services["observations"]
+        from brain.application.observations import ObservationService
+
+        assert isinstance(observations, ObservationService)
+        if work_item is not None:
+            await observations.create(
+                project_id=work_item.project_id,
+                observation_type=ObservationType.HUMAN_ACTION_REQUIRED,
+                title="Execution blocked: conflicting automated change",
+                body="Another execution holds the repository lock; retry after it completes.",
+                work_item_id=work_item_id,
+                execution_id=execution_id,
+                dedup_key=f"blocked-lock:{execution_id}",
+            )
+        await self._audit(
+            AuditAction.EXECUTION_BLOCKED,
+            envelope,
+            execution_id=str(execution_id),
+            work_item_id=str(work_item_id),
+        )
+
+    async def _audit_execution(
+        self, result: object, request: ExecutionRequest, envelope: CommandEnvelope
+    ) -> None:
+        """Record what ran: executor outcome, revision, changed files (40.7)."""
+        status = getattr(result, "status", None)
+        await self._audit(
+            AuditAction.EXECUTION_COMPLETED,
+            envelope,
+            execution_id=str(request.execution_id),
+            work_item_id=str(request.work_item_id),
+            repository_id=request.repository_ref or None,
+            status=str(getattr(status, "value", "") or status or ""),
+            base_revision=request.base_revision,
+            working_branch=request.working_branch,
+            changed_files=getattr(result, "modified_files", []),
+        )
+
+    async def _audit(
+        self,
+        action: AuditAction,
+        envelope: CommandEnvelope,
+        **details: object,
+    ) -> None:
+        """Append one audit event for a command execution (Task 40.7)."""
+        audit = self._container.services["audit"]
+        from brain.application.audit import AuditService
+
+        assert isinstance(audit, AuditService)
+        project_id = None
+        if envelope.project_id is not None:
+            project_id = envelope.project_id
+        await audit.record(
+            action=action,
+            actor=(
+                str(envelope.requested_by)
+                if envelope.requested_by
+                else f"trigger:{envelope.trigger_type.value}"
+            ),
+            actor_role=envelope.trigger_type.value,
+            project_id=project_id,
+            details=details,
+        )
 
     async def _create_pull_request(self, envelope: CommandEnvelope) -> dict[str, object]:
         model = command_to_model(envelope)

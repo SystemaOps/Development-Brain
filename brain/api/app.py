@@ -12,6 +12,7 @@ from fastapi import FastAPI
 from brain.api.correlation import CorrelationMiddleware
 from brain.api.errors import register_error_handlers
 from brain.api.lifespan import lifespan
+from brain.api.metrics import router as metrics_router
 from brain.api.routes import (
     capabilities,
     code,
@@ -67,6 +68,7 @@ def create_app(settings: BrainSettings | None = None) -> FastAPI:
     app.include_router(pull_requests.router)
     app.include_router(observations.router)
     app.include_router(webhooks.router)
+    app.include_router(metrics_router)
 
     @app.get("/")
     async def root() -> dict[str, str]:

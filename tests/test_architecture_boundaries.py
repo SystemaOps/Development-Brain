@@ -149,6 +149,8 @@ def test_domain_has_no_external_dependencies_beyond_pydantic() -> None:
             "datetime",
             "re",
             "hashlib",
+            "hmac",
+            "secrets",
             "collections",
             "dataclasses",
         }
