@@ -17,6 +17,7 @@ dependencies = [
     "pyyaml>=6",
     "redis>=5.0",
     "sqlalchemy>=2.0",
+    "typer>=0.27.2",
     "uvicorn>=0.30",
     "weaviate-client>=4.23.0",
 ]
