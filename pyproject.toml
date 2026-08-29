@@ -35,6 +35,12 @@ dev = [
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[project.scripts]
+brain-api = "brain.api.runner:main"
+brain-worker = "brain.workers.main:main"
+brain-scheduler = "brain.scheduler.main:main"
+brainctl = "brain.cli.main:main"
+
 [tool.hatch.build.targets.wheel]
 packages = ["brain"]
 

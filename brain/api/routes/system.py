@@ -26,8 +26,10 @@ async def system_status(request: Request) -> dict[str, object]:
 
 
 @router.get("/api/v1/system/version")
-async def system_version() -> dict[str, str]:
-    return {"version": "0.1.0", "build": "dev"}
+async def system_version() -> dict[str, str | None]:
+    from brain.version import application_version
+
+    return application_version()
 
 
 @router.post("/api/v1/system/reconcile", response_model=AcceptedResult, status_code=202)
