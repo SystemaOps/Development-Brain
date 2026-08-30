@@ -14,7 +14,7 @@ services:
       OPENPROJECT_RAILS__RELATIVE_URL_ROOT: ""
       OPENPROJECT_SECRET_KEY_BASE: change-me
       OPENPROJECT_DEFAULT__LANGUAGE: en
-      OPENPROJECT_AUTH__SOURCE__SSO: ""
+      #OPENPROJECT_AUTH__SOURCE__SSO: ""
     volumes:
       - brain-openprojectdata:/var/openproject/assets
 

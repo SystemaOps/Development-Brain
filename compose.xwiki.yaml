@@ -1,50 +1,117 @@
-# Optional XWiki overlay (Phase 35).
-# Enable with:  docker compose -f compose.yaml -f compose.xwiki.yaml up -d
-# XWiki enriches Brain knowledge as an optional documentation source; the core
-# remains fully capable without it.
+# Optional XWiki overlay.
+#
+# Start with:
+# docker compose -f compose.yaml -f compose.xwiki.yaml up -d
+#
+# XWiki is an optional documentation/knowledge source for Brain.
+# The core Brain services remain functional without it.
+
 services:
+
   xwiki:
     image: xwiki:17-mariadb-tomcat
     container_name: brain-xwiki
+
     depends_on:
       xwiki-db:
         condition: service_healthy
+
+      # Important:
+      # XWiki must not start until the MariaDB PROCESS privilege
+      # has been granted to the xwiki DB user.
+      xwiki-db-init:
+        condition: service_completed_successfully
+
     ports:
       - "8082:8080"
+
     environment:
       DB_USER: xwiki
       DB_PASSWORD: xwiki-secret
       DB_DATABASE: xwiki
       DB_HOST: xwiki-db
+
     volumes:
       - brain-xwikidata:/usr/local/xwiki
+
+    restart: unless-stopped
+
 
   xwiki-db:
     image: mariadb:11
     container_name: brain-xwiki-db
+
     environment:
       MARIADB_USER: xwiki
       MARIADB_PASSWORD: xwiki-secret
       MARIADB_ROOT_PASSWORD: root-secret
       MARIADB_DATABASE: xwiki
+
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_bin
+
     volumes:
       - brain-xwikidbdata:/var/lib/mysql
+
     healthcheck:
-      test: ["CMD-SHELL", "mariadb-admin ping -u root -proot-secret || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "mariadb-admin ping -u root -proot-secret || exit 1"
+        ]
       interval: 10s
       timeout: 5s
       retries: 20
+      start_period: 10s
+
+    restart: unless-stopped
+
+
+  # One-shot initialization container.
+  #
+  # MariaDB's automatically-created application user has privileges
+  # on xwiki.*, but XWiki also needs the global PROCESS privilege
+  # during schema inspection/migration.
+  #
+  # This service runs after MariaDB becomes healthy and exits.
+  # XWiki waits for this service to complete successfully.
+  xwiki-db-init:
+    image: mariadb:11
+    container_name: brain-xwiki-db-init
+
+    depends_on:
+      xwiki-db:
+        condition: service_healthy
+
+    command:
+      - /bin/sh
+      - -c
+      - >
+        mariadb
+        -h xwiki-db
+        -u root
+        -proot-secret
+        -e "GRANT PROCESS ON *.* TO 'xwiki'@'%'; FLUSH PRIVILEGES;"
+
+    restart: "no"
+
 
   brain-api:
     environment: &xwiki-env
       BRAIN_DOCUMENTATION_XWIKI_ENABLED: "true"
       BRAIN_DOCUMENTATION_XWIKI_URL: http://xwiki:8080
 
+
   brain-worker:
-    environment: *xwiki-env
+    environment:
+      <<: *xwiki-env
+
 
   brain-scheduler:
-    environment: *xwiki-env
+    environment:
+      <<: *xwiki-env
+
 
 volumes:
   brain-xwikidata:

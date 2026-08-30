@@ -1,41 +1,82 @@
 # Optional GitLab overlay (Phase 38).
-# Enable with:  docker compose -f compose.yaml -f compose.gitlab.yaml up -d
-# GitLab provides the merge-request runtime: verified code creates MRs and
-# merge events flow back into Brain knowledge.  The Brain works with the fake
-# PR adapter (offline) or any GitLab-compatible API without changes.
+#
+# Enable with:
+# docker compose -f compose.yaml -f compose.gitlab.yaml up -d
+#
+# GitLab provides the merge-request runtime:
+# verified code creates MRs and merge events flow back into Brain knowledge.
+#
+# Browser:
+#   http://localhost:8929
+#
+# Brain internal Docker access:
+#   http://gitlab:80
+
 services:
+
   gitlab:
     image: gitlab/gitlab-ce:17.4.4-ce.0
     container_name: brain-gitlab
     hostname: gitlab
+
     ports:
       - "8929:80"
+
     environment:
       GITLAB_OMNIBUS_CONFIG: |
         external_url 'http://localhost:8929'
+
+        # external_url contains port 8929 because that is the URL
+        # users access from the host.
+        #
+        # Internally, however, Docker forwards host port 8929
+        # to container port 80, so GitLab NGINX must listen on 80.
+        nginx['listen_port'] = 80
+        nginx['listen_https'] = false
+
         gitlab_rails['initial_root_password'] = 'brain-secret-password'
+
     volumes:
       - brain-gitlab-config:/etc/gitlab
       - brain-gitlab-logs:/var/log/gitlab
       - brain-gitlab-data:/var/opt/gitlab
+
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost/-/readiness || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://localhost:80/-/readiness || exit 1"
+        ]
       interval: 30s
       timeout: 10s
       retries: 10
+      start_period: 60s
+
+    restart: unless-stopped
+
 
   brain-api:
     environment: &gitlab-env
       BRAIN_PULL_REQUEST_PROVIDER: gitlab
+
+      # Docker-network URL, not browser URL.
       BRAIN_PULL_REQUEST_GITLAB_URL: http://gitlab:80
+
+      # Replace with an actual GitLab access token after GitLab setup.
       BRAIN_PULL_REQUEST_GITLAB_API_KEY: brain-gitlab-token
+
       BRAIN_AUTOMATION_AUTO_CREATE_PR: "true"
 
+
   brain-worker:
-    environment: *gitlab-env
+    environment:
+      <<: *gitlab-env
+
 
   brain-scheduler:
-    environment: *gitlab-env
+    environment:
+      <<: *gitlab-env
+
 
 volumes:
   brain-gitlab-config:

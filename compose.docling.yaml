@@ -4,7 +4,7 @@
 # the document-conversion capability becomes AVAILABLE.
 services:
   docling:
-    image: ds4sd/docling-serve:latest
+    image: ghcr.io/ds4sd/docling-serve:latest
     container_name: brain-docling
     ports:
       - "5001:5001"
