@@ -12,8 +12,15 @@ breaking the Brain (Tasks 21.2, 21.3).
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+# The project .env is resolved from the repository root regardless of the
+# process working directory; a ".env" in the CWD still takes precedence.
+ENV_FILES = (PROJECT_ROOT / ".env", ".env")
 
 
 class BrainRuntimeSettings(BaseSettings):
@@ -21,7 +28,7 @@ class BrainRuntimeSettings(BaseSettings):
 
     model_config = SettingsConfigDict(
         env_prefix="BRAIN_",
-        env_file=".env",
+        env_file=ENV_FILES,
         env_file_encoding="utf-8",
         extra="ignore",
     )
@@ -30,7 +37,9 @@ class BrainRuntimeSettings(BaseSettings):
 
 
 class PostgresSettings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="BRAIN_DATABASE_", env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_prefix="BRAIN_DATABASE_", env_file=ENV_FILES, extra="ignore"
+    )
 
     url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/brain"
     echo: bool = False
@@ -40,7 +49,7 @@ class PostgresSettings(BaseSettings):
 
 
 class Neo4jSettings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="BRAIN_NEO4J_", env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_prefix="BRAIN_NEO4J_", env_file=ENV_FILES, extra="ignore")
 
     uri: str = "bolt://localhost:7687"
     user: str = "neo4j"
@@ -49,7 +58,9 @@ class Neo4jSettings(BaseSettings):
 
 
 class WeaviateSettings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="BRAIN_WEAVIATE_", env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_prefix="BRAIN_WEAVIATE_", env_file=ENV_FILES, extra="ignore"
+    )
 
     host: str = "localhost"
     port: int = 8080
@@ -59,7 +70,7 @@ class WeaviateSettings(BaseSettings):
 
 
 class RedisSettings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="BRAIN_REDIS_", env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_prefix="BRAIN_REDIS_", env_file=ENV_FILES, extra="ignore")
 
     url: str = "redis://localhost:6379/0"
     queue_name: str = "brain:commands"
@@ -68,7 +79,7 @@ class RedisSettings(BaseSettings):
 
 class ArtifactStoreSettings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_prefix="BRAIN_ARTIFACTS_", env_file=".env", extra="ignore"
+        env_prefix="BRAIN_ARTIFACTS_", env_file=ENV_FILES, extra="ignore"
     )
 
     provider: str = "local"
@@ -86,6 +97,7 @@ class ProviderCapabilitySettings(BaseSettings):
 
 
 class WorkManagementSettings(ProviderCapabilitySettings):
+    model_config = SettingsConfigDict(extra="ignore", env_prefix="WORKMANAGEMENT_")
     provider: str = "internal"
     base_url: str = ""
     api_key: str = ""
@@ -95,7 +107,7 @@ class WorkManagementSettings(ProviderCapabilitySettings):
 
 class DocumentationSettings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_prefix="BRAIN_DOCUMENTATION_", env_file=".env", extra="ignore"
+        env_prefix="BRAIN_DOCUMENTATION_", env_file=ENV_FILES, extra="ignore"
     )
 
     git_enabled: bool = True
@@ -122,7 +134,9 @@ class SourceControlSettings(ProviderCapabilitySettings):
 
 
 class ExecutorSettings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="BRAIN_EXECUTOR_", env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_prefix="BRAIN_EXECUTOR_", env_file=ENV_FILES, extra="ignore"
+    )
 
     coding_provider: str = "fake"
     pi_url: str = ""
@@ -131,7 +145,7 @@ class ExecutorSettings(BaseSettings):
 
 class VerificationSettings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_prefix="BRAIN_VERIFICATION_", env_file=".env", extra="ignore"
+        env_prefix="BRAIN_VERIFICATION_", env_file=ENV_FILES, extra="ignore"
     )
 
     require_pass_before_pr: bool = True
@@ -140,7 +154,7 @@ class VerificationSettings(BaseSettings):
 
 class AutomationPolicySettings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_prefix="BRAIN_AUTOMATION_", env_file=".env", extra="ignore"
+        env_prefix="BRAIN_AUTOMATION_", env_file=ENV_FILES, extra="ignore"
     )
 
     run_on_assignment: bool = True
@@ -150,7 +164,7 @@ class AutomationPolicySettings(BaseSettings):
 
 class PullRequestSettings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_prefix="BRAIN_PULL_REQUEST_", env_file=".env", extra="ignore"
+        env_prefix="BRAIN_PULL_REQUEST_", env_file=ENV_FILES, extra="ignore"
     )
 
     provider: str = "fake"
@@ -166,7 +180,7 @@ class SecuritySettings(BaseSettings):
     environment or a secrets file only (Task 40.4).
     """
 
-    model_config = SettingsConfigDict(env_prefix="BRAIN_", env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_prefix="BRAIN_", env_file=ENV_FILES, extra="ignore")
 
     api_keys: str = ""
     webhook_openproject_secret: str = ""
@@ -176,7 +190,9 @@ class SecuritySettings(BaseSettings):
 
 
 class HumanApprovalSettings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="BRAIN_APPROVAL_", env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_prefix="BRAIN_APPROVAL_", env_file=ENV_FILES, extra="ignore"
+    )
 
     architecture_changes: bool = True
     database_migrations: bool = True
@@ -191,7 +207,7 @@ class BrainSettings(BaseSettings):
     construction in tests passes fully resolved sub-settings.
     """
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(env_file=ENV_FILES, env_file_encoding="utf-8", extra="ignore")
 
     runtime: BrainRuntimeSettings = Field(default_factory=BrainRuntimeSettings)
     storage_state: PostgresSettings = Field(default_factory=PostgresSettings)

@@ -78,7 +78,7 @@ def verify_webhook(provider: str) -> Callable[..., Awaitable[Request]]:
         if provider == "openproject":
             secret = security.webhook_openproject_secret
             if not secret:
-                raise HTTPException(status_code=_UNAUTHORIZED, detail="webhook not configured")
+                raise HTTPException(status_code=_UNAUTHORIZED, detail=f"webhook not configured {secret=}")
             signature = request.headers.get("X-OpenProject-Signature") or ""
             raw = await request.body()
             expected = "sha256=" + hmac.new(secret.encode("utf-8"), raw, hashlib.sha256).hexdigest()

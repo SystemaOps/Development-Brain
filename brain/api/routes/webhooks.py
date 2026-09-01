@@ -8,6 +8,7 @@ canonical events.
 from __future__ import annotations
 
 from typing import Annotated
+import logging
 
 from fastapi import APIRouter, Depends, Request
 
@@ -23,6 +24,7 @@ from brain.domain.work_items import WorkItem
 from brain.domain.work_management import IntegrationMapping
 
 router = APIRouter()
+LOGGER = logging.getLogger(__name__)
 
 _EVENT_TYPES = {
     "work_package:created": EventType.WORK_ITEM_CREATED,
@@ -39,6 +41,7 @@ async def openproject_webhook(
     del verified
     container: BrainContainer = get_container(request)
     body = await request.json()
+    LOGGER.info(f"openproject_webhook: {request=}")
     event_type_name = str(body.get("eventType") or body.get("event_type") or "")
     work_package = body.get("work_package") or body.get("workPackage") or {}
 

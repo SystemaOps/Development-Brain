@@ -35,13 +35,13 @@ alembic: ## Run alembic upgrade head on brain_migration_test DB
 	@uv run psql "postgresql+asyncpg://postgres:postgres@localhost:5432/brain_migration_test" -c "SELECT version_num FROM alembic_version;"
 
 up: ## Start the reference environment (6 overlay compose files)
-	docker compose -f compose.yaml -f compose.openproject.yaml \
+	docker compose --env-file .env -f compose.yaml -f compose.openproject.yaml \
 		-f compose.xwiki.yaml -f compose.docling.yaml \
 		-f compose.backstage.yaml -f compose.gitlab.yaml up -d
 
 
 down: ## Start the reference environment (6 overlay compose files)
-	docker compose -f compose.yaml -f compose.openproject.yaml \
+	docker compose --env-file .env -f compose.yaml -f compose.openproject.yaml \
 		-f compose.xwiki.yaml -f compose.docling.yaml \
 		-f compose.backstage.yaml -f compose.gitlab.yaml down
 # ---- Runtime targets -------------------------------------------------

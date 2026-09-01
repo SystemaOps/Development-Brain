@@ -2,7 +2,7 @@
 name = "brain"
 version = "0.1.0"
 description = "Software Development Brain: a persistent, version-aware software-engineering intelligence layer."
-requires-python = ">=3.12"
+requires-python = ">=3.12,<4.0.0"
 dependencies = [
     "alembic>=1.13",
     "asyncpg>=0.29",
