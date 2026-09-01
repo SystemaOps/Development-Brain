@@ -25,9 +25,11 @@ from brain.application.authorization import (
 )
 from brain.bootstrap.container import BrainContainer
 from brain.domain.identity_auth import Identity, IdentityRole
+import logging
 
 _UNAUTHORIZED = status.HTTP_401_UNAUTHORIZED
 _FORBIDDEN = status.HTTP_403_FORBIDDEN
+LOGGER = logging.getLogger(__name__)
 
 
 def _extract_key(request: Request) -> str:
@@ -79,11 +81,16 @@ def verify_webhook(provider: str) -> Callable[..., Awaitable[Request]]:
             secret = security.webhook_openproject_secret
             if not secret:
                 raise HTTPException(status_code=_UNAUTHORIZED, detail=f"webhook not configured {secret=}")
-            signature = request.headers.get("X-OpenProject-Signature") or ""
+            signature = request.headers.get("x-op-signature") or ""
+            LOGGER.info(f"{signature=}")
             raw = await request.body()
-            expected = "sha256=" + hmac.new(secret.encode("utf-8"), raw, hashlib.sha256).hexdigest()
+            expected = "sha1=" + hmac.new(
+                secret.encode("utf-8"),
+                raw,
+                hashlib.sha1,
+                ).hexdigest()
             if not hmac.compare_digest(signature, expected):
-                raise HTTPException(status_code=_UNAUTHORIZED, detail="invalid signature")
+                raise HTTPException(status_code=_UNAUTHORIZED, detail=f"invalid signature {signature=} {request.headers=} {raw=}")
         elif provider == "gitlab":
             token = security.webhook_gitlab_token
             if not token:

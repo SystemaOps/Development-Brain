@@ -5,21 +5,13 @@
 # Migration model: a one-shot brain-migrate service runs `alembic upgrade head`
 # once; API/worker/scheduler start only after it completes successfully, so
 # replicas never race migrations.
+# Environment for the brain services is injected from .env.brain (env_file)
+# instead of being written inline.
 services:
   brain-migrate:
     image: brain:latest
     container_name: brain-migrate
-    environment: &brain-env
-      BRAIN_DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/brain
-      BRAIN_NEO4J_URI: bolt://neo4j:7687
-      BRAIN_NEO4J_USER: neo4j
-      BRAIN_NEO4J_PASSWORD: password
-      BRAIN_WEAVIATE_HOST: weaviate
-      BRAIN_WEAVIATE_PORT: "8080"
-      BRAIN_WEAVIATE_GRPC_PORT: "50051"
-      BRAIN_REDIS_URL: redis://redis:6379/0
-      BRAIN_REDIS_PROVIDER: redis
-      BRAIN_ARTIFACTS_PROVIDER: local
+    env_file: .env.brain
     command: ["python", "-m", "brain.bootstrap.migrate"]
     depends_on:
       postgres:
@@ -29,10 +21,7 @@ services:
   brain-api:
     image: brain:latest
     container_name: brain-api
-    environment:
-      <<: *brain-env
-      BRAIN_API_HOST: 0.0.0.0
-      BRAIN_API_PORT: "8000"
+    env_file: .env.brain
     ports:
       - "8000:8000"
     command: ["brain-api"]
@@ -49,8 +38,7 @@ services:
   brain-worker:
     image: brain:latest
     container_name: brain-worker
-    environment:
-      <<: *brain-env
+    env_file: .env.brain
     command: ["brain-worker"]
     depends_on:
       brain-migrate:
@@ -60,9 +48,7 @@ services:
   brain-scheduler:
     image: brain:latest
     container_name: brain-scheduler
-    environment:
-      <<: *brain-env
-      BRAIN_SCHEDULER_INTERVAL: "60"
+    env_file: .env.brain
     command: ["brain-scheduler"]
     depends_on:
       brain-migrate:
