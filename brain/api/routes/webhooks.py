@@ -24,6 +24,8 @@ from brain.domain.work_items import WorkItem
 from brain.domain.work_management import IntegrationMapping
 
 router = APIRouter()
+
+logging.basicConfig(level=logging.INFO)
 LOGGER = logging.getLogger(__name__)
 
 _EVENT_TYPES = {
@@ -41,8 +43,8 @@ async def openproject_webhook(
     del verified
     container: BrainContainer = get_container(request)
     body = await request.json()
-    LOGGER.info(f"openproject_webhook: {request=}")
-    event_type_name = str(body.get("eventType") or body.get("event_type") or "")
+    LOGGER.info(f"openproject_webhook: {body=}")
+    event_type_name = str(body.get("action") or body.get("event_type") or "")
     work_package = body.get("work_package") or body.get("workPackage") or {}
 
     external_id = str(work_package.get("id") or work_package.get("_id") or "")
