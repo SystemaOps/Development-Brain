@@ -59,7 +59,7 @@ def _settings(
         ),
         storage_graph=Neo4jSettings(uri="bolt://localhost:7687"),
         storage_semantic=WeaviateSettings(host="localhost"),
-        storage_queue=RedisSettings(url="redis://localhost:6379/0"),
+        storage_queue=RedisSettings(url="redis://localhost:6379/0", provider="inmemory"),
         work_management=WorkManagementSettings(enabled=False),
         documentation=DocumentationSettings(git_enabled=False, xwiki_enabled=False),
         source_control=SourceControlSettings(enabled=False),
@@ -197,8 +197,8 @@ async def test_merge_event_normalizes_and_enqueues_reingestion() -> None:
             external_type="merge_request",
             namespace="1",
         )
-        revision_event = await service.handle_merge(ref)
-        assert revision_event.event_type == EventType.REPOSITORY_REVISION_CHANGED
+        merged = await service.handle_merge(ref)
+        assert merged.event_type == EventType.PULL_REQUEST_MERGED
 
         events = container.services["events"]
         from brain.adapters.in_memory.event_bus import InMemoryEventBus
@@ -206,6 +206,12 @@ async def test_merge_event_normalizes_and_enqueues_reingestion() -> None:
         assert isinstance(events, InMemoryEventBus)
         types = [e.event_type for e in events.published]
         assert EventType.PULL_REQUEST_MERGED in types
+
+        # The PullRequestMergedHandler applies the consequences: revision
+        # changed + re-ingestion (exercised via apply_merge_consequences).
+        revision_event = await service.apply_merge_consequences(ref)
+        assert revision_event.event_type == EventType.REPOSITORY_REVISION_CHANGED
+        types = [e.event_type for e in events.published]
         assert EventType.REPOSITORY_REVISION_CHANGED in types
 
         # Re-ingestion is enqueued on the command queue.
@@ -270,8 +276,15 @@ async def test_gitlab_webhook_normalizes_merge() -> None:
 
         with patch.object(webhooks, "get_container", fake_get_container):
             result = await webhooks.gitlab_webhook(request, verified=request)
-        assert result["event_type"] == "repository_revision_changed"
+        assert result["event_type"] == "pull_request_merged"
         assert result["external_id"] == "9"
+        # The PullRequestMerged fact reached the bus; the handler enqueues
+        # re-ingestion.
+        events = container.services["events"]
+        from brain.adapters.in_memory.event_bus import InMemoryEventBus
+
+        assert isinstance(events, InMemoryEventBus)
+        assert EventType.PULL_REQUEST_MERGED in [e.event_type for e in events.published]
     finally:
         await container.close()
 

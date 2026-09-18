@@ -11,6 +11,7 @@ PullRequestMerged -> RepositoryRevisionChanged -> re-ingestion enqueued.
 from __future__ import annotations
 
 import logging
+import uuid
 from dataclasses import dataclass, field
 
 from brain.application.observations import ObservationService
@@ -121,7 +122,11 @@ class PullRequestService:
         )
 
     async def handle_merge(self, ref: ExternalReference) -> EventEnvelope:
-        """Task 38.5: merge event -> revision changed -> re-ingestion."""
+        """Task 38.5: merge event -> revision changed -> re-ingestion.
+
+        Publishes the PullRequestMerged fact (the handler decides the
+        consequences: revision-changed + re-ingestion).
+        """
         events = self._events()
         merged = EventEnvelope(
             event_type=EventType.PULL_REQUEST_MERGED,
@@ -132,14 +137,24 @@ class PullRequestService:
                 "namespace": ref.namespace or "",
             },
         )
+        await events.publish(merged)
+        return merged
+
+    async def apply_merge_consequences(
+        self, ref: ExternalReference, correlation_id: uuid.UUID | None = None
+    ) -> EventEnvelope:
+        """Consequences of a merge: revision-changed + re-ingestion.
+
+        Called by the PullRequestMergedHandler, never re-publishes
+        PullRequestMerged (avoids an event -> handler -> event loop).
+        """
+        events = self._events()
         revision_changed = EventEnvelope(
             event_type=EventType.REPOSITORY_REVISION_CHANGED,
-            correlation_id=merged.correlation_id,
-            causation_id=merged.event_id,
+            correlation_id=correlation_id or uuid.uuid4(),
             source="pull_request_service",
             payload={"external_ref": ref.model_dump(mode="json")},
         )
-        await events.publish(merged)
         await events.publish(revision_changed)
         await self._enqueue_reingestion(ref)
         return revision_changed

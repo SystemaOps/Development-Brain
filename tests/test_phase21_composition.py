@@ -38,7 +38,7 @@ def _core_only_settings() -> BrainSettings:
         ),
         storage_graph=Neo4jSettings(uri="bolt://localhost:7687"),
         storage_semantic=WeaviateSettings(host="localhost"),
-        storage_queue=RedisSettings(url="redis://localhost:6379/0"),
+        storage_queue=RedisSettings(url="redis://localhost:6379/0", provider="inmemory"),
         storage_artifacts=ArtifactStoreSettings(provider="local"),
         work_management=WorkManagementSettings(enabled=False),
         documentation=DocumentationSettings(git_enabled=False, xwiki_enabled=False),

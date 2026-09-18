@@ -34,6 +34,9 @@ alembic: ## Run alembic upgrade head on brain_migration_test DB
 	uv run alembic upgrade head 2>&1 | tail -1
 	@uv run psql "postgresql+asyncpg://postgres:postgres@localhost:5432/brain_migration_test" -c "SELECT version_num FROM alembic_version;"
 
+build: ## Start the reference environment (6 overlay compose files)
+	docker build -t brain .
+
 up: ## Start the reference environment (6 overlay compose files)
 	docker compose --env-file .env -f compose.yaml -f compose.openproject.yaml \
 		-f compose.xwiki.yaml -f compose.docling.yaml \

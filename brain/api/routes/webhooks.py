@@ -18,7 +18,6 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Request
 
 from brain.api.auth import verify_webhook
-from brain.api.commands import enqueue_command
 from brain.api.dependencies import get_container
 from brain.application.openproject_parser import (
     OpenProjectWorkItemSnapshot,
@@ -31,7 +30,6 @@ from brain.application.openproject_parser import (
     parse_work_item,
 )
 from brain.bootstrap.container import BrainContainer
-from brain.domain.commands import CommandType, RunWorkItemCommand
 from brain.domain.events import EventEnvelope, EventType
 from brain.domain.external_reference import ExternalReference
 from brain.domain.identity import WorkItemId
@@ -140,13 +138,12 @@ async def _handle_work_package(
         return result
 
     LOGGER.info(f"_handle_work_package: {comment=}")
-    # Task 34.6 + doc §6: trigger coding only when the work package is
-    # assigned to the Brain actor (on creation or an assignee change).
+    # Task 34.6 + doc §6 + event_command_flow: the webhook only reports the
+    # assignment fact (WorkItemAssigned); the WorkItemAssignedHandler decides
+    # the consequence (enqueue RUN_WORK_ITEM).
     assigned_to_brain = _is_assigned_to_brain(container, snapshot.assignee_id)
     newly_assigned = action == "work_package:created" or _has_change(changes, "assignee_changed")
     if assigned_to_brain and newly_assigned and snapshot.external_id and work_item is not None:
-        # Phase 2.2: emit a dedicated WorkItemAssigned typed event so the
-        # assignment fact is observable on the bus.
         from brain.domain.event_types import WorkItemAssigned
         from brain.domain.event_types import model_to_envelope as _m2e
 
@@ -160,13 +157,6 @@ async def _handle_work_package(
                 correlation_id=request.state.correlation_id,
             )
         )
-        accepted = await enqueue_command(
-            container,
-            CommandType.RUN_WORK_ITEM,
-            RunWorkItemCommand(work_item_id=work_item.id),
-            correlation_id=request.state.correlation_id,
-        )
-        result["command_id"] = accepted.command_id
         result["triggered"] = "assignment"
     return result
 
@@ -268,11 +258,17 @@ async def gitlab_webhook(
         external_type="merge_request",
         namespace=str(attributes.get("target_project_id") or ""),
     )
-    service = container.services["pull_request_service"]
-    from brain.application.pull_request_service import PullRequestService
+    # The webhook only reports the PullRequestMerged fact; the
+    # PullRequestMergedHandler decides the consequences (revision changed +
+    # re-ingestion).
+    from brain.domain.event_types import PullRequestMerged, model_to_envelope
 
-    assert isinstance(service, PullRequestService)
-    envelope = await service.handle_merge(ref)
+    envelope = model_to_envelope(
+        PullRequestMerged(external_ref=ref),
+        source="openproject.webhook",
+        correlation_id=request.state.correlation_id,
+    )
+    await container.event_bus.publish(envelope)
     return {
         "accepted": True,
         "event_type": envelope.event_type.value,

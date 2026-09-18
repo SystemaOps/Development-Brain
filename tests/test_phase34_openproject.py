@@ -62,7 +62,7 @@ def _settings(
         ),
         storage_graph=Neo4jSettings(uri="bolt://localhost:7687"),
         storage_semantic=WeaviateSettings(host="localhost"),
-        storage_queue=RedisSettings(url="redis://localhost:6379/0"),
+        storage_queue=RedisSettings(url="redis://localhost:6379/0", provider="inmemory"),
         work_management=work_management or WorkManagementSettings(enabled=False),
         documentation=DocumentationSettings(git_enabled=False, xwiki_enabled=False),
         source_control=SourceControlSettings(enabled=False),
@@ -191,7 +191,16 @@ async def test_assignment_automation_triggers_run_command() -> None:
         assert response.status_code == 200
         body = response.json()
         assert body["triggered"] == "assignment"
-        assert body["command_id"]
+        # The assignment fact reached the bus; the WorkItemAssignedHandler
+        # enqueues the run command (no command_id in the webhook response).
+        assert any(
+            e.event_type.value == "work_item_assigned" for e in app_container.event_bus.published
+        )
+        queue = app_container.services["command_queue"]
+        from brain.ports.commands import CommandQueue
+
+        assert isinstance(queue, CommandQueue)
+        assert await queue.pending_count() >= 1
         # A canonical work item + external mapping were persisted (the webhook
         # creates the work item in whichever project exists; find by ref).
         found = False

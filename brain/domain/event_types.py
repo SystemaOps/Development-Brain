@@ -150,9 +150,13 @@ class PullRequestMerged(CanonicalEvent):
 
 class HumanFeedbackReceived(CanonicalEvent):
     event_type: ClassVar[EventType] = EventType.HUMAN_FEEDBACK_RECEIVED
-    work_item_id: WorkItemId
-    actor_id: ActorId
-    verdict: FeedbackVerdict
+    work_item_id: WorkItemId | None = None
+    actor_id: ActorId | None = None
+    external_actor_id: str | None = None
+    author: str = ""
+    provider: str = "openproject"
+    external_comment_id: str = ""
+    verdict: FeedbackVerdict = FeedbackVerdict.NOTE
     feedback: str = ""
 
 

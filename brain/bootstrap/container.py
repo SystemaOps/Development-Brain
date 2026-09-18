@@ -337,6 +337,28 @@ async def create_brain_container(
     if revision_handler is not None:
         await event_bus.subscribe(EventType.REPOSITORY_REVISION_CHANGED.value, revision_handler)
 
+    # 6c. Consequence handlers (Phase 3 of the event->command flow): these
+    # decide what happens after a fact (assignment -> run, feedback ->
+    # resume, merge -> re-ingest).  Webhooks no longer make these decisions.
+    from brain.application.event_handlers import (
+        HumanFeedbackReceivedHandler,
+        PullRequestMergedHandler,
+        WorkItemAssignedHandler,
+    )
+
+    await event_bus.subscribe(
+        EventType.WORK_ITEM_ASSIGNED.value,
+        WorkItemAssignedHandler(container=container_instance),
+    )
+    await event_bus.subscribe(
+        EventType.HUMAN_FEEDBACK_RECEIVED.value,
+        HumanFeedbackReceivedHandler(container=container_instance),
+    )
+    await event_bus.subscribe(
+        EventType.PULL_REQUEST_MERGED.value,
+        PullRequestMergedHandler(container=container_instance),
+    )
+
     # Backstage reconciliation service (Phase 36): declared vs discovered.
     from brain.adapters.catalog.backstage import BackstageCatalogAdapter
     from brain.application.backstage_reconciliation import (

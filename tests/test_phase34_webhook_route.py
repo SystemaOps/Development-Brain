@@ -61,7 +61,7 @@ def _settings(
         ),
         storage_graph=Neo4jSettings(uri="bolt://localhost:7687"),
         storage_semantic=WeaviateSettings(host="localhost"),
-        storage_queue=RedisSettings(url="redis://localhost:6379/0"),
+        storage_queue=RedisSettings(url="redis://localhost:6379/0", provider="inmemory"),
         work_management=work_management or WorkManagementSettings(enabled=False),
         documentation=DocumentationSettings(git_enabled=False, xwiki_enabled=False),
         source_control=SourceControlSettings(enabled=False),
@@ -138,9 +138,18 @@ async def test_updated_work_package_reports_semantic_changes() -> None:
         body = second.json()
         assert body["event_type"] == "work_item_changed"
         assert "assignee_changed" in body["changes"]
-        # Assignment automation fires: created absent → now assigned to brain.
+        # The webhook reports the assignment fact; the WorkItemAssignedHandler
+        # enqueues the run command.
         assert body["triggered"] == "assignment"
-        assert body["command_id"]
+        assert any(
+            e.event_type.value == "work_item_assigned" for e in app_container.event_bus.published
+        )
+        queue = app_container.services["command_queue"]
+        from brain.ports.commands import CommandQueue
+
+        assert isinstance(queue, CommandQueue)
+        pending = await queue.pending_count()
+        assert pending >= 1
 
 
 async def test_bare_update_without_assignee_change_triggers_nothing() -> None:

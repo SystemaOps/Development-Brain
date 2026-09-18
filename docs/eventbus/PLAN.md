@@ -77,7 +77,7 @@ provider-side identities without fabricating canonical ids.
 
 ---
 
-## Phase 3 — Event handlers decide consequences (fixes D1, D5, D6, D7)
+## Phase 3 — Event handlers decide consequences (fixes D1, D5, D6, D7) ✅ implemented
 
 New `brain/application/event_handlers.py`:
 
@@ -118,6 +118,20 @@ async def openproject_webhook(...):
 - Remove `_find_or_create_work_item` persistence (move into handler)
 - GitLab route: publish `PULL_REQUEST_MERGED` fact; `PullRequestMergedHandler`
   calls `handle_merge` consequences
+
+Status: done —
+- `WorkItemAssignedHandler` enqueues `RUN_WORK_ITEM` (trigger EVENT) when a
+  `WorkItemAssigned` fact is on the bus; the webhook now only publishes the
+  fact and no longer calls `enqueue_command`.
+- `HumanFeedbackReceivedHandler` calls `resume_workflow` on the feedback fact;
+  `HumanFeedbackService` was refactored so resume no longer re-emits the fact
+  (no event -> handler -> event loop); feedback facts are now typed
+  `HumanFeedbackReceived` envelopes.
+- `PullRequestMergedHandler` calls `apply_merge_consequences` (publishes
+  `RepositoryRevisionChanged` + enqueues `SYNC_REPOSITORY`); the GitLab route
+  now publishes only the `PullRequestMerged` fact. `handle_merge` was split
+  into fact + consequences.
+- All three handlers subscribed in `create_brain_container`.
 
 ---
 

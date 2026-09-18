@@ -11,7 +11,7 @@ from __future__ import annotations
 import logging
 import uuid
 
-from brain.domain.events import EventEnvelope, EventType
+from brain.domain.event_types import FeedbackVerdict
 from brain.domain.human_activity import HumanFeedback
 from brain.domain.identity import WorkItemId
 from brain.ports.context import ContextCapsuleRepository
@@ -70,7 +70,22 @@ class HumanFeedbackService:
         *,
         verdict: str = "note",
     ) -> dict[str, object]:
-        """Apply feedback: store, invalidate stale context, resume (Task 27.8)."""
+        """Apply feedback: store, invalidate stale context, resume (Task 27.8).
+
+        The ``HumanFeedbackReceived`` fact is emitted by ``receive``; handlers
+        apply the consequence here.  ``emit`` must stay ``False`` when this is
+        invoked from a ``HumanFeedbackReceived`` handler to avoid re-triggering
+        the bus (event -> handler -> event loop).
+        """
+        return await self._resume(feedback, verdict=verdict, emit=False)
+
+    async def _resume(
+        self,
+        feedback: HumanFeedback,
+        *,
+        verdict: str,
+        emit: bool,
+    ) -> dict[str, object]:
         if feedback.work_item_id is None:
             return {"status": "no_work_item"}
 
@@ -83,7 +98,8 @@ class HumanFeedbackService:
         for capsule in await self._capsules.list_capsules_for_work_item(work_item_id):
             await self._capsules.delete_capsule(capsule.id)
 
-        await self._emit(feedback, verdict=verdict)
+        if emit:
+            await self._emit(feedback, verdict=verdict)
         return {
             "work_item_id": feedback.work_item_id,
             "status": "resumed",
@@ -91,18 +107,25 @@ class HumanFeedbackService:
         }
 
     async def _emit(self, feedback: HumanFeedback, *, verdict: str) -> None:
-        envelope = EventEnvelope(
-            event_type=EventType.HUMAN_FEEDBACK_RECEIVED,
-            correlation_id=uuid.uuid4(),
+        from brain.domain.event_types import HumanFeedbackReceived, model_to_envelope
+
+        try:
+            feedback_verdict = FeedbackVerdict(verdict)
+        except ValueError:
+            feedback_verdict = FeedbackVerdict.NOTE
+        envelope = model_to_envelope(
+            HumanFeedbackReceived(
+                work_item_id=WorkItemId(feedback.work_item_id)
+                if feedback.work_item_id is not None
+                else None,
+                author=feedback.author,
+                provider=feedback.provider,
+                external_comment_id=feedback.external_comment_id,
+                verdict=feedback_verdict,
+                feedback=feedback.message,
+            ),
             source=f"brain.human_feedback.{feedback.provider}",
-            payload={
-                "author": feedback.author,
-                "provider": feedback.provider,
-                "external_comment_id": feedback.external_comment_id,
-                "work_item_id": str(feedback.work_item_id) if feedback.work_item_id else None,
-                "message": feedback.message,
-                "verdict": verdict,
-            },
+            correlation_id=uuid.uuid4(),
         )
         await self._event_bus.publish(envelope)
 
