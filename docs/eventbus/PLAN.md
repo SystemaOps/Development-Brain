@@ -135,7 +135,7 @@ Status: done —
 
 ---
 
-## Phase 4 — Tests
+## Phase 4 — Tests ✅ implemented
 
 - `tests/test_phase34_webhook_route.py`: webhook now asserts events published
   and `command_id` absent from route response (command enqueued by handler)
@@ -146,6 +146,18 @@ Status: done —
   - dedup: same idempotency key processed once
   - event log appended per processed event
 - Existing suite stays green (route tests updated for the fact-only contract)
+
+Status: done —
+- `tests/test_event_handlers.py` (5 tests, in-memory, no DB): assignment
+  handler enqueues `RUN_WORK_ITEM` with the right payload and ignores other
+  events; feedback handler resumes (capsules invalidated) without re-emitting
+  the fact; PR-merged handler publishes `RepositoryRevisionChanged` (not a
+  second `PullRequestMerged`) and enqueues `SYNC_REPOSITORY`; composition root
+  subscribes all three handlers.
+- Dedup + event-log coverage lives in `tests/test_phase_event_chain.py`
+  (duplicate idempotency key skipped; processed events appended to the log).
+- Route tests assert facts only: no `command_id` in the webhook response;
+  the queue is checked via `pending_count` instead.
 
 ---
 
