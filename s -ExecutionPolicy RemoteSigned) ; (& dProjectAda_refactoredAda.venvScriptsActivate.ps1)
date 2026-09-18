@@ -1,0 +1,332 @@
+warning: in the working copy of 'brain/api/routes/webhooks.py', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/brain/api/auth.py b/brain/api/auth.py[m
+[1mindex f842d09..854875b 100644[m
+[1m--- a/brain/api/auth.py[m
+[1m+++ b/brain/api/auth.py[m
+[36m@@ -12,6 +12,7 @@[m [mfrom __future__ import annotations[m
+ [m
+ import hashlib[m
+ import hmac[m
+[32m+[m[32mimport logging[m
+ from collections.abc import Awaitable, Callable[m
+ from typing import Annotated[m
+ [m
+[36m@@ -25,7 +26,6 @@[m [mfrom brain.application.authorization import ([m
+ )[m
+ from brain.bootstrap.container import BrainContainer[m
+ from brain.domain.identity_auth import Identity, IdentityRole[m
+[31m-import logging[m
+ [m
+ _UNAUTHORIZED = status.HTTP_401_UNAUTHORIZED[m
+ _FORBIDDEN = status.HTTP_403_FORBIDDEN[m
+[36m@@ -80,17 +80,25 @@[m [mdef verify_webhook(provider: str) -> Callable[..., Awaitable[Request]]:[m
+         if provider == "openproject":[m
+             secret = security.webhook_openproject_secret[m
+             if not secret:[m
+[31m-                raise HTTPException(status_code=_UNAUTHORIZED, detail=f"webhook not configured {secret=}")[m
+[32m+[m[32m                raise HTTPException([m
+[32m+[m[32m                    status_code=_UNAUTHORIZED, detail=f"webhook not configured {secret=}"[m
+[32m+[m[32m                )[m
+             signature = request.headers.get("x-op-signature") or ""[m
+             LOGGER.info(f"{signature=}")[m
+             raw = await request.body()[m
+[31m-            expected = "sha1=" + hmac.new([m
+[31m-                secret.encode("utf-8"),[m
+[31m-                raw,[m
+[31m-                hashlib.sha1,[m
+[32m+[m[32m            expected = ([m
+[32m+[m[32m                "sha1="[m
+[32m+[m[32m                + hmac.new([m
+[32m+[m[32m                    secret.encode("utf-8"),[m
+[32m+[m[32m                    raw,[m
+[32m+[m[32m                    hashlib.sha1,[m
+                 ).hexdigest()[m
+[32m+[m[32m            )[m
+             if not hmac.compare_digest(signature, expected):[m
+[31m-                raise HTTPException(status_code=_UNAUTHORIZED, detail=f"invalid signature {signature=} {request.headers=} {raw=}")[m
+[32m+[m[32m                raise HTTPException([m
+[32m+[m[32m                    status_code=_UNAUTHORIZED,[m
+[32m+[m[32m                    detail=f"invalid signature {signature=} {request.headers=} {raw=}",[m
+[32m+[m[32m                )[m
+         elif provider == "gitlab":[m
+             token = security.webhook_gitlab_token[m
+             if not token:[m
+[1mdiff --git a/brain/api/routes/webhooks.py b/brain/api/routes/webhooks.py[m
+[1mindex 7c355de..04ff743 100644[m
+[1m--- a/brain/api/routes/webhooks.py[m
+[1m+++ b/brain/api/routes/webhooks.py[m
+[36m@@ -1,20 +1,33 @@[m
+[31m-"""OpenProject webhook routes (Phase 34).[m
+[32m+[m[32m"""OpenProject webhook routes (Phase 34, refactored).[m
+ [m
+[31m-Provider-specific input route: immediately validates and normalizes the[m
+[31m-payload to canonical events (Task 34.3).  The rest of the Brain only sees[m
+[31m-canonical events.[m
+[32m+[m[32mProvider-specific input route: immediately validates, parses and normalizes[m
+[32m+[m[32mthe payload to canonical events (Task 34.3).  The rest of the Brain only sees[m
+[32m+[m[32mcanonical events — never OpenProject ``_embedded`` / ``_links`` structures.[m
+[32m+[m
+[32m+[m[32mParsing follows ``docs/webhook/OPENPROJECT_WEBHOOK_PARSING_CONCISE.md`` and is[m
+[32m+[m[32mverified against the real payloads in ``docs/webhook/data.txt``:[m
+[32m+[m[32m``action`` is the discriminator; work items are normalized into snapshots and[m
+[32m+[m[32mdiffed against the previous snapshot to emit semantic changes (doc §14).[m
+ """[m
+ [m
+ from __future__ import annotations[m
+ [m
+ from typing import Annotated[m
+[31m-import logging[m
+ [m
+ from fastapi import APIRouter, Depends, Request[m
+ [m
+ from brain.api.auth import verify_webhook[m
+ from brain.api.commands import enqueue_command[m
+ from brain.api.dependencies import get_container[m
+[32m+[m[32mfrom brain.application.openproject_parser import ([m
+[32m+[m[32m    SemanticChange,[m
+[32m+[m[32m    diff_snapshots,[m
+[32m+[m[32m    event_type_for_action,[m
+[32m+[m[32m    parse_action,[m
+[32m+[m[32m    parse_attachment,[m
+[32m+[m[32m    parse_project,[m
+[32m+[m[32m    parse_work_item,[m
+[32m+[m[32m)[m
+ from brain.bootstrap.container import BrainContainer[m
+ from brain.domain.commands import CommandType, RunWorkItemCommand[m
+ from brain.domain.events import EventEnvelope, EventType[m
+[36m@@ -25,41 +38,74 @@[m [mfrom brain.domain.work_management import IntegrationMapping[m
+ [m
+ router = APIRouter()[m
+ [m
+[31m-logging.basicConfig(level=logging.INFO)[m
+[31m-LOGGER = logging.getLogger(__name__)[m
+[31m-[m
+[31m-_EVENT_TYPES = {[m
+[31m-    "work_package:created": EventType.WORK_ITEM_CREATED,[m
+[31m-    "work_package:updated": EventType.WORK_ITEM_CHANGED,[m
+[31m-}[m
+[31m-[m
+ [m
+ @router.post("/api/v1/webhooks/openproject")[m
+ async def openproject_webhook([m
+     request: Request,[m
+     verified: Annotated[Request, Depends(verify_webhook("openproject"))],[m
+ ) -> dict[str, object]:[m
+[31m-    """Normalize an OpenProject webhook to a canonical event (40.3 auth)."""[m
+[32m+[m[32m    """Parse an OpenProject webhook and dispatch by ``action`` (40.3 auth)."""[m
+     del verified[m
+     container: BrainContainer = get_container(request)[m
+     body = await request.json()[m
+[31m-    LOGGER.info(f"openproject_webhook: {body=}")[m
+[31m-    event_type_name = str(body.get("action") or body.get("event_type") or "")[m
+[31m-    work_package = body.get("work_package") or body.get("workPackage") or {}[m
+ [m
+[31m-    external_id = str(work_package.get("id") or work_package.get("_id") or "")[m
+[31m-    event_type = _EVENT_TYPES.get(event_type_name, EventType.WORK_ITEM_CHANGED)[m
+[32m+[m[32m    action = parse_action(body)[m
+[32m+[m[32m    if not action:[m
+[32m+[m[32m        return {"accepted": False, "error": "missing action"}[m
+[32m+[m
+[32m+[m[32m    if action.startswith("work_package:"):[m
+[32m+[m[32m        return await _handle_work_package(container, request, action, body)[m
+[32m+[m
+[32m+[m[32m    if action.startswith("project:"):[m
+[32m+[m[32m        return await _handle_project(container, request, body)[m
+[32m+[m
+[32m+[m[32m    if action.startswith("attachment:"):[m
+[32m+[m[32m        return await _handle_attachment(container, request, body)[m
+[32m+[m
+[32m+[m[32m    return {"accepted": True, "event_type": "ignored", "action": action}[m
+[32m+[m
+[32m+[m
+[32m+[m[32masync def _handle_work_package([m
+[32m+[m[32m    container: BrainContainer,[m
+[32m+[m[32m    request: Request,[m
+[32m+[m[32m    action: str,[m
+[32m+[m[32m    body: dict[str, object],[m
+[32m+[m[32m) -> dict[str, object]:[m
+[32m+[m[32m    """Normalize a work-package event, diff it and trigger workflows."""[m
+[32m+[m[32m    snapshot = parse_work_item(body)[m
+[32m+[m[32m    if snapshot is None:[m
+[32m+[m[32m        return {"accepted": False, "error": "no work_package"}[m
+[32m+[m
+[32m+[m[32m    previous = await container.openproject_snapshots.get(snapshot.external_id)[m
+[32m+[m[32m    changes = diff_snapshots(previous, snapshot)[m
+[32m+[m[32m    await container.openproject_snapshots.save(snapshot)[m
+ [m
+[32m+[m[32m    event_type = event_type_for_action(action) or EventType.WORK_ITEM_CHANGED[m
+     envelope = EventEnvelope([m
+         event_type=event_type,[m
+         correlation_id=request.state.correlation_id,[m
+         source="openproject.webhook",[m
+         payload={[m
+             "provider": "openproject",[m
+[31m-            "external_id": external_id,[m
+[31m-            "subject": work_package.get("subject", ""),[m
+[31m-            "status": work_package.get("status", ""),[m
+[31m-            "assignee": _assignee_id(work_package),[m
+[32m+[m[32m            "external_id": snapshot.external_id,[m
+[32m+[m[32m            "subject": snapshot.summary,[m
+[32m+[m[32m            "status": snapshot.state,[m
+[32m+[m[32m            "assignee": snapshot.assignee_id,[m
+[32m+[m[32m            "changes": [change.value for change in changes],[m
+[32m+[m[32m            "snapshot": {[m
+[32m+[m[32m                "type": snapshot.type,[m
+[32m+[m[32m                "priority": snapshot.priority,[m
+[32m+[m[32m                "closed": snapshot.closed,[m
+[32m+[m[32m                "project_id": snapshot.project_id,[m
+[32m+[m[32m                "project_name": snapshot.project_name,[m
+[32m+[m[32m                "assignee_name": snapshot.assignee_name,[m
+[32m+[m[32m                "parent_id": snapshot.parent_id,[m
+[32m+[m[32m                "attachments": snapshot.attachments,[m
+[32m+[m[32m                "relations": snapshot.relations,[m
+[32m+[m[32m                "activities_url": snapshot.activities_url,[m
+[32m+[m[32m                "created_at": snapshot.created_at,[m
+[32m+[m[32m                "updated_at": snapshot.updated_at,[m
+[32m+[m[32m            },[m
+         },[m
+     )[m
+     await container.event_bus.publish(envelope)[m
+[36m@@ -67,22 +113,23 @@[m [masync def openproject_webhook([m
+     result: dict[str, object] = {[m
+         "accepted": True,[m
+         "event_type": event_type.value,[m
+[31m-        "external_id": external_id,[m
+[32m+[m[32m        "external_id": snapshot.external_id,[m
+[32m+[m[32m        "changes": [change.value for change in changes],[m
+     }[m
+ [m
+[31m-    # Task 34.8: a human reply (comment activity) normalizes to[m
+[31m-    # HumanFeedbackReceived.[m
+[32m+[m[32m    # Task 34.8: a human reply normalizes to HumanFeedbackReceived.[m
+     comment = _extract_comment(body)[m
+     if comment is not None:[m
+[31m-        feedback_result = await _normalize_human_comment(container, external_id, comment)[m
+[32m+[m[32m        feedback_result = await _normalize_human_comment(container, snapshot.external_id, comment)[m
+         result["feedback"] = feedback_result[m
+         return result[m
+ [m
+[31m-    # Task 34.6: assignment automation.  If the package was assigned to the[m
+[31m-    # Brain actor, enqueue RunWorkItemCommand.[m
+[31m-    assigned_to_brain = _is_assigned_to_brain(container, work_package)[m
+[31m-    if assigned_to_brain and external_id:[m
+[31m-        work_item = await _find_or_create_work_item(container, envelope, external_id)[m
+[32m+[m[32m    # Task 34.6 + doc §6: trigger coding only when the work package is[m
+[32m+[m[32m    # assigned to the Brain actor (on creation or an assignee change).[m
+[32m+[m[32m    assigned_to_brain = _is_assigned_to_brain(container, snapshot.assignee_id)[m
+[32m+[m[32m    newly_assigned = action == "work_package:created" or _has_change(changes, "assignee_changed")[m
+[32m+[m[32m    if assigned_to_brain and newly_assigned and snapshot.external_id:[m
+[32m+[m[32m        work_item = await _find_or_create_work_item(container, envelope, snapshot.external_id)[m
+         if work_item is not None:[m
+             accepted = await enqueue_command([m
+                 container,[m
+[36m@@ -95,6 +142,70 @@[m [masync def openproject_webhook([m
+     return result[m
+ [m
+ [m
+[32m+[m[32masync def _handle_project([m
+[32m+[m[32m    container: BrainContainer,[m
+[32m+[m[32m    request: Request,[m
+[32m+[m[32m    body: dict[str, object],[m
+[32m+[m[32m) -> dict[str, object]:[m
+[32m+[m[32m    """Normalize a project event and publish PROJECT_CHANGED."""[m
+[32m+[m[32m    project = parse_project(body)[m
+[32m+[m[32m    if not project:[m
+[32m+[m[32m        return {"accepted": False, "error": "no project"}[m
+[32m+[m
+[32m+[m[32m    envelope = EventEnvelope([m
+[32m+[m[32m        event_type=EventType.PROJECT_CHANGED,[m
+[32m+[m[32m        correlation_id=request.state.correlation_id,[m
+[32m+[m[32m        source="openproject.webhook",[m
+[32m+[m[32m        payload={[m
+[32m+[m[32m            "provider": "openproject",[m
+[32m+[m[32m            "external_id": project["external_id"],[m
+[32m+[m[32m            "name": project["name"],[m
+[32m+[m[32m            "identifier": project["identifier"],[m
+[32m+[m[32m            "active": project["active"],[m
+[32m+[m[32m            "parent_id": project["parent_id"],[m
+[32m+[m[32m        },[m
+[32m+[m[32m    )[m
+[32m+[m[32m    await container.event_bus.publish(envelope)[m
+[32m+[m[32m    return {[m
+[32m+[m[32m        "accepted": True,[m
+[32m+[m[32m        "event_type": EventType.PROJECT_CHANGED.value,[m
+[32m+[m[32m        "external_id": project["external_id"],[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m
+[32m+[m[32masync def _handle_attachment([m
+[32m+[m[32m    container: BrainContainer,[m
+[32m+[m[32m    request: Request,[m
+[32m+[m[32m    body: dict[str, object],[m
+[32m+[m[32m) -> dict[str, object]:[m
+[32m+[m[32m    """Normalize an attachment event and publish ATTACHMENT_CREATED."""[m
+[32m+[m[32m    attachment = parse_attachment(body)[m
+[32m+[m[32m    if not attachment:[m
+[32m+[m[32m        return {"accepted": False, "error": "no attachment"}[m
+[32m+[m
+[32m+[m[32m    envelope = EventEnvelope([m
+[32m+[m[32m        event_type=EventType.ATTACHMENT_CREATED,[m
+[32m+[m[32m        correlation_id=request.state.correlation_id,[m
+[32m+[m[32m        source="openproject.webhook",[m
+[32m+[m[32m        payload={[m
+[32m+[m[32m            "provider": "openproject",[m
+[32m+[m[32m            "external_id": attachment["external_id"],[m
+[32m+[m[32m            "file_name": attachment["file_name"],[m
+[32m+[m[32m            "content_type": attachment["content_type"],[m
+[32m+[m[32m            "file_size": attachment["file_size"],[m
+[32m+[m[32m            "download_url": attachment["download_url"],[m
+[32m+[m[32m            "work_item_id": attachment["work_item_id"],[m
+[32m+[m[32m        },[m
+[32m+[m[32m    )[m
+[32m+[m[32m    await container.event_bus.publish(envelope)[m
+[32m+[m[32m    return {[m
+[32m+[m[32m        "accepted": True,[m
+[32m+[m[32m        "event_type": EventType.ATTACHMENT_CREATED.value,[m
+[32m+[m[32m        "external_id": attachment["external_id"],[m
+[32m+[m[32m        "work_item_id": attachment["work_item_id"],[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m
+ @router.post("/api/v1/webhooks/gitlab")[m
+ async def gitlab_webhook([m
+     request: Request,[m
+[36m@@ -136,6 +247,10 @@[m [masync def gitlab_webhook([m
+     }[m
+ [m
+ [m
+[32m+[m[32mdef _has_change(changes: list[SemanticChange], value: str) -> bool:[m
+[32m+[m[32m    return any(change.value == value for change in changes)[m
+[32m+[m
+[32m+[m
+ def _extract_comment(body: dict[str, object]) -> dict[str, object] | None:[m
+     """Extract a comment/activity payload from an OpenProject webhook, if any."""[m
+     comment = body.get("comment")[m
+[36m@@ -199,20 +314,11 @@[m [masync def _work_item_id_for_external([m
+     return None[m
+ [m
+ [m
+[31m-def _assignee_id(work_package: dict[str, object]) -> str:[m
+[31m-    assignee = work_package.get("assignee") or {}[m
+[31m-    if isinstance(assignee, dict):[m
+[31m-        href = str(assignee.get("href", ""))[m
+[31m-        if href:[m
+[31m-            return href.rsplit("/", 1)[-1][m
+[31m-    return ""[m
+[31m-[m
+[31m-[m
+[31m-def _is_assigned_to_brain(container: BrainContainer, work_package: dict[str, object]) -> bool:[m
+[32m+[m[32mdef _is_assigned_to_brain(container: BrainContainer, assignee_id: str | None) -> bool:[m
+     brain_actor = container.settings.work_management.brain_actor_id[m
+     if not brain_actor:[m
+         return False[m
+[31m-    return _assignee_id(work_package) == str(brain_actor)[m
+[32m+[m[32m    return bool(assignee_id) and str(assignee_id) == str(brain_actor)[m
+ [m
+ [m
+ async def _find_or_create_work_item([m
+[1mdiff --git a/brain/application/__init__.py b/brain/application/__init__.py[m
+[1mindex 34b7f64..b79c993 100644[m
+[1m--- a/brain/application/__init__.py[m
+[1m+++ b/brain/application/__init__.py[m
+[36m@@ -51,6 +51,17 @@[m [mfrom brain.app

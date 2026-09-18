@@ -1,0 +1,350 @@
+{
+  "action": "attachment:created",
+  "attachment": {
+    "_type": "Attachment",
+    "id": 3,
+    "fileName": "Screenshot_2026-04-27_224250.png",
+    "fileSize": 16026,
+    "description": {
+      "format": "plain",
+      "raw": "",
+      "html": ""
+    },
+    "status": "uploaded",
+    "contentType": "image/png",
+    "digest": {
+      "algorithm": "md5",
+      "hash": "1e5f7bebe0ce898e27aef098ad3138f3"
+    },
+    "createdAt": "2026-09-01T12:01:57.838Z",
+    "_embedded": {
+      "author": {
+        "_type": "User",
+        "id": 4,
+        "name": "OpenProject Admin",
+        "createdAt": "2026-09-01T08:25:22.120Z",
+        "updatedAt": "2026-09-01T08:39:29.320Z",
+        "login": "admin",
+        "admin": true,
+        "firstName": "OpenProject",
+        "lastName": "Admin",
+        "email": "admin@example.net",
+        "avatar": "http://gravatar.com/avatar/cb4f282fed12016bd18a879c1f27ff97?default=404&secure=false",
+        "status": "active",
+        "identityUrl": null,
+        "language": "en",
+        "_links": {
+          "self": {
+            "href": "/api/v3/users/4",
+            "title": "OpenProject Admin"
+          },
+          "memberships": {
+            "href": "/api/v3/memberships?filters=%5B%7B%22principal%22%3A%7B%22operator%22%3A%22%3D%22%2C%22values%22%3A%5B%224%22%5D%7D%7D%5D",
+            "title": "Memberships"
+          },
+          "showUser": {
+            "href": "/users/4",
+            "type": "text/html"
+          },
+          "updateImmediately": {
+            "href": "/api/v3/users/4",
+            "title": "Update admin",
+            "method": "patch"
+          },
+          "lock": {
+            "href": "/api/v3/users/4/lock",
+            "title": "Set lock on admin",
+            "method": "post"
+          },
+          "delete": {
+            "href": "/api/v3/users/4",
+            "title": "Delete admin",
+            "method": "delete"
+          }
+        }
+      },
+      "container": {
+        "_type": "WorkPackage",
+        "id": 43,
+        "lockVersion": 1,
+        "subject": "test",
+        "description": {
+          "format": "markdown",
+          "raw": "Description",
+          "html": "<p class=\"op-uc-p\">Description</p>"
+        },
+        "scheduleManually": true,
+        "startDate": null,
+        "dueDate": null,
+        "derivedStartDate": null,
+        "derivedDueDate": null,
+        "estimatedTime": null,
+        "derivedEstimatedTime": null,
+        "derivedRemainingTime": null,
+        "duration": null,
+        "ignoreNonWorkingDays": false,
+        "spentTime": "PT0S",
+        "percentageDone": null,
+        "derivedPercentageDone": null,
+        "createdAt": "2026-09-01T12:01:07.843Z",
+        "updatedAt": "2026-09-01T12:01:57.858Z",
+        "laborCosts": "0.00 EUR",
+        "materialCosts": "0.00 EUR",
+        "overallCosts": "0.00 EUR",
+        "_links": {
+          "attachments": {
+            "href": "/api/v3/work_packages/43/attachments"
+          },
+          "addAttachment": {
+            "href": "/api/v3/work_packages/43/attachments",
+            "method": "post"
+          },
+          "fileLinks": {
+            "href": "/api/v3/work_packages/43/file_links"
+          },
+          "addFileLink": {
+            "href": "/api/v3/work_packages/43/file_links",
+            "method": "post"
+          },
+          "self": {
+            "href": "/api/v3/work_packages/43",
+            "title": "test"
+          },
+          "update": {
+            "href": "/api/v3/work_packages/43/form",
+            "method": "post"
+          },
+          "schema": {
+            "href": "/api/v3/work_packages/schemas/8-1"
+          },
+          "updateImmediately": {
+            "href": "/api/v3/work_packages/43",
+            "method": "patch"
+          },
+          "delete": {
+            "href": "/api/v3/work_packages/43",
+            "method": "delete"
+          },
+          "logTime": {
+            "href": "/api/v3/time_entries",
+            "title": "Log time on work package 'test'"
+          },
+          "move": {
+            "href": "/work_packages/43/move/new",
+            "type": "text/html",
+            "title": "Move work package 'test'"
+          },
+          "copy": {
+            "href": "/work_packages/43/copy",
+            "type": "text/html",
+            "title": "Copy work package 'test'"
+          },
+          "pdf": {
+            "href": "/work_packages/43.pdf",
+            "type": "application/pdf",
+            "title": "Export as PDF"
+          },
+          "generate_pdf": {
+            "href": "/work_packages/43/generate_pdf_dialog",
+            "type": "text/vnd.turbo-stream.html",
+            "title": "Generate PDF"
+          },
+          "atom": {
+            "href": "/work_packages/43.atom",
+            "type": "application/rss+xml",
+            "title": "Atom feed"
+          },
+          "availableRelationCandidates": {
+            "href": "/api/v3/work_packages/43/available_relation_candidates",
+            "title": "Potential work packages to relate to"
+          },
+          "customFields": {
+            "href": "/projects/infrastructure/settings/custom_fields",
+            "type": "text/html",
+            "title": "Custom fields"
+          },
+          "configureForm": {
+            "href": "/types/1/form_configuration/edit",
+            "type": "text/html",
+            "title": "Configure form"
+          },
+          "activities": {
+            "href": "/api/v3/work_packages/43/activities"
+          },
+          "availableWatchers": {
+            "href": "/api/v3/work_packages/43/available_watchers"
+          },
+          "relations": {
+            "href": "/api/v3/work_packages/43/relations"
+          },
+          "revisions": {
+            "href": "/api/v3/work_packages/43/revisions"
+          },
+          "watchers": {
+            "href": "/api/v3/work_packages/43/watchers"
+          },
+          "addWatcher": {
+            "href": "/api/v3/work_packages/43/watchers",
+            "method": "post",
+            "payload": {
+              "user": {
+                "href": "/api/v3/users/{user_id}"
+              }
+            },
+            "templated": true
+          },
+          "removeWatcher": {
+            "href": "/api/v3/work_packages/43/watchers/{user_id}",
+            "method": "delete",
+            "templated": true
+          },
+          "addRelation": {
+            "href": "/api/v3/work_packages/43/relations",
+            "method": "post",
+            "title": "Add relation"
+          },
+          "addChild": {
+            "href": "/api/v3/projects/infrastructure/work_packages",
+            "method": "post",
+            "title": "Add child of test"
+          },
+          "changeParent": {
+            "href": "/api/v3/work_packages/43",
+            "method": "patch",
+            "title": "Change parent of test"
+          },
+          "addComment": {
+            "href": "/api/v3/work_packages/43/activities",
+            "method": "post",
+            "title": "Add comment"
+          },
+          "previewMarkup": {
+            "href": "/api/v3/render/markdown?context=/api/v3/work_packages/43",
+            "method": "post"
+          },
+          "timeEntries": {
+            "href": "/api/v3/time_entries?filters=%5B%7B%22entity_type%22%3A%7B%22operator%22%3A%22%3D%22%2C%22values%22%3A%5B%22WorkPackage%22%5D%7D%7D%2C%7B%22entity_id%22%3A%7B%22operator%22%3A%22%3D%22%2C%22values%22%3A%5B%2243%22%5D%7D%7D%5D",
+            "title": "Time entries"
+          },
+          "ancestors": [],
+          "category": {
+            "href": null
+          },
+          "type": {
+            "href": "/api/v3/types/1",
+            "title": "Task"
+          },
+          "priority": {
+            "href": "/api/v3/priorities/9",
+            "title": "High"
+          },
+          "project": {
+            "href": "/api/v3/projects/8",
+            "title": "Infrastructure"
+          },
+          "projectPhase": {
+            "href": null,
+            "title": null
+          },
+          "projectPhaseDefinition": {
+            "href": null,
+            "title": null
+          },
+          "status": {
+            "href": "/api/v3/statuses/1",
+            "title": "New"
+          },
+          "author": {
+            "href": "/api/v3/users/4",
+            "title": "OpenProject Admin"
+          },
+          "responsible": {
+            "href": null
+          },
+          "assignee": {
+            "href": null
+          },
+          "version": {
+            "href": null
+          },
+          "parent": {
+            "href": null,
+            "title": null
+          },
+          "customActions": [],
+          "logCosts": {
+            "href": "/work_packages/43/cost_entries/new",
+            "type": "text/html",
+            "title": "Log costs on test"
+          },
+          "showCosts": {
+            "href": "/projects/8/cost_reports?fields%5B%5D=WorkPackageId&operators%5BWorkPackageId%5D=%3D&set_filter=1&values%5BWorkPackageId%5D=43",
+            "type": "text/html",
+            "title": "Show cost entries"
+          },
+          "costsByType": {
+            "href": "/api/v3/work_packages/43/summarized_costs_by_type"
+          },
+          "github": {
+            "href": "/work_packages/43/tabs/github",
+            "title": "github"
+          },
+          "github_pull_requests": {
+            "href": "/api/v3/work_packages/43/github_pull_requests",
+            "title": "GitHub pull requests"
+          },
+          "gitlab": {
+            "href": "/work_packages/43/tabs/gitlab",
+            "title": "gitlab"
+          },
+          "gitlab_merge_requests": {
+            "href": "/api/v3/work_packages/43/gitlab_merge_requests",
+            "title": "Gitlab merge requests"
+          },
+          "gitlab_issues": {
+            "href": "/api/v3/work_packages/43/gitlab_issues",
+            "title": "Gitlab Issues"
+          },
+          "meetings": {
+            "href": "/work_packages/43/tabs/meetings",
+            "title": "meetings"
+          },
+          "convertBCF": {
+            "href": "/api/bcf/2.1/projects/infrastructure/topics",
+            "title": "Convertto BCF",
+            "payload": {
+              "reference_links": [
+                "/api/v3/work_packages/43"
+              ]
+            },
+            "method": "post"
+          }
+        }
+      }
+    },
+    "_links": {
+      "self": {
+        "href": "/api/v3/attachments/3",
+        "title": "Screenshot_2026-04-27_224250.png"
+      },
+      "author": {
+        "href": "/api/v3/users/4",
+        "title": "OpenProject Admin"
+      },
+      "container": {
+        "href": "/api/v3/work_packages/43",
+        "title": "test"
+      },
+      "staticDownloadLocation": {
+        "href": "/api/v3/attachments/3/content"
+      },
+      "downloadLocation": {
+        "href": "/api/v3/attachments/3/content"
+      },
+      "delete": {
+        "href": "/api/v3/attachments/3",
+        "method": "delete"
+      }
+    }
+  }
+}

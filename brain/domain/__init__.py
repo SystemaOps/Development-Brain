@@ -48,6 +48,7 @@ from brain.domain.documents import (
 )
 from brain.domain.event_types import (
     EVENT_TYPE_TO_MODEL,
+    AttachmentCreated,
     CanonicalEvent,
     DocumentChanged,
     ExecutionCompleted,
@@ -59,6 +60,7 @@ from brain.domain.event_types import (
     ObservationAcknowledged,
     ObservationCreated,
     ObservationResolved,
+    ProjectChanged,
     ProjectCreated,
     PullRequestCreated,
     PullRequestMerged,
@@ -430,6 +432,8 @@ __all__ = [
     "ObservationAcknowledged",
     "ObservationCreated",
     "ObservationResolved",
+    "AttachmentCreated",
+    "ProjectChanged",
     "ProjectCreated",
     "ProjectId",
     "ProjectStatus",

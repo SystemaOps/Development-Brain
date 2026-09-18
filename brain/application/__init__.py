@@ -51,6 +51,17 @@ from brain.application.observability import (
 )
 from brain.application.observation_projection import ObservationProjectionService
 from brain.application.observations import ObservationPolicy, ObservationService
+from brain.application.openproject_parser import (
+    OpenProjectWorkItemSnapshot,
+    SemanticChange,
+    diff_snapshots,
+    event_type_for_action,
+    id_from_href,
+    parse_action,
+    parse_attachment,
+    parse_project,
+    parse_work_item,
+)
 from brain.application.optimization import (
     BanditRouter,
     ContextRankingFeedbackService,
@@ -128,6 +139,15 @@ __all__ = [
     "ObservationPolicy",
     "ObservationProjectionService",
     "ObservationService",
+    "OpenProjectWorkItemSnapshot",
+    "SemanticChange",
+    "diff_snapshots",
+    "event_type_for_action",
+    "id_from_href",
+    "parse_action",
+    "parse_attachment",
+    "parse_project",
+    "parse_work_item",
     "ObservabilityService",
     "OtelTraceImporter",
     "ProcessOutcome",

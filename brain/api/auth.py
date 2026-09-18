@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import logging
 from collections.abc import Awaitable, Callable
 from typing import Annotated
 
@@ -25,7 +26,6 @@ from brain.application.authorization import (
 )
 from brain.bootstrap.container import BrainContainer
 from brain.domain.identity_auth import Identity, IdentityRole
-import logging
 
 _UNAUTHORIZED = status.HTTP_401_UNAUTHORIZED
 _FORBIDDEN = status.HTTP_403_FORBIDDEN
@@ -80,17 +80,25 @@ def verify_webhook(provider: str) -> Callable[..., Awaitable[Request]]:
         if provider == "openproject":
             secret = security.webhook_openproject_secret
             if not secret:
-                raise HTTPException(status_code=_UNAUTHORIZED, detail=f"webhook not configured {secret=}")
+                raise HTTPException(
+                    status_code=_UNAUTHORIZED, detail=f"webhook not configured {secret=}"
+                )
             signature = request.headers.get("x-op-signature") or ""
             LOGGER.info(f"{signature=}")
             raw = await request.body()
-            expected = "sha1=" + hmac.new(
-                secret.encode("utf-8"),
-                raw,
-                hashlib.sha1,
+            expected = (
+                "sha1="
+                + hmac.new(
+                    secret.encode("utf-8"),
+                    raw,
+                    hashlib.sha1,
                 ).hexdigest()
+            )
             if not hmac.compare_digest(signature, expected):
-                raise HTTPException(status_code=_UNAUTHORIZED, detail=f"invalid signature {signature=} {request.headers=} {raw=}")
+                raise HTTPException(
+                    status_code=_UNAUTHORIZED,
+                    detail=f"invalid signature {signature=} {request.headers=} {raw=}",
+                )
         elif provider == "gitlab":
             token = security.webhook_gitlab_token
             if not token:

@@ -88,7 +88,8 @@ class WorkItemChanged(CanonicalEvent):
 class WorkItemAssigned(CanonicalEvent):
     event_type: ClassVar[EventType] = EventType.WORK_ITEM_ASSIGNED
     work_item_id: WorkItemId
-    actor_id: ActorId
+    actor_id: ActorId | None = None
+    external_actor_id: str | None = None
     assigned_by: ActorId | None = None
     assigned_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
@@ -186,6 +187,31 @@ class ObservationResolved(CanonicalEvent):
     project_id: ProjectId
 
 
+class AttachmentCreated(CanonicalEvent):
+    """An external attachment was created (OpenProject attachment webhook)."""
+
+    event_type: ClassVar[EventType] = EventType.ATTACHMENT_CREATED
+    external_id: str
+    file_name: str = ""
+    content_type: str = ""
+    file_size: int | None = None
+    download_url: str | None = None
+    work_item_id: str | None = None
+    provider: str = "openproject"
+
+
+class ProjectChanged(CanonicalEvent):
+    """An external project was created or updated (OpenProject project webhook)."""
+
+    event_type: ClassVar[EventType] = EventType.PROJECT_CHANGED
+    external_id: str
+    name: str = ""
+    identifier: str = ""
+    active: bool = True
+    parent_id: str | None = None
+    provider: str = "openproject"
+
+
 EVENT_TYPE_TO_MODEL: dict[EventType, type[CanonicalEvent]] = {
     cls.event_type: cls for cls in CanonicalEvent.__subclasses__()
 }
@@ -252,6 +278,7 @@ def derive_event(
 
 
 __all__ = [
+    "AttachmentCreated",
     "CanonicalEvent",
     "DocumentChanged",
     "EVENT_TYPE_TO_MODEL",
@@ -264,6 +291,7 @@ __all__ = [
     "ObservationAcknowledged",
     "ObservationCreated",
     "ObservationResolved",
+    "ProjectChanged",
     "ProjectCreated",
     "PullRequestCreated",
     "PullRequestRequested",

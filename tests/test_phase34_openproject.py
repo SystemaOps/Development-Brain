@@ -38,14 +38,18 @@ pytestmark = pytest.mark.skipif(
 
 
 def _signed_payload(payload: dict[str, object], secret: str) -> tuple[bytes, dict[str, str]]:
-    """Return (signed body, signature headers) for the OpenProject webhook."""
+    """Return (signed body, signature headers) for the OpenProject webhook.
+
+    OpenProject sends ``x-op-signature: sha1=<hmac-sha1-hex>`` over the raw
+    body (see docs/webhook/data.txt).
+    """
     import hashlib
     import hmac
     import json
 
     body = json.dumps(payload).encode("utf-8")
-    signature = "sha256=" + hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
-    return body, {"X-OpenProject-Signature": signature}
+    signature = "sha1=" + hmac.new(secret.encode(), body, hashlib.sha1).hexdigest()
+    return body, {"x-op-signature": signature}
 
 
 def _settings(
@@ -115,7 +119,7 @@ async def test_webhook_accepts_and_normalizes_event() -> None:
         "work_package": {"id": "42", "subject": "Fix login"},
     }
     body = json.dumps(payload).encode("utf-8")
-    signature = "sha256=" + hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
+    signature = "sha1=" + hmac.new(secret.encode(), body, hashlib.sha1).hexdigest()
     async with (
         httpx.AsyncClient(transport=transport, base_url="http://test") as client,
         app.router.lifespan_context(app),
@@ -127,7 +131,7 @@ async def test_webhook_accepts_and_normalizes_event() -> None:
         response = await client.post(
             "/api/v1/webhooks/openproject",
             content=body,
-            headers={"X-OpenProject-Signature": signature},
+            headers={"x-op-signature": signature},
         )
         assert response.status_code == 200
         body = response.json()
@@ -169,11 +173,13 @@ async def test_assignment_automation_triggers_run_command() -> None:
         await app_container.repositories.projects.create(project)
 
         payload = {
-            "eventType": "work_package:updated",
+            "action": "work_package:created",
             "work_package": {
                 "id": "7",
                 "subject": "Assigned task",
-                "assignee": {"href": f"/api/v3/users/{brain_actor}"},
+                "_embedded": {
+                    "assignee": {"id": brain_actor, "name": "brain"},
+                },
             },
         }
         body2, headers2 = _signed_payload(payload, "op-secret")

@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 from brain.adapters.postgresql.database import PostgresRepositories, create_repositories
 from brain.adapters.postgresql.unit_of_work import PostgresUnitOfWork
 from brain.application.context_engine import ContextEngineService
+from brain.application.events import IncomingEventProcessor
 from brain.application.planning import PlanningService
 from brain.application.verification_engine import VerificationEngine
 from brain.application.workflow_engine import WorkflowEngine
@@ -41,6 +42,7 @@ from brain.domain.capabilities import (
 from brain.domain.executor import ExecutorDescriptor
 from brain.ports.documentation import DocumentationPort
 from brain.ports.knowledge_graph import KnowledgeGraphRepository
+from brain.ports.openproject_snapshot import OpenProjectSnapshotStore
 from brain.ports.pull_request import PullRequestPort
 from brain.ports.semantic_index import SemanticIndex
 from brain.ports.source_control import SourceControlPort
@@ -121,6 +123,14 @@ class BrainContainer:
     @property
     def services(self) -> dict[str, object]:
         return self._services
+
+    @property
+    def openproject_snapshots(self) -> OpenProjectSnapshotStore:
+        return self._services["openproject_snapshots"]  # type: ignore[return-value]
+
+    @property
+    def incoming_events(self) -> IncomingEventProcessor:
+        return self._services["incoming_events"]  # type: ignore[return-value]
 
     # --- lifecycle --------------------------------------------------------
 
@@ -276,6 +286,56 @@ async def create_brain_container(
         session=session,
     )
     install_command_handlers(container=container_instance)
+
+    # 6b. Wire the incoming-event ingestion chain (Phase 1 of the
+    # event→command flow): IncomingEventProcessor dedupes, logs and dispatches
+    # events to subscribed handlers; handlers decide consequences.
+    from brain.application.events import IncomingEventProcessor
+    from brain.application.projections import CanonicalStateProjection
+    from brain.application.revisions import IncrementalRevisionHandler
+
+    event_bus = services["events"]
+    from brain.ports.event_bus import EventBus
+
+    assert isinstance(event_bus, EventBus)
+    incoming_events = IncomingEventProcessor(
+        bus=event_bus,
+        idempotency=repositories.idempotency,
+        event_log=repositories.event_log,
+    )
+    services["incoming_events"] = incoming_events
+
+    projection = CanonicalStateProjection(
+        projects=repositories.projects,
+        repositories=repositories.repositories,
+        work_items=repositories.work_items,
+        requirements=repositories.requirements,
+        documents=repositories.documents,
+        executions=repositories.executions,
+    )
+    revision_handler = (
+        IncrementalRevisionHandler(
+            repositories=repositories.repositories,
+            source_control=source_control,
+            change_sets=repositories.repository_change_sets,
+        )
+        if source_control is not None
+        else None
+    )
+    from brain.domain.events import EventType
+
+    await event_bus.subscribe(EventType.WORK_ITEM_CREATED.value, projection)
+    await event_bus.subscribe(EventType.WORK_ITEM_CHANGED.value, projection)
+    await event_bus.subscribe(EventType.PROJECT_CREATED.value, projection)
+    await event_bus.subscribe(EventType.PROJECT_CHANGED.value, projection)
+    await event_bus.subscribe(EventType.REPOSITORY_REGISTERED.value, projection)
+    await event_bus.subscribe(EventType.REQUIREMENT_CHANGED.value, projection)
+    await event_bus.subscribe(EventType.DOCUMENT_CHANGED.value, projection)
+    await event_bus.subscribe(EventType.EXECUTION_REQUESTED.value, projection)
+    await event_bus.subscribe(EventType.EXECUTION_STARTED.value, projection)
+    await event_bus.subscribe(EventType.EXECUTION_COMPLETED.value, projection)
+    if revision_handler is not None:
+        await event_bus.subscribe(EventType.REPOSITORY_REVISION_CHANGED.value, revision_handler)
 
     # Backstage reconciliation service (Phase 36): declared vs discovered.
     from brain.adapters.catalog.backstage import BackstageCatalogAdapter

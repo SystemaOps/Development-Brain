@@ -44,6 +44,9 @@ class EventType(StrEnum):
     OBSERVATION_ACKNOWLEDGED = "observation_acknowledged"
     OBSERVATION_RESOLVED = "observation_resolved"
 
+    ATTACHMENT_CREATED = "attachment_created"
+    PROJECT_CHANGED = "project_changed"
+
 
 class EventEnvelope(BaseModel):
     event_id: uuid.UUID = Field(default_factory=uuid.uuid4)

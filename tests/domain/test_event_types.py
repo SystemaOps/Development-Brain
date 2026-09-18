@@ -5,6 +5,7 @@ from __future__ import annotations
 import uuid
 
 from brain.domain import (
+    AttachmentCreated,
     Document,
     DocumentChanged,
     DocumentSource,
@@ -21,6 +22,7 @@ from brain.domain import (
     ObservationCreated,
     ObservationResolved,
     Project,
+    ProjectChanged,
     ProjectCreated,
     PullRequestCreated,
     PullRequestMerged,
@@ -56,6 +58,10 @@ from brain.domain.identity import (
 
 def _sample(model: type[CanonicalEvent]) -> CanonicalEvent:
     project_id = new_project_id()
+    if model is AttachmentCreated:
+        return AttachmentCreated(external_id="3", file_name="a.png", work_item_id="43")
+    if model is ProjectChanged:
+        return ProjectChanged(external_id="7", name="Test project", parent_id=None)
     if model is ProjectCreated:
         return ProjectCreated(project=Project(name="p"))
     if model is RepositoryRegistered:

@@ -29,6 +29,9 @@ from brain.adapters.in_memory.human_activity import (
 )
 from brain.adapters.in_memory.knowledge_graph import InMemoryKnowledgeGraph
 from brain.adapters.in_memory.observability import InMemoryLogSink
+from brain.adapters.in_memory.openproject_snapshot import (
+    InMemoryOpenProjectSnapshotStore,
+)
 from brain.adapters.in_memory.policies import DefaultPolicyProvider
 from brain.adapters.in_memory.semantic_index import InMemorySemanticIndex
 from brain.adapters.neo4j.knowledge_graph import Neo4jKnowledgeGraph
@@ -506,6 +509,7 @@ def build_services(
     workspace_manager = WorkspaceManager(source_control=source_control)
     document_conversion = build_document_conversion(settings)
     xwiki_mapping = XWikiMappingService(event_bus=events)
+    openproject_snapshots = InMemoryOpenProjectSnapshotStore()
 
     services: dict[str, object] = {
         "events": events,
@@ -534,6 +538,7 @@ def build_services(
         "workspace_manager": workspace_manager,
         "document_conversion": document_conversion,
         "xwiki_mapping": xwiki_mapping,
+        "openproject_snapshots": openproject_snapshots,
         "command_queue": build_command_queue(settings),
         "command_dispatcher": CommandDispatcher(),
     }

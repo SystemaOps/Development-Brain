@@ -1,0 +1,519 @@
+{
+  "action": "work_package:updated",
+  "work_package": {
+    "_embedded": {
+      "assignee": {
+        "_links": {
+          "delete": {
+            "href": "/api/v3/users/6",
+            "method": "delete",
+            "title": "Delete brain@systemaops.in"
+          },
+          "lock": {
+            "href": "/api/v3/users/6/lock",
+            "method": "post",
+            "title": "Set lock on brain@systemaops.in"
+          },
+          "memberships": {
+            "href": "/api/v3/memberships?filters=%5B%7B%22principal%22%3A%7B%22operator%22%3A%22%3D%22%2C%22values%22%3A%5B%226%22%5D%7D%7D%5D",
+            "title": "Memberships"
+          },
+          "self": {
+            "href": "/api/v3/users/6",
+            "title": "brain brain"
+          },
+          "showUser": {
+            "href": "/users/6",
+            "type": "text/html"
+          },
+          "updateImmediately": {
+            "href": "/api/v3/users/6",
+            "method": "patch",
+            "title": "Update brain@systemaops.in"
+          }
+        },
+        "_type": "User",
+        "admin": false,
+        "avatar": "http://gravatar.com/avatar/6d5ab6137a909377cd3da5142582f2e6?default=404&secure=false",
+        "createdAt": "2026-09-02T10:14:07.040Z",
+        "email": "brain@systemaops.in",
+        "firstName": "brain",
+        "id": 6,
+        "identityUrl": null,
+        "language": "en",
+        "lastName": "brain",
+        "login": "brain@systemaops.in",
+        "name": "brain brain",
+        "status": "active",
+        "updatedAt": "2026-09-02T10:14:36.655Z"
+      },
+      "attachments": {
+        "_embedded": {
+          "elements": []
+        },
+        "_links": {
+          "self": {
+            "href": "/api/v3/work_packages/40/attachments"
+          }
+        },
+        "_type": "Collection",
+        "count": 0,
+        "total": 0
+      },
+      "author": {
+        "_links": {
+          "delete": {
+            "href": "/api/v3/users/4",
+            "method": "delete",
+            "title": "Delete admin"
+          },
+          "lock": {
+            "href": "/api/v3/users/4/lock",
+            "method": "post",
+            "title": "Set lock on admin"
+          },
+          "memberships": {
+            "href": "/api/v3/memberships?filters=%5B%7B%22principal%22%3A%7B%22operator%22%3A%22%3D%22%2C%22values%22%3A%5B%224%22%5D%7D%7D%5D",
+            "title": "Memberships"
+          },
+          "self": {
+            "href": "/api/v3/users/4",
+            "title": "OpenProject Admin"
+          },
+          "showUser": {
+            "href": "/users/4",
+            "type": "text/html"
+          },
+          "updateImmediately": {
+            "href": "/api/v3/users/4",
+            "method": "patch",
+            "title": "Update admin"
+          }
+        },
+        "_type": "User",
+        "admin": true,
+        "avatar": "http://gravatar.com/avatar/cb4f282fed12016bd18a879c1f27ff97?default=404&secure=false",
+        "createdAt": "2026-09-01T08:25:22.120Z",
+        "email": "admin@example.net",
+        "firstName": "OpenProject",
+        "id": 4,
+        "identityUrl": null,
+        "language": "en",
+        "lastName": "Admin",
+        "login": "admin",
+        "name": "OpenProject Admin",
+        "status": "active",
+        "updatedAt": "2026-09-01T08:39:29.320Z"
+      },
+      "costsByType": {
+        "_embedded": {
+          "elements": []
+        },
+        "_links": {
+          "self": {
+            "href": "/api/v3/work_packages/40/summarized_costs_by_type"
+          }
+        },
+        "_type": "Collection",
+        "count": 0,
+        "total": 0
+      },
+      "customActions": [],
+      "priority": {
+        "_links": {
+          "self": {
+            "href": "/api/v3/priorities/8",
+            "title": "Normal"
+          }
+        },
+        "_type": "Priority",
+        "color": "#74C0FC",
+        "id": 8,
+        "isActive": true,
+        "isDefault": true,
+        "name": "Normal",
+        "position": 2
+      },
+      "project": {
+        "_links": {
+          "ancestors": [],
+          "categories": {
+            "href": "/api/v3/projects/3/categories"
+          },
+          "createWorkPackage": {
+            "href": "/api/v3/projects/3/work_packages/form",
+            "method": "post"
+          },
+          "createWorkPackageImmediately": {
+            "href": "/api/v3/projects/3/work_packages",
+            "method": "post"
+          },
+          "delete": {
+            "href": "/api/v3/projects/3",
+            "method": "delete"
+          },
+          "memberships": {
+            "href": "/api/v3/memberships?filters=%5B%7B%22project%22%3A%7B%22operator%22%3A%22%3D%22%2C%22values%22%3A%5B%223%22%5D%7D%7D%5D"
+          },
+          "parent": {
+            "href": null
+          },
+          "projectStorages": {
+            "href": "/api/v3/project_storages?filters=%5B%7B%22projectId%22%3A%7B%22operator%22%3A%22%3D%22%2C%22values%22%3A%5B%223%22%5D%7D%7D%5D"
+          },
+          "schema": {
+            "href": "/api/v3/projects/schema"
+          },
+          "self": {
+            "href": "/api/v3/projects/3",
+            "title": "Odoo deployment"
+          },
+          "status": {
+            "href": null
+          },
+          "storages": [],
+          "types": {
+            "href": "/api/v3/projects/3/types"
+          },
+          "update": {
+            "href": "/api/v3/projects/3/form",
+            "method": "post"
+          },
+          "updateImmediately": {
+            "href": "/api/v3/projects/3",
+            "method": "patch"
+          },
+          "versions": {
+            "href": "/api/v3/projects/3/versions"
+          },
+          "workPackages": {
+            "href": "/api/v3/projects/3/work_packages"
+          }
+        },
+        "_type": "Project",
+        "active": true,
+        "createdAt": "2026-09-01T08:42:37.156Z",
+        "description": {
+          "format": "markdown",
+          "html": "",
+          "raw": ""
+        },
+        "id": 3,
+        "identifier": "odoo-deployment",
+        "name": "Odoo deployment",
+        "public": false,
+        "statusExplanation": {
+          "format": "markdown",
+          "html": "",
+          "raw": ""
+        },
+        "updatedAt": "2026-09-01T12:00:26.770Z"
+      },
+      "relations": {
+        "_embedded": {
+          "elements": []
+        },
+        "_links": {
+          "self": {
+            "href": "/api/v3/work_packages/40/relations"
+          }
+        },
+        "_type": "Collection",
+        "count": 0,
+        "total": 0
+      },
+      "status": {
+        "_links": {
+          "self": {
+            "href": "/api/v3/statuses/1",
+            "title": "New"
+          }
+        },
+        "_type": "Status",
+        "color": "#1098AD",
+        "defaultDoneRatio": 0,
+        "excludedFromTotals": false,
+        "id": 1,
+        "isClosed": false,
+        "isDefault": true,
+        "isReadonly": false,
+        "name": "New",
+        "position": 1
+      },
+      "type": {
+        "_links": {
+          "self": {
+            "href": "/api/v3/types/1",
+            "title": "Task"
+          }
+        },
+        "_type": "Type",
+        "color": "#1A67A3",
+        "createdAt": "2026-09-01T08:25:20.701Z",
+        "id": 1,
+        "isDefault": true,
+        "isMilestone": false,
+        "name": "Task",
+        "position": 1,
+        "updatedAt": "2026-09-01T08:25:20.701Z"
+      }
+    },
+    "_links": {
+      "activities": {
+        "href": "/api/v3/work_packages/40/activities"
+      },
+      "addAttachment": {
+        "href": "/api/v3/work_packages/40/attachments",
+        "method": "post"
+      },
+      "addChild": {
+        "href": "/api/v3/projects/odoo-deployment/work_packages",
+        "method": "post",
+        "title": "Add child of test4"
+      },
+      "addComment": {
+        "href": "/api/v3/work_packages/40/activities",
+        "method": "post",
+        "title": "Add comment"
+      },
+      "addFileLink": {
+        "href": "/api/v3/work_packages/40/file_links",
+        "method": "post"
+      },
+      "addRelation": {
+        "href": "/api/v3/work_packages/40/relations",
+        "method": "post",
+        "title": "Add relation"
+      },
+      "addWatcher": {
+        "href": "/api/v3/work_packages/40/watchers",
+        "method": "post",
+        "payload": {
+          "user": {
+            "href": "/api/v3/users/{user_id}"
+          }
+        },
+        "templated": true
+      },
+      "ancestors": [],
+      "assignee": {
+        "href": "/api/v3/users/6",
+        "title": "brain brain"
+      },
+      "atom": {
+        "href": "/work_packages/40.atom",
+        "title": "Atom feed",
+        "type": "application/rss+xml"
+      },
+      "attachments": {
+        "href": "/api/v3/work_packages/40/attachments"
+      },
+      "author": {
+        "href": "/api/v3/users/4",
+        "title": "OpenProject Admin"
+      },
+      "availableRelationCandidates": {
+        "href": "/api/v3/work_packages/40/available_relation_candidates",
+        "title": "Potential work packages to relate to"
+      },
+      "availableWatchers": {
+        "href": "/api/v3/work_packages/40/available_watchers"
+      },
+      "category": {
+        "href": null
+      },
+      "changeParent": {
+        "href": "/api/v3/work_packages/40",
+        "method": "patch",
+        "title": "Change parent of test4"
+      },
+      "configureForm": {
+        "href": "/types/1/form_configuration/edit",
+        "title": "Configure form",
+        "type": "text/html"
+      },
+      "convertBCF": {
+        "href": "/api/bcf/2.1/projects/odoo-deployment/topics",
+        "method": "post",
+        "payload": {
+          "reference_links": [
+            "/api/v3/work_packages/40"
+          ]
+        },
+        "title": "Convert to BCF"
+      },
+      "copy": {
+        "href": "/work_packages/40/copy",
+        "title": "Copy work package 'test4'",
+        "type": "text/html"
+      },
+      "costsByType": {
+        "href": "/api/v3/work_packages/40/summarized_costs_by_type"
+      },
+      "customActions": [],
+      "customFields": {
+        "href": "/projects/odoo-deployment/settings/custom_fields",
+        "title": "Custom fields",
+        "type": "text/html"
+      },
+      "delete": {
+        "href": "/api/v3/work_packages/40",
+        "method": "delete"
+      },
+      "fileLinks": {
+        "href": "/api/v3/work_packages/40/file_links"
+      },
+      "generate_pdf": {
+        "href": "/work_packages/40/generate_pdf_dialog",
+        "title": "Generate PDF",
+        "type": "text/vnd.turbo-stream.html"
+      },
+      "github": {
+        "href": "/work_packages/40/tabs/github",
+        "title": "github"
+      },
+      "github_pull_requests": {
+        "href": "/api/v3/work_packages/40/github_pull_requests",
+        "title": "GitHub pull requests"
+      },
+      "gitlab": {
+        "href": "/work_packages/40/tabs/gitlab",
+        "title": "gitlab"
+      },
+      "gitlab_issues": {
+        "href": "/api/v3/work_packages/40/gitlab_issues",
+        "title": "Gitlab Issues"
+      },
+      "gitlab_merge_requests": {
+        "href": "/api/v3/work_packages/40/gitlab_merge_requests",
+        "title": "Gitlab merge requests"
+      },
+      "logCosts": {
+        "href": "/work_packages/40/cost_entries/new",
+        "title": "Log costs on test4",
+        "type": "text/html"
+      },
+      "logTime": {
+        "href": "/api/v3/time_entries",
+        "title": "Log time on work package 'test4'"
+      },
+      "meetings": {
+        "href": "/work_packages/40/tabs/meetings",
+        "title": "meetings"
+      },
+      "move": {
+        "href": "/work_packages/40/move/new",
+        "title": "Move work package 'test4'",
+        "type": "text/html"
+      },
+      "parent": {
+        "href": null,
+        "title": null
+      },
+      "pdf": {
+        "href": "/work_packages/40.pdf",
+        "title": "Export as PDF",
+        "type": "application/pdf"
+      },
+      "previewMarkup": {
+        "href": "/api/v3/render/markdown?context=/api/v3/work_packages/40",
+        "method": "post"
+      },
+      "priority": {
+        "href": "/api/v3/priorities/8",
+        "title": "Normal"
+      },
+      "project": {
+        "href": "/api/v3/projects/3",
+        "title": "Odoo deployment"
+      },
+      "projectPhase": {
+        "href": null,
+        "title": null
+      },
+      "projectPhaseDefinition": {
+        "href": null,
+        "title": null
+      },
+      "relations": {
+        "href": "/api/v3/work_packages/40/relations"
+      },
+      "removeWatcher": {
+        "href": "/api/v3/work_packages/40/watchers/{user_id}",
+        "method": "delete",
+        "templated": true
+      },
+      "responsible": {
+        "href": null
+      },
+      "revisions": {
+        "href": "/api/v3/work_packages/40/revisions"
+      },
+      "schema": {
+        "href": "/api/v3/work_packages/schemas/3-1"
+      },
+      "self": {
+        "href": "/api/v3/work_packages/40",
+        "title": "test4"
+      },
+      "showCosts": {
+        "href": "/projects/3/cost_reports?fields%5B%5D=WorkPackageId&operators%5BWorkPackageId%5D=%3D&set_filter=1&values%5BWorkPackageId%5D=40",
+        "title": "Show cost entries",
+        "type": "text/html"
+      },
+      "status": {
+        "href": "/api/v3/statuses/1",
+        "title": "New"
+      },
+      "timeEntries": {
+        "href": "/api/v3/time_entries?filters=%5B%7B%22entity_type%22%3A%7B%22operator%22%3A%22%3D%22%2C%22values%22%3A%5B%22WorkPackage%22%5D%7D%7D%2C%7B%22entity_id%22%3A%7B%22operator%22%3A%22%3D%22%2C%22values%22%3A%5B%2240%22%5D%7D%7D%5D",
+        "title": "Time entries"
+      },
+      "type": {
+        "href": "/api/v3/types/1",
+        "title": "Task"
+      },
+      "update": {
+        "href": "/api/v3/work_packages/40/form",
+        "method": "post"
+      },
+      "updateImmediately": {
+        "href": "/api/v3/work_packages/40",
+        "method": "patch"
+      },
+      "version": {
+        "href": null
+      },
+      "watchers": {
+        "href": "/api/v3/work_packages/40/watchers"
+      }
+    },
+    "_type": "WorkPackage",
+    "createdAt": "2026-09-01T09:35:45.267Z",
+    "derivedDueDate": null,
+    "derivedEstimatedTime": null,
+    "derivedPercentageDone": null,
+    "derivedRemainingTime": null,
+    "derivedStartDate": null,
+    "description": {
+      "format": "markdown",
+      "html": "",
+      "raw": ""
+    },
+    "dueDate": null,
+    "duration": null,
+    "estimatedTime": null,
+    "id": 40,
+    "ignoreNonWorkingDays": false,
+    "laborCosts": "0.00 EUR",
+    "lockVersion": 1,
+    "materialCosts": "0.00 EUR",
+    "overallCosts": "0.00 EUR",
+    "percentageDone": null,
+    "scheduleManually": true,
+    "spentTime": "PT0S",
+    "startDate": null,
+    "subject": "test4",
+    "updatedAt": "2026-09-02T10:17:02.314Z"
+  }
+}

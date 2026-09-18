@@ -165,17 +165,17 @@ async def test_40_3_webhook_signature_validation() -> None:
 
             return Request(scope, receive=receive)
 
-        valid = "sha256=" + hmac.new(b"op-secret", body, hashlib.sha256).hexdigest()
+        valid = "sha1=" + hmac.new(b"op-secret", body, hashlib.sha1).hexdigest()
         from fastapi import HTTPException
 
         with patch("brain.api.auth.get_container", lambda req: container):
             good = await verify_webhook("openproject")(
-                _request([(b"x-openproject-signature", valid.encode())])
+                _request([(b"x-op-signature", valid.encode())])
             )
             assert good is not None
             with pytest.raises(HTTPException):
                 await verify_webhook("openproject")(
-                    _request([(b"x-openproject-signature", b"sha256=deadbeef")])
+                    _request([(b"x-op-signature", b"sha1=deadbeef")])
                 )
             with pytest.raises(HTTPException):
                 await verify_webhook("openproject")(_request([]))
