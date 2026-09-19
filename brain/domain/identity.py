@@ -31,6 +31,9 @@ RepositorySnapshotId = NewType("RepositorySnapshotId", uuid.UUID)
 RepositoryChangeSetId = NewType("RepositoryChangeSetId", uuid.UUID)
 PlanId = NewType("PlanId", uuid.UUID)
 ObservationId = NewType("ObservationId", uuid.UUID)
+CommentId = NewType("CommentId", uuid.UUID)
+AttachmentId = NewType("AttachmentId", uuid.UUID)
+WorkItemRelationId = NewType("WorkItemRelationId", uuid.UUID)
 
 
 def new_project_id() -> ProjectId:
@@ -103,3 +106,15 @@ def new_plan_id() -> PlanId:
 
 def new_observation_id() -> ObservationId:
     return ObservationId(uuid.uuid4())
+
+
+def new_comment_id() -> CommentId:
+    return CommentId(uuid.uuid4())
+
+
+def new_attachment_id() -> AttachmentId:
+    return AttachmentId(uuid.uuid4())
+
+
+def new_work_item_relation_id() -> WorkItemRelationId:
+    return WorkItemRelationId(uuid.uuid4())

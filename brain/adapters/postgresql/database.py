@@ -21,9 +21,12 @@ from brain.adapters.postgresql.repositories import (
     PostgresActorRepository,
     PostgresApprovalRepository,
     PostgresArtifactRepository,
+    PostgresAttachmentRepository,
     PostgresAuditLog,
+    PostgresBootstrapStateRepository,
     PostgresCodeGraphRepository,
     PostgresCommandFailureRepository,
+    PostgresCommentRepository,
     PostgresContextCapsuleRepository,
     PostgresContextFeedbackRepository,
     PostgresDecisionRepository,
@@ -43,9 +46,11 @@ from brain.adapters.postgresql.repositories import (
     PostgresRequirementRepository,
     PostgresRuntimeEvidenceRepository,
     PostgresSoftwareCatalogRepository,
+    PostgresSyncWatermarkRepository,
     PostgresVerificationResultRepository,
     PostgresVerificationRunRepository,
     PostgresWorkflowCheckpointRepository,
+    PostgresWorkItemRelationRepository,
     PostgresWorkItemRepository,
     PostgresWorkManagementIntegrationRepository,
 )
@@ -108,6 +113,11 @@ class PostgresRepositories:
         self.command_failures = PostgresCommandFailureRepository(session)
         self.observations = PostgresObservationRepository(session)
         self.audit_log = PostgresAuditLog(session)
+        self.comments = PostgresCommentRepository(session)
+        self.attachments = PostgresAttachmentRepository(session)
+        self.work_item_relations = PostgresWorkItemRelationRepository(session)
+        self.sync_watermarks = PostgresSyncWatermarkRepository(session)
+        self.bootstrap_states = PostgresBootstrapStateRepository(session)
 
     @property
     def session(self) -> AsyncSession:

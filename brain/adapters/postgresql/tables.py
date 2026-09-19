@@ -47,8 +47,11 @@ class ProjectRow(Base):
     name: Mapped[str] = mapped_column(String(255))
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(String(50))
+    parent_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     repositories: Mapped[list[str]] = mapped_column(JSONB, default=list)
     external_refs: Mapped[list[dict[str, object]]] = mapped_column(JSONB, default=list)
+
+    __table_args__ = (Index("ix_projects_parent_id", "parent_id"),)
 
 
 class RepositoryRow(Base):
@@ -883,6 +886,112 @@ class ObservationRow(Base):
         Index("ix_observations_project", "project_id"),
         Index("ix_observations_work_item", "work_item_id"),
         Index("ix_observations_dedup", "dedup_key"),
+    )
+
+
+class CommentRow(Base):
+    """Canonical comments on work items (OpenProject activities)."""
+
+    __tablename__ = "comments"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    work_item_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    author_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    author_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    text: Mapped[str] = mapped_column(Text, default="")
+    kind: Mapped[str] = mapped_column(String(20), default="context")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    external_refs: Mapped[list[dict[str, object]]] = mapped_column(JSONB, default=list)
+
+    __table_args__ = (Index("ix_comments_work_item", "work_item_id"),)
+
+
+class AttachmentRow(Base):
+    """Canonical attachments on work items (OpenProject attachments)."""
+
+    __tablename__ = "attachments"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    work_item_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    file_name: Mapped[str] = mapped_column(String(500))
+    content_type: Mapped[str] = mapped_column(String(255), default="")
+    file_size: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    download_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    content_ingested: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    external_refs: Mapped[list[dict[str, object]]] = mapped_column(JSONB, default=list)
+
+    __table_args__ = (Index("ix_attachments_work_item", "work_item_id"),)
+
+
+class WorkItemRelationRow(Base):
+    """Canonical work-item relations (parent-child, blocks, relates-to, ...)."""
+
+    __tablename__ = "work_item_relations"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    source_work_item_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    target_work_item_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    relation_type: Mapped[str] = mapped_column(String(50))
+    detected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    external_refs: Mapped[list[dict[str, object]]] = mapped_column(JSONB, default=list)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "source_work_item_id",
+            "target_work_item_id",
+            "relation_type",
+            name="uq_work_item_relation",
+        ),
+        Index("ix_work_item_relations_source", "source_work_item_id"),
+        Index("ix_work_item_relations_target", "target_work_item_id"),
+    )
+
+
+class OpenProjectSnapshotRow(Base):
+    """Durable normalized OpenProject work-item snapshots (Phase 8)."""
+
+    __tablename__ = "openproject_work_item_snapshots"
+
+    external_id: Mapped[str] = mapped_column(String(500), primary_key=True)
+    snapshot: Mapped[dict[str, object]] = mapped_column(JSONB)
+    updated_at: Mapped[str | None] = mapped_column(Text, nullable=True)
+    ingested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class ProviderSyncWatermarkRow(Base):
+    """Durable pull-sync cursors (Phase 9)."""
+
+    __tablename__ = "provider_sync_watermarks"
+
+    provider: Mapped[str] = mapped_column(String(50), primary_key=True)
+    sync_key: Mapped[str] = mapped_column(String(500), primary_key=True)
+    last_synced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_external_id: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    bootstrap_completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class ProviderBootstrapStateRow(Base):
+    """Durable bootstrap progress for existing-provider imports (Phase 14)."""
+
+    __tablename__ = "provider_bootstrap_states"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    project_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    provider: Mapped[str] = mapped_column(String(50))
+    status: Mapped[str] = mapped_column(String(50))
+    stage: Mapped[str] = mapped_column(String(50))
+    last_page: Mapped[int] = mapped_column(BigInteger, default=0)
+    items_processed: Mapped[int] = mapped_column(BigInteger, default=0)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint("project_id", "provider", name="uq_provider_bootstrap_state"),
     )
 
 

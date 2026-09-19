@@ -10,6 +10,8 @@ from typing import Protocol, runtime_checkable
 
 from brain.domain.actors import Actor
 from brain.domain.artifacts import Artifact
+from brain.domain.attachments import Attachment
+from brain.domain.comments import Comment
 from brain.domain.decisions import Decision
 from brain.domain.documents import (
     Document,
@@ -21,6 +23,8 @@ from brain.domain.executions import Execution
 from brain.domain.identity import (
     ActorId,
     ArtifactId,
+    AttachmentId,
+    CommentId,
     DecisionId,
     DocumentId,
     DocumentVersionId,
@@ -31,11 +35,13 @@ from brain.domain.identity import (
     RequirementId,
     VerificationId,
     WorkItemId,
+    WorkItemRelationId,
 )
 from brain.domain.projects import Project
 from brain.domain.repositories import Repository
 from brain.domain.requirements import Requirement
 from brain.domain.verification import VerificationResult
+from brain.domain.work_item_relations import WorkItemRelation
 from brain.domain.work_items import WorkItem
 
 
@@ -50,6 +56,10 @@ class ProjectRepository(Protocol):
     async def update(self, project: Project) -> Project: ...
 
     async def delete(self, project_id: ProjectId) -> None: ...
+
+    async def find_by_external_ref(
+        self, provider: str, external_id: str, external_type: str | None = None
+    ) -> Project | None: ...
 
 
 @runtime_checkable
@@ -91,6 +101,10 @@ class WorkItemRepository(Protocol):
     async def update(self, work_item: WorkItem) -> WorkItem: ...
 
     async def delete(self, work_item_id: WorkItemId) -> None: ...
+
+    async def find_by_external_ref(
+        self, provider: str, external_id: str, external_type: str | None = None
+    ) -> WorkItem | None: ...
 
 
 @runtime_checkable
@@ -182,3 +196,56 @@ class VerificationResultRepository(Protocol):
     async def get(self, verification_id: VerificationId) -> VerificationResult | None: ...
 
     async def list_by_execution(self, execution_id: ExecutionId) -> list[VerificationResult]: ...
+
+
+@runtime_checkable
+class CommentRepository(Protocol):
+    async def create(self, comment: Comment) -> Comment: ...
+
+    async def get(self, comment_id: CommentId) -> Comment | None: ...
+
+    async def list_by_work_item(self, work_item_id: WorkItemId) -> list[Comment]: ...
+
+    async def find_by_external_ref(
+        self, provider: str, external_id: str, external_type: str | None = None
+    ) -> Comment | None: ...
+
+
+@runtime_checkable
+class AttachmentRepository(Protocol):
+    async def create(self, attachment: Attachment) -> Attachment: ...
+
+    async def get(self, attachment_id: AttachmentId) -> Attachment | None: ...
+
+    async def list_by_work_item(self, work_item_id: WorkItemId) -> list[Attachment]: ...
+
+    async def find_by_external_ref(
+        self, provider: str, external_id: str, external_type: str | None = None
+    ) -> Attachment | None: ...
+
+
+@runtime_checkable
+class WorkItemRelationRepository(Protocol):
+    async def create(self, relation: WorkItemRelation) -> WorkItemRelation: ...
+
+    async def list_by_work_item(self, work_item_id: WorkItemId) -> list[WorkItemRelation]: ...
+
+    async def delete(self, relation_id: WorkItemRelationId) -> None: ...
+
+
+__all__ = [
+    "ActorRepository",
+    "ArtifactRepository",
+    "AttachmentRepository",
+    "CommentRepository",
+    "DecisionRepository",
+    "DocumentRepository",
+    "EvidenceRepository",
+    "ExecutionRepository",
+    "ProjectRepository",
+    "RepositoryRepository",
+    "RequirementRepository",
+    "VerificationResultRepository",
+    "WorkItemRelationRepository",
+    "WorkItemRepository",
+]

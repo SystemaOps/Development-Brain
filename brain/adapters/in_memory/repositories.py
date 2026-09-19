@@ -10,6 +10,9 @@ from __future__ import annotations
 from brain.adapters.in_memory.base import InMemoryCollection
 from brain.domain.actors import Actor
 from brain.domain.artifacts import Artifact
+from brain.domain.attachments import Attachment
+from brain.domain.bootstrap_state import ProviderBootstrapState
+from brain.domain.comments import Comment
 from brain.domain.decisions import Decision
 from brain.domain.documents import Document, DocumentNode, DocumentVersion
 from brain.domain.evidence import Evidence
@@ -17,6 +20,8 @@ from brain.domain.executions import Execution
 from brain.domain.identity import (
     ActorId,
     ArtifactId,
+    AttachmentId,
+    CommentId,
     DecisionId,
     DocumentId,
     DocumentVersionId,
@@ -27,6 +32,7 @@ from brain.domain.identity import (
     RequirementId,
     VerificationId,
     WorkItemId,
+    WorkItemRelationId,
 )
 from brain.domain.projects import Project
 from brain.domain.repositories import Repository
@@ -39,8 +45,10 @@ from brain.domain.software_model import (
     SoftwareDomain,
     System,
 )
+from brain.domain.sync_watermark import ProviderSyncWatermark
 from brain.domain.topology import DependencyCandidate, TopologyClaim
 from brain.domain.verification import VerificationResult
+from brain.domain.work_item_relations import WorkItemRelation
 from brain.domain.work_items import WorkItem
 
 
@@ -62,6 +70,19 @@ class InMemoryProjectRepository:
 
     async def delete(self, project_id: ProjectId) -> None:
         await self._projects.delete(project_id)
+
+    async def find_by_external_ref(
+        self, provider: str, external_id: str, external_type: str | None = None
+    ) -> Project | None:
+        for project in await self._projects.list_all():
+            for ref in project.external_refs:
+                if (
+                    ref.provider == provider
+                    and ref.external_id == external_id
+                    and (external_type is None or ref.external_type == external_type)
+                ):
+                    return project
+        return None
 
 
 class InMemoryRepositoryRepository:
@@ -125,6 +146,19 @@ class InMemoryWorkItemRepository:
 
     async def delete(self, work_item_id: WorkItemId) -> None:
         await self._work_items.delete(work_item_id)
+
+    async def find_by_external_ref(
+        self, provider: str, external_id: str, external_type: str | None = None
+    ) -> WorkItem | None:
+        for work_item in await self._work_items.list_all():
+            for ref in work_item.external_refs:
+                if (
+                    ref.provider == provider
+                    and ref.external_id == external_id
+                    and (external_type is None or ref.external_type == external_type)
+                ):
+                    return work_item
+        return None
 
 
 class InMemoryRequirementRepository:
@@ -366,3 +400,101 @@ class InMemorySoftwareCatalogRepository:
     async def list_dependencies(self, project_id: ProjectId, component_name: str) -> list[str]:
         del project_id
         return [dep.target for dep in self._dependencies if dep.source == component_name]
+
+
+class InMemoryCommentRepository:
+    def __init__(self) -> None:
+        self._comments = InMemoryCollection[Comment]()
+
+    async def create(self, comment: Comment) -> Comment:
+        return await self._comments.upsert(comment, comment.id)
+
+    async def get(self, comment_id: CommentId) -> Comment | None:
+        return await self._comments.get(comment_id)
+
+    async def list_by_work_item(self, work_item_id: WorkItemId) -> list[Comment]:
+        return [c for c in await self._comments.list_all() if c.work_item_id == work_item_id]
+
+    async def find_by_external_ref(
+        self, provider: str, external_id: str, external_type: str | None = None
+    ) -> Comment | None:
+        for comment in await self._comments.list_all():
+            for ref in comment.external_refs:
+                if (
+                    ref.provider == provider
+                    and ref.external_id == external_id
+                    and (external_type is None or ref.external_type == external_type)
+                ):
+                    return comment
+        return None
+
+
+class InMemoryAttachmentRepository:
+    def __init__(self) -> None:
+        self._attachments = InMemoryCollection[Attachment]()
+
+    async def create(self, attachment: Attachment) -> Attachment:
+        return await self._attachments.upsert(attachment, attachment.id)
+
+    async def get(self, attachment_id: AttachmentId) -> Attachment | None:
+        return await self._attachments.get(attachment_id)
+
+    async def list_by_work_item(self, work_item_id: WorkItemId) -> list[Attachment]:
+        return [a for a in await self._attachments.list_all() if a.work_item_id == work_item_id]
+
+    async def find_by_external_ref(
+        self, provider: str, external_id: str, external_type: str | None = None
+    ) -> Attachment | None:
+        for attachment in await self._attachments.list_all():
+            for ref in attachment.external_refs:
+                if (
+                    ref.provider == provider
+                    and ref.external_id == external_id
+                    and (external_type is None or ref.external_type == external_type)
+                ):
+                    return attachment
+        return None
+
+
+class InMemoryWorkItemRelationRepository:
+    def __init__(self) -> None:
+        self._relations = InMemoryCollection[WorkItemRelation]()
+
+    async def create(self, relation: WorkItemRelation) -> WorkItemRelation:
+        return await self._relations.upsert(relation, relation.id)
+
+    async def list_by_work_item(self, work_item_id: WorkItemId) -> list[WorkItemRelation]:
+        return [
+            r
+            for r in await self._relations.list_all()
+            if r.source_work_item_id == work_item_id or r.target_work_item_id == work_item_id
+        ]
+
+    async def delete(self, relation_id: WorkItemRelationId) -> None:
+        await self._relations.delete(relation_id)
+
+
+class InMemorySyncWatermarkRepository:
+    def __init__(self) -> None:
+        self._watermarks: dict[tuple[str, str], ProviderSyncWatermark] = {}
+
+    async def get_or_create(self, provider: str, sync_key: str) -> ProviderSyncWatermark:
+        return self._watermarks.setdefault(
+            (provider, sync_key), ProviderSyncWatermark(provider=provider, sync_key=sync_key)
+        )
+
+    async def save(self, watermark: ProviderSyncWatermark) -> ProviderSyncWatermark:
+        self._watermarks[(watermark.provider, watermark.sync_key)] = watermark
+        return watermark
+
+
+class InMemoryBootstrapStateRepository:
+    def __init__(self) -> None:
+        self._states: dict[tuple[ProjectId, str], ProviderBootstrapState] = {}
+
+    async def get(self, project_id: ProjectId, provider: str) -> ProviderBootstrapState | None:
+        return self._states.get((project_id, provider))
+
+    async def save(self, state: ProviderBootstrapState) -> ProviderBootstrapState:
+        self._states[(state.project_id, state.provider)] = state
+        return state

@@ -20,11 +20,13 @@ from brain.adapters.postgresql.tables import (
     ActorRow,
     ApprovalRow,
     ArtifactRow,
+    AttachmentRow,
     AuditEventRow,
     CodeFileRow,
     CodeRelationRow,
     CodeSymbolRow,
     CommandFailureRow,
+    CommentRow,
     ContextCapsuleRow,
     ContextFeedbackRow,
     ContextMetricsRow,
@@ -45,6 +47,8 @@ from brain.adapters.postgresql.tables import (
     ObservationRow,
     PlanRow,
     ProjectRow,
+    ProviderBootstrapStateRow,
+    ProviderSyncWatermarkRow,
     RepositoryChangeSetRow,
     RepositoryRow,
     RepositorySnapshotRow,
@@ -60,12 +64,15 @@ from brain.adapters.postgresql.tables import (
     VerificationResultRow,
     VerificationRunRow,
     WorkflowCheckpointRow,
+    WorkItemRelationRow,
     WorkItemRow,
     WorkManagementMappingRow,
 )
 from brain.domain.actors import Actor
 from brain.domain.artifacts import Artifact
+from brain.domain.attachments import Attachment
 from brain.domain.audit import AuditAction, AuditEvent
+from brain.domain.bootstrap_state import BootstrapStage, BootstrapStatus, ProviderBootstrapState
 from brain.domain.code_intelligence import (
     CodeRelation,
     CodeRelationType,
@@ -76,6 +83,7 @@ from brain.domain.code_intelligence import (
     SymbolLocation,
 )
 from brain.domain.command_failure import CommandFailure, CommandFailureCategory
+from brain.domain.comments import Comment, CommentKind
 from brain.domain.context import (
     BudgetAllocation,
     ContextCandidate,
@@ -92,6 +100,8 @@ from brain.domain.external_reference import ExternalReference
 from brain.domain.identity import (
     ActorId,
     ArtifactId,
+    AttachmentId,
+    CommentId,
     ContextCapsuleId,
     DecisionId,
     DocumentId,
@@ -106,6 +116,7 @@ from brain.domain.identity import (
     VerificationId,
     WorkflowId,
     WorkItemId,
+    WorkItemRelationId,
 )
 from brain.domain.observability import (
     ContextMetrics,
@@ -156,6 +167,7 @@ from brain.domain.software_model import (
     SoftwareDomain,
     System,
 )
+from brain.domain.sync_watermark import ProviderSyncWatermark
 from brain.domain.topology import CandidateKind, DependencyCandidate, TopologyClaim
 from brain.domain.verification import VerificationResult
 from brain.domain.verification_plan import (
@@ -163,6 +175,7 @@ from brain.domain.verification_plan import (
     VerificationRun,
     VerificationVerdict,
 )
+from brain.domain.work_item_relations import WorkItemRelation, WorkItemRelationType
 from brain.domain.work_items import WorkItem
 from brain.domain.work_management import (
     IntegrationMapping,
@@ -228,6 +241,7 @@ class PostgresProjectRepository(_PostgresRepository):
                 name=project.name,
                 description=project.description,
                 status=_as_str(project.status),
+                parent_id=project.parent_id,
                 repositories=dump_uuids(project.repositories),
                 external_refs=dump_models(project.external_refs),
             )
@@ -251,6 +265,7 @@ class PostgresProjectRepository(_PostgresRepository):
         row.name = project.name
         row.description = project.description
         row.status = _as_str(project.status)
+        row.parent_id = project.parent_id
         row.repositories = dump_uuids(project.repositories)
         row.external_refs = dump_models(project.external_refs)
         await self._replace_external_refs("project", project.id, project.external_refs)
@@ -263,6 +278,21 @@ class PostgresProjectRepository(_PostgresRepository):
             await self._session.delete(row)
             await self._delete_external_refs("project", project_id)
             await self._session.flush()
+
+    async def find_by_external_ref(
+        self, provider: str, external_id: str, external_type: str | None = None
+    ) -> Project | None:
+        stmt = select(ExternalReferenceRow).where(
+            ExternalReferenceRow.owner_type == "project",
+            ExternalReferenceRow.provider == provider,
+            ExternalReferenceRow.external_id == external_id,
+        )
+        if external_type is not None:
+            stmt = stmt.where(ExternalReferenceRow.external_type == external_type)
+        row = (await self._session.execute(stmt.limit(1))).scalar_one_or_none()
+        if row is None:
+            return None
+        return await self.get(ProjectId(row.owner_id))
 
 
 class PostgresRepositoryRepository(_PostgresRepository):
@@ -394,6 +424,21 @@ class PostgresWorkItemRepository(_PostgresRepository):
             await self._session.delete(row)
             await self._delete_external_refs("work_item", work_item_id)
             await self._session.flush()
+
+    async def find_by_external_ref(
+        self, provider: str, external_id: str, external_type: str | None = None
+    ) -> WorkItem | None:
+        stmt = select(ExternalReferenceRow).where(
+            ExternalReferenceRow.owner_type == "work_item",
+            ExternalReferenceRow.provider == provider,
+            ExternalReferenceRow.external_id == external_id,
+        )
+        if external_type is not None:
+            stmt = stmt.where(ExternalReferenceRow.external_type == external_type)
+        row = (await self._session.execute(stmt.limit(1))).scalar_one_or_none()
+        if row is None:
+            return None
+        return await self.get(WorkItemId(row.owner_id))
 
 
 class PostgresRequirementRepository(_PostgresRepository):
@@ -834,6 +879,7 @@ def _project_from_row(row: ProjectRow) -> Project:
             "name": row.name,
             "description": row.description,
             "status": row.status,
+            "parent_id": row.parent_id,
             "repositories": row.repositories,
             "external_refs": row.external_refs,
         }
@@ -2898,4 +2944,284 @@ def _observation_from_row(row: ObservationRow) -> Observation:
         created_at=row.created_at,
         acknowledged_at=row.acknowledged_at,
         resolved_at=row.resolved_at,
+    )
+
+
+class PostgresCommentRepository(_PostgresRepository):
+    """Durable canonical work-item comments (bootstrap + live activities)."""
+
+    async def create(self, comment: Comment) -> Comment:
+        self._session.add(
+            CommentRow(
+                id=comment.id,
+                work_item_id=comment.work_item_id,
+                author_id=comment.author_id,
+                author_name=comment.author_name,
+                text=comment.text,
+                kind=_as_str(comment.kind),
+                created_at=comment.created_at,
+                external_refs=dump_models(comment.external_refs),
+            )
+        )
+        await self._replace_external_refs("comment", comment.id, comment.external_refs)
+        await self._session.flush()
+        return comment
+
+    async def get(self, comment_id: CommentId) -> Comment | None:
+        row = await self._session.get(CommentRow, comment_id)
+        return _comment_from_row(row) if row is not None else None
+
+    async def list_by_work_item(self, work_item_id: WorkItemId) -> list[Comment]:
+        result = await self._session.execute(
+            select(CommentRow)
+            .where(CommentRow.work_item_id == work_item_id)
+            .order_by(CommentRow.created_at)
+        )
+        return [_comment_from_row(row) for row in result.scalars().all()]
+
+    async def find_by_external_ref(
+        self, provider: str, external_id: str, external_type: str | None = None
+    ) -> Comment | None:
+        stmt = select(ExternalReferenceRow).where(
+            ExternalReferenceRow.owner_type == "comment",
+            ExternalReferenceRow.provider == provider,
+            ExternalReferenceRow.external_id == external_id,
+        )
+        if external_type is not None:
+            stmt = stmt.where(ExternalReferenceRow.external_type == external_type)
+        row = (await self._session.execute(stmt.limit(1))).scalar_one_or_none()
+        if row is None:
+            return None
+        return await self.get(CommentId(row.owner_id))
+
+
+class PostgresAttachmentRepository(_PostgresRepository):
+    """Durable canonical work-item attachments (metadata + download links)."""
+
+    async def create(self, attachment: Attachment) -> Attachment:
+        self._session.add(
+            AttachmentRow(
+                id=attachment.id,
+                work_item_id=attachment.work_item_id,
+                file_name=attachment.file_name,
+                content_type=attachment.content_type,
+                file_size=attachment.file_size,
+                download_url=attachment.download_url,
+                content_ingested=attachment.content_ingested,
+                created_at=attachment.created_at,
+                external_refs=dump_models(attachment.external_refs),
+            )
+        )
+        await self._replace_external_refs("attachment", attachment.id, attachment.external_refs)
+        await self._session.flush()
+        return attachment
+
+    async def get(self, attachment_id: AttachmentId) -> Attachment | None:
+        row = await self._session.get(AttachmentRow, attachment_id)
+        return _attachment_from_row(row) if row is not None else None
+
+    async def list_by_work_item(self, work_item_id: WorkItemId) -> list[Attachment]:
+        result = await self._session.execute(
+            select(AttachmentRow)
+            .where(AttachmentRow.work_item_id == work_item_id)
+            .order_by(AttachmentRow.created_at)
+        )
+        return [_attachment_from_row(row) for row in result.scalars().all()]
+
+    async def find_by_external_ref(
+        self, provider: str, external_id: str, external_type: str | None = None
+    ) -> Attachment | None:
+        stmt = select(ExternalReferenceRow).where(
+            ExternalReferenceRow.owner_type == "attachment",
+            ExternalReferenceRow.provider == provider,
+            ExternalReferenceRow.external_id == external_id,
+        )
+        if external_type is not None:
+            stmt = stmt.where(ExternalReferenceRow.external_type == external_type)
+        row = (await self._session.execute(stmt.limit(1))).scalar_one_or_none()
+        if row is None:
+            return None
+        return await self.get(AttachmentId(row.owner_id))
+
+
+class PostgresWorkItemRelationRepository(_PostgresRepository):
+    """Durable canonical work-item relations (two-pass resolution output)."""
+
+    async def create(self, relation: WorkItemRelation) -> WorkItemRelation:
+        stmt = pg_insert(WorkItemRelationRow).values(
+            id=relation.id,
+            source_work_item_id=relation.source_work_item_id,
+            target_work_item_id=relation.target_work_item_id,
+            relation_type=_as_str(relation.relation_type),
+            detected_at=relation.detected_at,
+            external_refs=dump_models(relation.external_refs),
+        )
+        await self._session.execute(
+            stmt.on_conflict_do_update(
+                index_elements=["source_work_item_id", "target_work_item_id", "relation_type"],
+                set_={"detected_at": relation.detected_at},
+            )
+        )
+        await self._session.flush()
+        return relation
+
+    async def list_by_work_item(self, work_item_id: WorkItemId) -> list[WorkItemRelation]:
+        result = await self._session.execute(
+            select(WorkItemRelationRow).where(
+                (WorkItemRelationRow.source_work_item_id == work_item_id)
+                | (WorkItemRelationRow.target_work_item_id == work_item_id)
+            )
+        )
+        return [_work_item_relation_from_row(row) for row in result.scalars().all()]
+
+    async def delete(self, relation_id: WorkItemRelationId) -> None:
+        await self._session.execute(
+            delete(WorkItemRelationRow).where(WorkItemRelationRow.id == relation_id)
+        )
+        await self._session.flush()
+
+
+class PostgresSyncWatermarkRepository(_PostgresRepository):
+    """Durable pull-sync cursors (one row per provider + sync_key)."""
+
+    async def get_or_create(self, provider: str, sync_key: str) -> ProviderSyncWatermark:
+        result = await self._session.execute(
+            select(ProviderSyncWatermarkRow).where(
+                ProviderSyncWatermarkRow.provider == provider,
+                ProviderSyncWatermarkRow.sync_key == sync_key,
+            )
+        )
+        row = result.scalar_one_or_none()
+        if row is not None:
+            return _watermark_from_row(row)
+        return ProviderSyncWatermark(provider=provider, sync_key=sync_key)
+
+    async def save(self, watermark: ProviderSyncWatermark) -> ProviderSyncWatermark:
+        stmt = pg_insert(ProviderSyncWatermarkRow).values(
+            provider=watermark.provider,
+            sync_key=watermark.sync_key,
+            last_synced_at=watermark.last_synced_at,
+            last_external_id=watermark.last_external_id,
+            bootstrap_completed_at=watermark.bootstrap_completed_at,
+            updated_at=watermark.updated_at,
+        )
+        await self._session.execute(
+            stmt.on_conflict_do_update(
+                index_elements=["provider", "sync_key"],
+                set_={
+                    "last_synced_at": watermark.last_synced_at,
+                    "last_external_id": watermark.last_external_id,
+                    "bootstrap_completed_at": watermark.bootstrap_completed_at,
+                    "updated_at": watermark.updated_at,
+                },
+            )
+        )
+        await self._session.flush()
+        return watermark
+
+
+class PostgresBootstrapStateRepository(_PostgresRepository):
+    """Durable bootstrap progress for existing-provider imports."""
+
+    async def get(self, project_id: ProjectId, provider: str) -> ProviderBootstrapState | None:
+        result = await self._session.execute(
+            select(ProviderBootstrapStateRow).where(
+                ProviderBootstrapStateRow.project_id == project_id,
+                ProviderBootstrapStateRow.provider == provider,
+            )
+        )
+        row = result.scalar_one_or_none()
+        return _bootstrap_state_from_row(row) if row is not None else None
+
+    async def save(self, state: ProviderBootstrapState) -> ProviderBootstrapState:
+        stmt = pg_insert(ProviderBootstrapStateRow).values(
+            id=uuid.uuid4(),
+            project_id=state.project_id,
+            provider=state.provider,
+            status=_as_str(state.status),
+            stage=_as_str(state.stage),
+            last_page=state.last_page,
+            items_processed=state.items_processed,
+            last_error=state.last_error,
+            started_at=state.started_at,
+            completed_at=state.completed_at,
+        )
+        await self._session.execute(
+            stmt.on_conflict_do_update(
+                index_elements=["project_id", "provider"],
+                set_={
+                    "status": _as_str(state.status),
+                    "stage": _as_str(state.stage),
+                    "last_page": state.last_page,
+                    "items_processed": state.items_processed,
+                    "last_error": state.last_error,
+                    "started_at": state.started_at,
+                    "completed_at": state.completed_at,
+                },
+            )
+        )
+        await self._session.flush()
+        return state
+
+
+def _comment_from_row(row: CommentRow) -> Comment:
+    return Comment(
+        id=CommentId(row.id),
+        work_item_id=WorkItemId(row.work_item_id),
+        author_id=ActorId(row.author_id) if row.author_id else None,
+        author_name=row.author_name,
+        text=row.text,
+        kind=CommentKind(row.kind) if row.kind else CommentKind.CONTEXT,
+        created_at=row.created_at,
+        external_refs=[ExternalReference.model_validate(ref) for ref in (row.external_refs or [])],
+    )
+
+
+def _attachment_from_row(row: AttachmentRow) -> Attachment:
+    return Attachment(
+        id=AttachmentId(row.id),
+        work_item_id=WorkItemId(row.work_item_id),
+        file_name=row.file_name,
+        content_type=row.content_type,
+        file_size=row.file_size,
+        download_url=row.download_url,
+        content_ingested=row.content_ingested or False,
+        created_at=row.created_at,
+        external_refs=[ExternalReference.model_validate(ref) for ref in (row.external_refs or [])],
+    )
+
+
+def _work_item_relation_from_row(row: WorkItemRelationRow) -> WorkItemRelation:
+    return WorkItemRelation(
+        id=WorkItemRelationId(row.id),
+        source_work_item_id=WorkItemId(row.source_work_item_id),
+        target_work_item_id=WorkItemId(row.target_work_item_id),
+        relation_type=WorkItemRelationType(row.relation_type),
+        detected_at=row.detected_at,
+        external_refs=[ExternalReference.model_validate(ref) for ref in (row.external_refs or [])],
+    )
+
+
+def _watermark_from_row(row: ProviderSyncWatermarkRow) -> ProviderSyncWatermark:
+    return ProviderSyncWatermark(
+        provider=row.provider,
+        sync_key=row.sync_key,
+        last_synced_at=row.last_synced_at,
+        last_external_id=row.last_external_id,
+        bootstrap_completed_at=row.bootstrap_completed_at,
+        updated_at=row.updated_at,
+    )
+
+
+def _bootstrap_state_from_row(row: ProviderBootstrapStateRow) -> ProviderBootstrapState:
+    return ProviderBootstrapState(
+        project_id=ProjectId(row.project_id),
+        provider=row.provider,
+        status=BootstrapStatus(row.status),
+        stage=BootstrapStage(row.stage),
+        last_page=row.last_page or 0,
+        items_processed=row.items_processed or 0,
+        last_error=row.last_error,
+        started_at=row.started_at,
+        completed_at=row.completed_at,
     )

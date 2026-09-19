@@ -26,5 +26,6 @@ class Project(BaseModel):
     name: str
     description: str | None = None
     status: ProjectStatus = ProjectStatus.PLANNED
+    parent_id: ProjectId | None = None
     repositories: list[RepositoryId] = Field(default_factory=list)
     external_refs: list[ExternalReference] = Field(default_factory=list)

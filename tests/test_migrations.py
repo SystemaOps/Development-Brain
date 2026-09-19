@@ -63,6 +63,12 @@ EXPECTED_TABLES = {
     "context_feedback",
     "command_failures",
     "observations",
+    "comments",
+    "attachments",
+    "work_item_relations",
+    "openproject_work_item_snapshots",
+    "provider_sync_watermarks",
+    "provider_bootstrap_states",
 }
 
 pytestmark = pytest.mark.skipif(

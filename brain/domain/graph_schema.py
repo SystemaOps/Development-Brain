@@ -32,6 +32,8 @@ class GraphLabel(StrEnum):
     ARTIFACT = "Artifact"
     EVIDENCE = "Evidence"
     ACTOR = "Actor"
+    COMMENT = "Comment"
+    ATTACHMENT = "Attachment"
 
 
 class RelationType(StrEnum):
@@ -60,6 +62,15 @@ class RelationType(StrEnum):
     QUERY_ACCESSES = "QUERY_ACCESSES"
     PUBLISHES_TO = "PUBLISHES_TO"
     CONSUMES_FROM = "CONSUMES_FROM"
+    PARENT_OF = "PARENT_OF"
+    BLOCKS = "BLOCKS"
+    RELATES_TO = "RELATES_TO"
+    PRECEDES = "PRECEDES"
+    FOLLOWS = "FOLLOWS"
+    HAS_COMMENT = "HAS_COMMENT"
+    COMMENT_ON = "COMMENT_ON"
+    AUTHORED = "AUTHORED"
+    HAS_ATTACHMENT = "HAS_ATTACHMENT"
 
 
 __all__ = ["GraphLabel", "RelationType"]

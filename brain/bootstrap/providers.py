@@ -29,9 +29,6 @@ from brain.adapters.in_memory.human_activity import (
 )
 from brain.adapters.in_memory.knowledge_graph import InMemoryKnowledgeGraph
 from brain.adapters.in_memory.observability import InMemoryLogSink
-from brain.adapters.in_memory.openproject_snapshot import (
-    InMemoryOpenProjectSnapshotStore,
-)
 from brain.adapters.in_memory.policies import DefaultPolicyProvider
 from brain.adapters.in_memory.semantic_index import InMemorySemanticIndex
 from brain.adapters.neo4j.knowledge_graph import Neo4jKnowledgeGraph
@@ -48,6 +45,7 @@ from brain.adapters.postgresql.database import (
 from brain.adapters.postgresql.database import (
     create_async_engine as _create_async_engine,
 )
+from brain.adapters.postgresql.openproject_snapshot import PostgresOpenProjectSnapshotStore
 from brain.adapters.topology.discovery import TopologyDiscoverer
 from brain.adapters.verification.command_runner import DeterministicCommandRunner
 from brain.adapters.weaviate.semantic_index import WeaviateSemanticIndex
@@ -63,6 +61,7 @@ from brain.application.jit_retrieval import JustInTimeRetrieval
 from brain.application.observability import ObservabilityService
 from brain.application.observation_projection import ObservationProjectionService
 from brain.application.observations import ObservationService
+from brain.application.openproject_ingestion import OpenProjectIngestionService
 from brain.application.optimization import (
     ContextRankingFeedbackService,
     ExecutorQualityTracker,
@@ -82,6 +81,7 @@ from brain.domain.executor import (
     ExecutorDescriptor,
     ExecutorKind,
 )
+from brain.ports.attachment_content import AttachmentContentFetcher
 from brain.ports.documentation import DocumentationPort
 from brain.ports.executor import ExecutorPort
 from brain.ports.human_activity import HumanActivityPort
@@ -368,6 +368,23 @@ def build_source_control(settings: BrainSettings) -> SourceControlPort | None:
     return None
 
 
+def _build_attachment_content_fetcher(
+    settings: BrainSettings,
+) -> AttachmentContentFetcher | None:
+    """Build the attachment content fetcher when OpenProject is configured."""
+    wm = settings.work_management
+    if wm.provider == "openproject" and wm.base_url and wm.api_key:
+        from brain.adapters.work_management.openproject_content import (
+            OpenProjectAttachmentContentFetcher,
+        )
+
+        return OpenProjectAttachmentContentFetcher(
+            base_url=wm.base_url,
+            api_key=wm.api_key,
+        )
+    return None
+
+
 def build_command_queue(settings: BrainSettings) -> object:
     """Build the command queue.
 
@@ -509,7 +526,22 @@ def build_services(
     workspace_manager = WorkspaceManager(source_control=source_control)
     document_conversion = build_document_conversion(settings)
     xwiki_mapping = XWikiMappingService(event_bus=events)
-    openproject_snapshots = InMemoryOpenProjectSnapshotStore()
+    openproject_snapshots = PostgresOpenProjectSnapshotStore(session=repos.session)
+    openproject_ingestion = OpenProjectIngestionService(
+        projects=repos.projects,
+        work_items=repos.work_items,
+        actors=repos.actors,
+        comments=repos.comments,
+        attachments=repos.attachments,
+        relations=repos.work_item_relations,
+        integrations=repos.work_management_integrations,
+        snapshots=openproject_snapshots,
+        graph=graph,
+        event_bus=events,
+        brain_actor_id=settings.work_management.brain_actor_id or None,
+        document_ingestion=ingestion,
+        content_fetcher=_build_attachment_content_fetcher(settings),
+    )
 
     services: dict[str, object] = {
         "events": events,
@@ -539,6 +571,7 @@ def build_services(
         "document_conversion": document_conversion,
         "xwiki_mapping": xwiki_mapping,
         "openproject_snapshots": openproject_snapshots,
+        "openproject_ingestion": openproject_ingestion,
         "command_queue": build_command_queue(settings),
         "command_dispatcher": CommandDispatcher(),
     }
