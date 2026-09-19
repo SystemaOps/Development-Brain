@@ -103,6 +103,10 @@ class WorkManagementSettings(ProviderCapabilitySettings):
     api_key: str = ""
     project_id: str = ""
     brain_actor_id: str = ""
+    sync_enabled: bool = False
+    sync_interval_seconds: int = 300
+    sync_since_days: int = 1
+    page_size: int = 100
 
 
 class DocumentationSettings(BaseSettings):

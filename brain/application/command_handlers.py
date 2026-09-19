@@ -28,6 +28,7 @@ from brain.domain.commands import (
     ReconcileProjectCommand,
     RunWorkItemCommand,
     SyncRepositoryCommand,
+    SyncWorkManagementCommand,
     VerifyExecutionCommand,
     command_to_model,
 )
@@ -73,6 +74,7 @@ class CommandHandlers:
         self._dispatcher.register(CommandType.CREATE_PULL_REQUEST, self._create_pull_request)
         self._dispatcher.register(CommandType.RECONCILE_PROJECT, self._reconcile_project)
         self._dispatcher.register(CommandType.BOOTSTRAP_PROJECT, self._bootstrap_project)
+        self._dispatcher.register(CommandType.SYNC_WORK_MANAGEMENT, self._sync_work_management)
 
     # --- handlers ---------------------------------------------------------
 
@@ -477,6 +479,29 @@ class CommandHandlers:
             "comments_ingested": result.comments_ingested,
             "relations_ingested": result.relations_ingested,
             "resumed": result.resumed,
+        }
+
+    async def _sync_work_management(self, envelope: CommandEnvelope) -> dict[str, object]:
+        """Pull changed work items from the provider (Phase 3.1)."""
+        model = command_to_model(envelope)
+        assert isinstance(model, SyncWorkManagementCommand)
+        service = self._container.services.get("openproject_pull_sync")
+        if service is None:
+            return {"project_id": model.project_id, "status": "no_pull_sync_service"}
+        from brain.application.work_management_sync import WorkManagementPullSyncService
+
+        assert isinstance(service, WorkManagementPullSyncService)
+        project = await self._container.repositories.projects.get(model.project_id)
+        if project is None:
+            return {"project_id": model.project_id, "status": "not_found"}
+        result = await service.sync_project(project)
+        return {
+            "project_id": result.project_id,
+            "status": result.status,
+            "items_pulled": result.items_pulled,
+            "items_created": result.items_created,
+            "items_swept": result.items_swept,
+            "pages_fetched": result.pages_fetched,
         }
 
 

@@ -33,8 +33,17 @@ async def run_projection_retry(
     return report
 
 
+async def run_work_management_reconciliation(
+    service: ReconciliationService,
+) -> ReconciliationReport:
+    report = ReconciliationReport()
+    await service.reconcile_work_management(report)
+    return report
+
+
 __all__ = [
     "run_projection_retry",
     "run_repository_reconciliation",
     "run_stuck_execution_detection",
+    "run_work_management_reconciliation",
 ]

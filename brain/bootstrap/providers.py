@@ -388,6 +388,31 @@ def _build_openproject_bootstrap(
     )
 
 
+def _build_openproject_pull_sync(
+    settings: BrainSettings,
+    repos: PostgresRepositories,
+    ingestion: OpenProjectIngestionService,
+) -> object | None:
+    """Build the pull-reconciliation service when an adapter is configured."""
+    from brain.adapters.work_management.openproject import OpenProjectAdapter
+    from brain.application.work_management_sync import WorkManagementPullSyncService
+
+    adapter = build_work_management(settings)[0]
+    if not isinstance(adapter, OpenProjectAdapter):
+        return None
+    wm = settings.work_management
+    return WorkManagementPullSyncService(
+        provider=adapter,
+        ingestion=ingestion,
+        projects=repos.projects,
+        work_items=repos.work_items,
+        integrations=repos.work_management_integrations,
+        watermarks=repos.sync_watermarks,
+        page_size=wm.page_size,
+        since_days=wm.sync_since_days,
+    )
+
+
 def _build_attachment_content_fetcher(
     settings: BrainSettings,
 ) -> AttachmentContentFetcher | None:
@@ -562,6 +587,7 @@ def build_services(
         content_fetcher=_build_attachment_content_fetcher(settings),
     )
     openproject_bootstrap = _build_openproject_bootstrap(settings, repos, openproject_ingestion)
+    openproject_pull_sync = _build_openproject_pull_sync(settings, repos, openproject_ingestion)
 
     services: dict[str, object] = {
         "events": events,
@@ -593,6 +619,7 @@ def build_services(
         "openproject_snapshots": openproject_snapshots,
         "openproject_ingestion": openproject_ingestion,
         "openproject_bootstrap": openproject_bootstrap,
+        "openproject_pull_sync": openproject_pull_sync,
         "command_queue": build_command_queue(settings),
         "command_dispatcher": CommandDispatcher(),
     }

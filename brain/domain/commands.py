@@ -45,6 +45,7 @@ class CommandType(StrEnum):
     CREATE_PULL_REQUEST = "create_pull_request"
     RECONCILE_PROJECT = "reconcile_project"
     BOOTSTRAP_PROJECT = "bootstrap_project"
+    SYNC_WORK_MANAGEMENT = "sync_work_management"
 
 
 class CommandEnvelope(BaseModel):
@@ -129,6 +130,12 @@ class BootstrapProjectCommand(BaseModel):
     external_project_id: str
 
 
+class SyncWorkManagementCommand(BaseModel):
+    """Pull changed work items from a work-management provider."""
+
+    project_id: ProjectId
+
+
 COMMAND_TYPE_TO_MODEL: dict[CommandType, type[BaseModel]] = {
     CommandType.ANALYZE_PROJECT: AnalyzeProjectCommand,
     CommandType.SYNC_REPOSITORY: SyncRepositoryCommand,
@@ -144,6 +151,7 @@ COMMAND_TYPE_TO_MODEL: dict[CommandType, type[BaseModel]] = {
     CommandType.CREATE_PULL_REQUEST: CreatePullRequestCommand,
     CommandType.RECONCILE_PROJECT: ReconcileProjectCommand,
     CommandType.BOOTSTRAP_PROJECT: BootstrapProjectCommand,
+    CommandType.SYNC_WORK_MANAGEMENT: SyncWorkManagementCommand,
 }
 
 
@@ -191,6 +199,7 @@ __all__ = [
     "ReconcileProjectCommand",
     "RunWorkItemCommand",
     "SyncRepositoryCommand",
+    "SyncWorkManagementCommand",
     "TriggerType",
     "VerifyExecutionCommand",
     "command_to_model",

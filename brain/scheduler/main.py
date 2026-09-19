@@ -27,9 +27,11 @@ class SchedulerLoop:
         interval_seconds: float = 60.0,
         stuck_threshold_seconds: int = 3600,
     ) -> None:
+        queue = container.services.get("command_queue")
         self._service = ReconciliationService(
             container,
             stuck_threshold_seconds=stuck_threshold_seconds,
+            queue=queue,  # type: ignore[arg-type]
         )
         self._interval = interval_seconds
         self._stop = False

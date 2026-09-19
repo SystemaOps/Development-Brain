@@ -243,6 +243,7 @@ class OpenProjectIngestionService:
         correlation_id: uuid.UUID | None = None,
         project_id: ProjectId | None = None,
         provider_action: str | None = None,
+        publish_unchanged: bool = True,
     ) -> OpenProjectIngestionResult:
         """Persist one normalized work-item snapshot canonically (doc Phase 11).
 
@@ -253,6 +254,10 @@ class OpenProjectIngestionService:
         provider reports the event: the emitted event type and the assignment
         trigger follow the provider action rather than whether the brain knew
         the entity before (webhook semantics).
+
+        ``publish_unchanged=False`` suppresses events for snapshots that diff
+        to no semantic changes and were not newly created (pull cycles stay
+        quiet; the snapshot baseline is still refreshed).
         """
         result = OpenProjectIngestionResult()
         previous = await self._snapshots.get(snapshot.external_id)
@@ -282,6 +287,9 @@ class OpenProjectIngestionService:
             return result
 
         if work_item is not None and project is not None:
+            if not publish_unchanged and not result.created and not changes:
+                # Unchanged pull refresh: no events, baseline already saved.
+                return result
             created_event = self._event_is_created(result.created, provider_action)
             envelope = self._build_work_item_envelope(
                 work_item,

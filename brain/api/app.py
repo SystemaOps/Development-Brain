@@ -30,6 +30,7 @@ from brain.api.routes import (
     verification,
     webhooks,
     work_items,
+    work_management,
 )
 from brain.bootstrap.settings import BrainSettings
 
@@ -68,6 +69,7 @@ def create_app(settings: BrainSettings | None = None) -> FastAPI:
     app.include_router(pull_requests.router)
     app.include_router(observations.router)
     app.include_router(webhooks.router)
+    app.include_router(work_management.router)
     app.include_router(metrics_router)
 
     @app.get("/")

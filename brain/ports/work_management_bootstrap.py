@@ -1,13 +1,15 @@
-"""Work-management bootstrap port.
+"""Work-management bootstrap + pull snapshot port.
 
 Provider-neutral surface for importing an existing external project into the
-brain.  The bootstrap service depends only on this protocol; the OpenProject
-adapter implements it by normalizing raw provider payloads with the same
-parsers used by webhooks, so provider shapes never reach application code.
+brain (bootstrap) and for periodic pull reconciliation.  The bootstrap and
+pull services depend only on this protocol; the OpenProject adapter implements
+it by normalizing raw provider payloads with the same parsers used by
+webhooks, so provider shapes never reach application code.
 """
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Protocol, runtime_checkable
 
 from pydantic import BaseModel
@@ -46,6 +48,18 @@ class WorkManagementBootstrapPort(Protocol):
         offset: int = 1,
         page_size: int = 100,
     ) -> list[OpenProjectWorkItemSnapshot]: ...
+
+    async def list_changed_work_packages(
+        self,
+        since: datetime,
+        *,
+        offset: int = 1,
+        page_size: int = 100,
+    ) -> list[OpenProjectWorkItemSnapshot]: ...
+
+    async def get_work_package_snapshot(
+        self, external_id: str
+    ) -> OpenProjectWorkItemSnapshot | None: ...
 
     async def list_activities(self, work_package_external_id: str) -> list[ProviderActivity]: ...
 

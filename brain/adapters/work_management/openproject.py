@@ -44,6 +44,14 @@ class OpenProjectTransport(Protocol):
 
     async def list_updated_work_packages(self, since: datetime) -> list[dict[str, Any]]: ...
 
+    async def list_updated_work_packages_page(
+        self,
+        since: datetime,
+        *,
+        offset: int = 1,
+        page_size: int = 100,
+    ) -> list[dict[str, Any]]: ...
+
     async def list_projects(self) -> list[dict[str, Any]]: ...
 
     async def list_project_work_packages(
@@ -85,6 +93,28 @@ class OpenProjectAdapter(WorkManagementPort, WorkManagementBootstrapPort):
     async def list_changed_work_items(self, since: datetime) -> list[WorkItem]:
         raws = await self._transport.list_updated_work_packages(since)
         return [_to_work_item(_ref_from_raw(r), r, self._project_id) for r in raws]
+
+    async def list_changed_work_packages(
+        self,
+        since: datetime,
+        *,
+        offset: int = 1,
+        page_size: int = 100,
+    ) -> list[OpenProjectWorkItemSnapshot]:
+        snapshots: list[OpenProjectWorkItemSnapshot] = []
+        for raw in await self._transport.list_updated_work_packages_page(
+            since, offset=offset, page_size=page_size
+        ):
+            snapshot = parse_work_item({"work_package": raw})
+            if snapshot is not None:
+                snapshots.append(snapshot)
+        return snapshots
+
+    async def get_work_package_snapshot(
+        self, external_id: str
+    ) -> OpenProjectWorkItemSnapshot | None:
+        raw = await self._transport.get_work_package(external_id)
+        return parse_work_item({"work_package": raw})
 
     # --- bootstrap port (Phase 2.3) ---------------------------------------
 

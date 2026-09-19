@@ -90,4 +90,27 @@ async def retry(work_item_id: str) -> None:
         typer.echo("retry queued")
 
 
+@work_item_app.command("sync")
+@async_command
+async def sync(project_id: str) -> None:
+    """Enqueue a work-management provider pull for a project (Phase 3.5)."""
+    from brain.domain.commands import CommandType, SyncWorkManagementCommand, make_command
+    from brain.ports.commands import CommandQueue
+
+    async with cli_container() as container:
+        project = await container.repositories.projects.get(ProjectId(uuid.UUID(project_id)))
+        if project is None:
+            typer.echo("project not found")
+            raise typer.Exit(code=1)
+        queue = container.services["command_queue"]
+        assert isinstance(queue, CommandQueue)
+        await queue.enqueue(
+            make_command(
+                CommandType.SYNC_WORK_MANAGEMENT,
+                SyncWorkManagementCommand(project_id=project.id),
+            )
+        )
+        typer.echo("work-management sync queued")
+
+
 __all__ = ["work_item_app"]

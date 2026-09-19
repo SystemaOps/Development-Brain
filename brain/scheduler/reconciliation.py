@@ -31,6 +31,7 @@ class ReconciliationReport:
     repositories_stale: int = 0
     repositories_synced: int = 0
     work_management_checked: int = 0
+    work_management_synced: int = 0
     documentation_checked: int = 0
     projections_stale: int = 0
     stuck_executions: int = 0
@@ -111,10 +112,62 @@ class ReconciliationService:
     # --- 29.3 Work-management reconciliation -------------------------------
 
     async def reconcile_work_management(self, report: ReconciliationReport) -> None:
-        # Provider watermarks/timestamps are provider-specific; with no
-        # configured provider the reconciliation is a no-op that still counts.
-        if self._container.work_management is not None:
+        """Pull changed work items when a provider + pull sync are configured.
+
+        Webhooks provide low latency; this periodic pull provides eventual
+        consistency (missed webhooks, comment-only changes, closed items).
+        """
+        if self._container.work_management is None:
+            return
+        settings = self._container.settings.work_management
+        if not settings.sync_enabled:
+            return
+        pull = self._container.services.get("openproject_pull_sync")
+        if pull is None:
+            return
+
+        from brain.domain.external_reference import ExternalReference
+
+        projects = await self._container.repositories.projects.list()
+        for project in projects:
+            refs = project.external_refs
+            has_provider_ref = any(
+                isinstance(ref, ExternalReference)
+                and ref.provider == "openproject"
+                and ref.external_type == "project"
+                for ref in refs
+            )
+            if not has_provider_ref:
+                continue
             report.work_management_checked += 1
+            if self._queue is not None:
+                from brain.domain.commands import (
+                    CommandType,
+                    SyncWorkManagementCommand,
+                    TriggerType,
+                    make_command,
+                )
+
+                await self._queue.enqueue(
+                    make_command(
+                        CommandType.SYNC_WORK_MANAGEMENT,
+                        SyncWorkManagementCommand(project_id=project.id),
+                        trigger_type=TriggerType.SCHEDULED,
+                    )
+                )
+                report.details.append(f"work management sync enqueued for project {project.name}")
+            else:
+                # No queue (tests/reference): run the pull inline.
+                sync_project = getattr(pull, "sync_project", None)
+                if sync_project is None:
+                    continue
+                sync_result = await sync_project(project)
+                report.details.append(
+                    f"work management synced for project {project.name}: "
+                    f"{getattr(sync_result, 'items_pulled', 0)} pulled, "
+                    f"{getattr(sync_result, 'items_created', 0)} created"
+                )
+            report.work_management_synced += 1
 
     # --- 29.4 Documentation reconciliation ---------------------------------
 

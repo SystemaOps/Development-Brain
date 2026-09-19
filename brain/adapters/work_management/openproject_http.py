@@ -66,6 +66,21 @@ class OpenProjectHTTPTransport:
         )
         return list(result.get("_embedded", {}).get("elements", []))
 
+    async def list_updated_work_packages_page(
+        self,
+        since: datetime,
+        *,
+        offset: int = 1,
+        page_size: int = 100,
+    ) -> list[dict[str, Any]]:
+        since_iso = since.strftime("%Y-%m-%dT%H:%M:%SZ")
+        result = self._request(
+            "GET",
+            f'/api/v3/work_packages?filters=[{{"updatedAt":{{"operator":">d","values":["{since_iso}"]}}}}]'
+            f"&offset={offset}&pageSize={page_size}",
+        )
+        return list(result.get("_embedded", {}).get("elements", []))
+
     async def list_projects(self) -> list[dict[str, Any]]:
         result = self._request("GET", "/api/v3/projects")
         return list(result.get("_embedded", {}).get("elements", []))
