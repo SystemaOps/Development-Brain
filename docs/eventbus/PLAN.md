@@ -161,11 +161,43 @@ Status: done —
 
 ---
 
-## Phase 5 — Verification
+## Phase 5 — Verification ✅ implemented
 
 - `ruff`, `mypy`, full `pytest`
 - Manual POST of `docs/webhook/data.txt` payloads → assert typed events on bus,
   commands enqueued by handlers (not by route)
+
+Status: done —
+- `ruff format`/`check` clean; `mypy` clean (277 source files).
+- Full suite: **906 passed, 0 failures**.
+- Manual round-trip (all 8 real `data.txt` fixtures POSTed through the signed
+  endpoint, wp 43 created before the assigning update so the diff baseline
+  exists):
+  - every payload → `accepted=True`, correct typed event type, **no
+    `command_id`** in the response (route is fact-only);
+  - typed facts on the bus: `work_item_created`, `work_item_changed`,
+    `project_changed`, `attachment_created`, and exactly **one
+    `work_item_assigned`** (after the created→assigned transition);
+  - exactly one command enqueued — by the `WorkItemAssignedHandler`, not the
+    route — and it drains cleanly through `CommandDispatcher`
+    (`run_work_item`).
+- Assertions verified: facts-not-commands, handler-driven enqueue, no
+  `command_id` leakage, dispatcher round-trip OK.
+
+## Conclusion
+
+The event→command flow now matches `docs/eventbus/event_command_flow.md`:
+
+```text
+Webhook → parse/verify → IncomingEventProcessor (dedup + log)
+   → EventBus → EventHandler (decides) → enqueue_command
+   → CommandQueue → WorkerLoop → CommandDispatcher → WorkflowEngine
+```
+
+- Webhooks produce facts (typed events, never decisions).
+- Handlers decide consequences (assignment→run, feedback→resume, merge→re-ingest).
+- Commands request work; the worker performs it.
+- Verified end-to-end against real OpenProject payloads.
 
 ---
 
