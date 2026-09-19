@@ -49,4 +49,33 @@ async def show_project(project_id: str) -> None:
         typer.echo(f"repositories: {len(project.repositories)}")
 
 
+@project_app.command("bootstrap")
+@async_command
+async def bootstrap(project_id: str, external_project_id: str) -> None:
+    """Enqueue a bootstrap import of an existing OpenProject project."""
+    import uuid
+
+    from brain.domain.commands import BootstrapProjectCommand, CommandType, make_command
+    from brain.domain.identity import ProjectId
+    from brain.ports.commands import CommandQueue
+
+    async with cli_container() as container:
+        project = await container.repositories.projects.get(ProjectId(uuid.UUID(project_id)))
+        if project is None:
+            typer.echo("project not found")
+            raise typer.Exit(code=1)
+        queue = container.services["command_queue"]
+        assert isinstance(queue, CommandQueue)
+        await queue.enqueue(
+            make_command(
+                CommandType.BOOTSTRAP_PROJECT,
+                BootstrapProjectCommand(
+                    project_id=project.id,
+                    external_project_id=external_project_id,
+                ),
+            )
+        )
+        typer.echo("bootstrap queued")
+
+
 __all__ = ["project_app"]

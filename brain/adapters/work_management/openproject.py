@@ -11,11 +11,20 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Protocol
 
+from brain.application.openproject_parser import (
+    OpenProjectWorkItemSnapshot,
+    parse_work_item,
+)
 from brain.domain.external_reference import ExternalReference
 from brain.domain.identity import ProjectId, WorkItemId
 from brain.domain.work_items import WorkItem
 from brain.domain.work_management import FieldMapping, ProviderMappingSpec
 from brain.ports.work_management import WorkManagementPort
+from brain.ports.work_management_bootstrap import (
+    ProviderActivity,
+    ProviderProject,
+    WorkManagementBootstrapPort,
+)
 
 OPENPROJECT_MAPPING = ProviderMappingSpec(
     provider="openproject",
@@ -35,6 +44,18 @@ class OpenProjectTransport(Protocol):
 
     async def list_updated_work_packages(self, since: datetime) -> list[dict[str, Any]]: ...
 
+    async def list_projects(self) -> list[dict[str, Any]]: ...
+
+    async def list_project_work_packages(
+        self,
+        project_external_id: str,
+        *,
+        offset: int = 1,
+        page_size: int = 100,
+    ) -> list[dict[str, Any]]: ...
+
+    async def get_activities(self, external_id: str) -> list[dict[str, Any]]: ...
+
     async def create_work_package(self, payload: dict[str, Any]) -> dict[str, Any]: ...
 
     async def update_status(self, external_id: str, status: str) -> None: ...
@@ -44,8 +65,8 @@ class OpenProjectTransport(Protocol):
     async def link_pull_request(self, external_id: str, pr_ref: str) -> None: ...
 
 
-class OpenProjectAdapter(WorkManagementPort):
-    """WorkManagementPort implementation for OpenProject."""
+class OpenProjectAdapter(WorkManagementPort, WorkManagementBootstrapPort):
+    """WorkManagementPort + WorkManagementBootstrapPort for OpenProject."""
 
     def __init__(
         self,
@@ -64,6 +85,60 @@ class OpenProjectAdapter(WorkManagementPort):
     async def list_changed_work_items(self, since: datetime) -> list[WorkItem]:
         raws = await self._transport.list_updated_work_packages(since)
         return [_to_work_item(_ref_from_raw(r), r, self._project_id) for r in raws]
+
+    # --- bootstrap port (Phase 2.3) ---------------------------------------
+
+    async def list_projects(self) -> list[ProviderProject]:
+        projects = []
+        for raw in await self._transport.list_projects():
+            embedded = raw.get("_embedded") or {}
+            parent = embedded.get("parent") or {}
+            projects.append(
+                ProviderProject(
+                    external_id=str(raw.get("id") or ""),
+                    name=str(raw.get("name") or ""),
+                    identifier=str(raw.get("identifier") or ""),
+                    description=str(raw.get("description") or ""),
+                    active=bool(raw.get("active", True)),
+                    parent_external_id=(
+                        str(parent.get("id")) if parent.get("id") is not None else None
+                    ),
+                )
+            )
+        return projects
+
+    async def list_work_packages(
+        self,
+        project_external_id: str,
+        *,
+        offset: int = 1,
+        page_size: int = 100,
+    ) -> list[OpenProjectWorkItemSnapshot]:
+        snapshots: list[OpenProjectWorkItemSnapshot] = []
+        for raw in await self._transport.list_project_work_packages(
+            project_external_id, offset=offset, page_size=page_size
+        ):
+            snapshot = parse_work_item({"work_package": raw})
+            if snapshot is not None:
+                snapshots.append(snapshot)
+        return snapshots
+
+    async def list_activities(self, work_package_external_id: str) -> list[ProviderActivity]:
+        activities: list[ProviderActivity] = []
+        for raw in await self._transport.get_activities(work_package_external_id):
+            embedded = raw.get("_embedded") or {}
+            comment = embedded.get("comment") or {}
+            author = embedded.get("author") or {}
+            details = comment.get("raw") or comment.get("html") or ""
+            activities.append(
+                ProviderActivity(
+                    external_id=str(raw.get("id") or ""),
+                    author_name=str(author.get("name") or ""),
+                    text=str(details),
+                    created_at=str(raw.get("createdAt") or "") or None,
+                )
+            )
+        return activities
 
     async def publish_work_item(self, work_item: WorkItem) -> ExternalReference:
         payload = {

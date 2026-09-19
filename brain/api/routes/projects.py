@@ -103,3 +103,30 @@ async def project_topology(project_id: uuid.UUID, request: Request) -> dict[str,
 async def project_knowledge_status(project_id: uuid.UUID, request: Request) -> dict[str, object]:
     del project_id, request
     return {"status": "unknown"}
+
+
+@router.post("/api/v1/projects/{project_id}/bootstrap", status_code=202)
+async def bootstrap_project(project_id: uuid.UUID, request: Request) -> dict[str, object]:
+    """Bootstrap an existing external provider project (Phase 2.4)."""
+    body = await request.json()
+    external_project_id = str(body.get("external_project_id") or "")
+    if not external_project_id:
+        raise BrainAPIError("invalid_request", "external_project_id is required", status_code=422)
+
+    from brain.api.commands import enqueue_command
+    from brain.domain.commands import BootstrapProjectCommand, CommandType
+
+    container: BrainContainer = get_container(request)
+    project = await container.repositories.projects.get(ProjectId(project_id))
+    if project is None:
+        raise BrainAPIError("not_found", "project not found", status_code=404)
+    result = await enqueue_command(
+        container,
+        CommandType.BOOTSTRAP_PROJECT,
+        BootstrapProjectCommand(
+            project_id=ProjectId(project_id),
+            external_project_id=external_project_id,
+        ),
+        correlation_id=request.state.correlation_id,
+    )
+    return result.model_dump(mode="json")

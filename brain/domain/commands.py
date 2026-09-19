@@ -44,6 +44,7 @@ class CommandType(StrEnum):
     VERIFY_EXECUTION = "verify_execution"
     CREATE_PULL_REQUEST = "create_pull_request"
     RECONCILE_PROJECT = "reconcile_project"
+    BOOTSTRAP_PROJECT = "bootstrap_project"
 
 
 class CommandEnvelope(BaseModel):
@@ -120,6 +121,14 @@ class ReconcileProjectCommand(BaseModel):
     project_id: ProjectId
 
 
+class BootstrapProjectCommand(BaseModel):
+    """Import an existing external provider project into the brain."""
+
+    project_id: ProjectId
+    provider: str = "openproject"
+    external_project_id: str
+
+
 COMMAND_TYPE_TO_MODEL: dict[CommandType, type[BaseModel]] = {
     CommandType.ANALYZE_PROJECT: AnalyzeProjectCommand,
     CommandType.SYNC_REPOSITORY: SyncRepositoryCommand,
@@ -134,6 +143,7 @@ COMMAND_TYPE_TO_MODEL: dict[CommandType, type[BaseModel]] = {
     CommandType.VERIFY_EXECUTION: VerifyExecutionCommand,
     CommandType.CREATE_PULL_REQUEST: CreatePullRequestCommand,
     CommandType.RECONCILE_PROJECT: ReconcileProjectCommand,
+    CommandType.BOOTSTRAP_PROJECT: BootstrapProjectCommand,
 }
 
 
@@ -167,6 +177,7 @@ def command_to_model(envelope: CommandEnvelope) -> BaseModel | None:
 __all__ = [
     "AnalyzeProjectCommand",
     "AnalyzeWorkItemCommand",
+    "BootstrapProjectCommand",
     "BuildContextCommand",
     "COMMAND_TYPE_TO_MODEL",
     "CommandEnvelope",

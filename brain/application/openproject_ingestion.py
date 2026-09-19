@@ -61,6 +61,7 @@ from brain.domain.identity import (
     ProjectId,
     WorkItemId,
 )
+from brain.domain.projects import Project
 from brain.domain.work_item_relations import (
     WorkItemRelation,
     WorkItemRelationType,
@@ -143,6 +144,93 @@ class OpenProjectIngestionService:
         self._brain_actor_id = brain_actor_id
         self._document_ingestion = document_ingestion
         self._content_fetcher = content_fetcher
+
+    # --- project ingestion (Phase 2.2) -------------------------------------
+
+    async def upsert_project(
+        self,
+        *,
+        external_id: str,
+        name: str,
+        description: str = "",
+        parent_external_id: str | None = None,
+        project_id: ProjectId | None = None,
+    ) -> Project:
+        """Upsert a canonical project resolved from a provider project.
+
+        Identity is the ``(openproject, project, external_id)`` external
+        reference (never the provider name).  The parent is resolved via the
+        reverse lookup, so a parent arriving later is fixed by a second pass.
+        """
+        project = None
+        if project_id is not None:
+            project = await self._projects.get(project_id)
+        if project is None:
+            project = await self._projects.find_by_external_ref(
+                "openproject", external_id, "project"
+            )
+
+        ref = ExternalReference(
+            provider="openproject",
+            external_id=external_id,
+            external_type="project",
+        )
+        parent_id: ProjectId | None = None
+        if parent_external_id:
+            parent = await self._projects.find_by_external_ref(
+                "openproject", parent_external_id, "project"
+            )
+            if parent is not None:
+                parent_id = parent.id
+
+        if project is None:
+            project = Project(
+                name=name or f"OpenProject {external_id}",
+                description=description or None,
+                parent_id=parent_id,
+                external_refs=[ref],
+            )
+            created = await self._projects.create(project)
+            await self._upsert_project_node(created)
+            return created
+
+        updated = project.model_copy(
+            update={
+                "name": name or project.name,
+                "description": description or project.description,
+                "parent_id": parent_id or project.parent_id,
+            }
+        )
+        if ref not in updated.external_refs:
+            updated.external_refs = [*updated.external_refs, ref]
+        if updated != project:
+            stored = await self._projects.update(updated)
+            await self._upsert_project_node(stored)
+            return stored
+        await self._upsert_project_node(project)
+        return project
+
+    async def _upsert_project_node(self, project: Project) -> None:
+        await self._graph.upsert_entities(
+            [
+                GraphEntity(
+                    id=project.id,
+                    label=GraphLabel.PROJECT,
+                    project_id=project.id,
+                    properties={"name": project.name},
+                )
+            ]
+        )
+        if project.parent_id is not None:
+            await self._graph.upsert_relations(
+                [
+                    GraphRelation(
+                        subject_id=project.parent_id,
+                        relation_type=RelationType.PARENT_OF,
+                        object_id=project.id,
+                    )
+                ]
+            )
 
     # --- work item ingestion ----------------------------------------------
 

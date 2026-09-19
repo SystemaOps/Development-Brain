@@ -15,6 +15,7 @@ from brain.domain.audit import AuditAction
 from brain.domain.commands import (
     AnalyzeProjectCommand,
     AnalyzeWorkItemCommand,
+    BootstrapProjectCommand,
     BuildContextCommand,
     CommandEnvelope,
     CommandType,
@@ -71,6 +72,7 @@ class CommandHandlers:
         self._dispatcher.register(CommandType.VERIFY_EXECUTION, self._verify_execution)
         self._dispatcher.register(CommandType.CREATE_PULL_REQUEST, self._create_pull_request)
         self._dispatcher.register(CommandType.RECONCILE_PROJECT, self._reconcile_project)
+        self._dispatcher.register(CommandType.BOOTSTRAP_PROJECT, self._bootstrap_project)
 
     # --- handlers ---------------------------------------------------------
 
@@ -447,6 +449,35 @@ class CommandHandlers:
         model = command_to_model(envelope)
         assert isinstance(model, ReconcileProjectCommand)
         return {"project_id": model.project_id, "status": "reconciled"}
+
+    async def _bootstrap_project(self, envelope: CommandEnvelope) -> dict[str, object]:
+        """Bootstrap an existing provider project (Phase 2.1)."""
+        model = command_to_model(envelope)
+        assert isinstance(model, BootstrapProjectCommand)
+        service = self._container.services.get("openproject_bootstrap")
+        if service is None:
+            return {
+                "project_id": model.project_id,
+                "status": "no_bootstrap_service",
+            }
+        from brain.application.openproject_bootstrap import (
+            OpenProjectProjectBootstrapService,
+        )
+
+        assert isinstance(service, OpenProjectProjectBootstrapService)
+        result = await service.bootstrap(
+            project_id=model.project_id,
+            external_project_id=model.external_project_id,
+        )
+        return {
+            "project_id": result.project_id,
+            "status": result.status.value,
+            "projects_ingested": result.projects_ingested,
+            "work_items_ingested": result.work_items_ingested,
+            "comments_ingested": result.comments_ingested,
+            "relations_ingested": result.relations_ingested,
+            "resumed": result.resumed,
+        }
 
 
 def _dummy_repository(project_id: ProjectId) -> Repository:

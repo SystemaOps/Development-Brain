@@ -368,10 +368,29 @@ def build_source_control(settings: BrainSettings) -> SourceControlPort | None:
     return None
 
 
+def _build_openproject_bootstrap(
+    settings: BrainSettings,
+    repos: PostgresRepositories,
+    ingestion: OpenProjectIngestionService,
+) -> object | None:
+    """Build the bootstrap service when an OpenProject adapter is configured."""
+    from brain.adapters.work_management.openproject import OpenProjectAdapter
+    from brain.application.openproject_bootstrap import OpenProjectProjectBootstrapService
+
+    adapter = build_work_management(settings)[0]
+    if not isinstance(adapter, OpenProjectAdapter):
+        return None
+    return OpenProjectProjectBootstrapService(
+        provider=adapter,
+        ingestion=ingestion,
+        bootstrap_states=repos.bootstrap_states,
+        watermarks=repos.sync_watermarks,
+    )
+
+
 def _build_attachment_content_fetcher(
     settings: BrainSettings,
 ) -> AttachmentContentFetcher | None:
-    """Build the attachment content fetcher when OpenProject is configured."""
     wm = settings.work_management
     if wm.provider == "openproject" and wm.base_url and wm.api_key:
         from brain.adapters.work_management.openproject_content import (
@@ -542,6 +561,7 @@ def build_services(
         document_ingestion=ingestion,
         content_fetcher=_build_attachment_content_fetcher(settings),
     )
+    openproject_bootstrap = _build_openproject_bootstrap(settings, repos, openproject_ingestion)
 
     services: dict[str, object] = {
         "events": events,
@@ -572,6 +592,7 @@ def build_services(
         "xwiki_mapping": xwiki_mapping,
         "openproject_snapshots": openproject_snapshots,
         "openproject_ingestion": openproject_ingestion,
+        "openproject_bootstrap": openproject_bootstrap,
         "command_queue": build_command_queue(settings),
         "command_dispatcher": CommandDispatcher(),
     }

@@ -66,6 +66,28 @@ class OpenProjectHTTPTransport:
         )
         return list(result.get("_embedded", {}).get("elements", []))
 
+    async def list_projects(self) -> list[dict[str, Any]]:
+        result = self._request("GET", "/api/v3/projects")
+        return list(result.get("_embedded", {}).get("elements", []))
+
+    async def list_project_work_packages(
+        self,
+        project_external_id: str,
+        *,
+        offset: int = 1,
+        page_size: int = 100,
+    ) -> list[dict[str, Any]]:
+        result = self._request(
+            "GET",
+            f"/api/v3/projects/{project_external_id}/work_packages"
+            f"?offset={offset}&pageSize={page_size}",
+        )
+        return list(result.get("_embedded", {}).get("elements", []))
+
+    async def get_activities(self, external_id: str) -> list[dict[str, Any]]:
+        result = self._request("GET", f"/api/v3/work_packages/{external_id}/activities")
+        return list(result.get("_embedded", {}).get("elements", []))
+
     async def create_work_package(self, payload: dict[str, Any]) -> dict[str, Any]:
         return self._request("POST", "/api/v3/work_packages", payload)
 
