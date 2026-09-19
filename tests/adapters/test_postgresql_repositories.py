@@ -11,6 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from brain.adapters.postgresql.database import PostgresRepositories, create_repositories
+from brain.adapters.postgresql.openproject_snapshot import PostgresOpenProjectSnapshotStore
 from brain.adapters.postgresql.repositories import (
     PostgresActorRepository,
     PostgresArtifactRepository,
@@ -34,11 +35,15 @@ from brain.domain.projects import Project
 from brain.domain.repositories import Repository
 from brain.domain.verification import VerificationResult, VerificationVerdict
 from brain.domain.work_items import WorkItem
+from brain.ports.bootstrap_state import BootstrapStateRepository
 from brain.ports.code_intelligence import CodeGraphRepository
+from brain.ports.openproject_snapshot import OpenProjectSnapshotStore
 from brain.ports.planning import PlanRepository
 from brain.ports.repositories import (
     ActorRepository,
     ArtifactRepository,
+    AttachmentRepository,
+    CommentRepository,
     DecisionRepository,
     DocumentRepository,
     EvidenceRepository,
@@ -47,16 +52,24 @@ from brain.ports.repositories import (
     RepositoryRepository,
     RequirementRepository,
     VerificationResultRepository,
+    WorkItemRelationRepository,
     WorkItemRepository,
 )
+from brain.ports.sync_watermark import SyncWatermarkRepository
 from brain.ports.topology import SoftwareCatalogRepository
+from tests.contracts.attachments import AttachmentRepositoryContract
+from tests.contracts.bootstrap_state import BootstrapStateRepositoryContract
 from tests.contracts.code_graph import CodeGraphRepositoryContract
+from tests.contracts.comments import CommentRepositoryContract
 from tests.contracts.document_repository import DocumentRepositoryContract
 from tests.contracts.execution_repository import ExecutionRepositoryContract
+from tests.contracts.openproject_snapshot import OpenProjectSnapshotStoreContract
 from tests.contracts.plan_repository import PlanRepositoryContract
 from tests.contracts.project_repository import ProjectRepositoryContract
 from tests.contracts.requirement_repository import RequirementRepositoryContract
 from tests.contracts.software_catalog import SoftwareCatalogRepositoryContract
+from tests.contracts.sync_watermark import SyncWatermarkRepositoryContract
+from tests.contracts.work_item_relations import WorkItemRelationRepositoryContract
 from tests.contracts.work_item_repository import WorkItemRepositoryContract
 
 
@@ -111,6 +124,42 @@ class TestPostgresPlanRepository(PlanRepositoryContract):
     @pytest.fixture
     def plan_repository(self, postgres_session: AsyncSession) -> PlanRepository:
         return create_repositories(postgres_session).plans
+
+
+class TestPostgresSyncWatermarkRepository(SyncWatermarkRepositoryContract):
+    @pytest.fixture
+    def watermarks(self, postgres_session: AsyncSession) -> SyncWatermarkRepository:
+        return create_repositories(postgres_session).sync_watermarks
+
+
+class TestPostgresBootstrapStateRepository(BootstrapStateRepositoryContract):
+    @pytest.fixture
+    def bootstrap_states(self, postgres_session: AsyncSession) -> BootstrapStateRepository:
+        return create_repositories(postgres_session).bootstrap_states
+
+
+class TestPostgresCommentRepository(CommentRepositoryContract):
+    @pytest.fixture
+    def comments(self, postgres_session: AsyncSession) -> CommentRepository:
+        return create_repositories(postgres_session).comments
+
+
+class TestPostgresAttachmentRepository(AttachmentRepositoryContract):
+    @pytest.fixture
+    def attachments(self, postgres_session: AsyncSession) -> AttachmentRepository:
+        return create_repositories(postgres_session).attachments
+
+
+class TestPostgresWorkItemRelationRepository(WorkItemRelationRepositoryContract):
+    @pytest.fixture
+    def relations(self, postgres_session: AsyncSession) -> WorkItemRelationRepository:
+        return create_repositories(postgres_session).work_item_relations
+
+
+class TestPostgresOpenProjectSnapshotStore(OpenProjectSnapshotStoreContract):
+    @pytest.fixture
+    def snapshots(self, postgres_session: AsyncSession) -> OpenProjectSnapshotStore:
+        return PostgresOpenProjectSnapshotStore(postgres_session)
 
 
 async def test_actor_repository_round_trip(postgres_session: AsyncSession) -> None:

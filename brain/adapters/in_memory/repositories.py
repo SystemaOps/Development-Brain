@@ -461,6 +461,15 @@ class InMemoryWorkItemRelationRepository:
         self._relations = InMemoryCollection[WorkItemRelation]()
 
     async def create(self, relation: WorkItemRelation) -> WorkItemRelation:
+        # Idempotent per (source, target, type) triple, matching the Postgres
+        # upsert semantics behind the same port.
+        for existing in await self._relations.list_all():
+            if (
+                existing.source_work_item_id == relation.source_work_item_id
+                and existing.target_work_item_id == relation.target_work_item_id
+                and existing.relation_type == relation.relation_type
+            ):
+                return existing
         return await self._relations.upsert(relation, relation.id)
 
     async def list_by_work_item(self, work_item_id: WorkItemId) -> list[WorkItemRelation]:

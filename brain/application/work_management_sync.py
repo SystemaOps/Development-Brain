@@ -14,6 +14,7 @@ from brain.application.openproject_ingestion import (
     IngestionMode,
     OpenProjectIngestionService,
 )
+from brain.application.openproject_parser import OpenProjectWorkItemSnapshot
 from brain.domain.event_types import WorkItemChanged, model_to_envelope
 from brain.domain.external_reference import ExternalReference
 from brain.domain.identity import ProjectId, WorkItemId
@@ -145,6 +146,7 @@ class PullSyncResult:
     items_pulled: int = 0
     items_created: int = 0
     items_swept: int = 0
+    conflicts_detected: int = 0
     pages_fetched: int = 0
     details: list[str] = field(default_factory=list)
 
@@ -221,6 +223,9 @@ class WorkManagementPullSyncService:
                 seen.append(snapshot.external_id)
                 if ingested.created:
                     result.items_created += 1
+                result.conflicts_detected += await self._record_status_conflict(
+                    snapshot, project.id
+                )
             result.items_pulled += len(page)
             result.details.append(f"page {offset}: {len(page)} work packages")
             if len(page) < self._page_size:
@@ -252,6 +257,48 @@ class WorkManagementPullSyncService:
             # Overlap: catch changes made while bootstrap was running.
             return watermark.bootstrap_completed_at - timedelta(seconds=self._OVERLAP_SECONDS)
         return now - timedelta(days=self._since_days)
+
+    async def _record_status_conflict(
+        self,
+        snapshot: OpenProjectWorkItemSnapshot,
+        project_id: ProjectId,
+    ) -> int:
+        """Record a provider-done vs verification-pending disagreement (14.5).
+
+        The provider says the work is done/closed but the brain has no passed
+        verification: both facts are preserved instead of silently overriding.
+        """
+        from brain.application.openproject_mapping import map_human_work_status
+        from brain.domain.work_items import HumanWorkStatus, VerificationStatus
+
+        status = map_human_work_status(snapshot.state)
+        if status not in {HumanWorkStatus.DONE, HumanWorkStatus.CANCELLED}:
+            return 0
+        work_item = await self._work_items.find_by_external_ref(
+            "openproject", snapshot.external_id, "work_package"
+        )
+        if work_item is None:
+            return 0
+        if work_item.verification_status == VerificationStatus.PASSED:
+            return 0
+        for conflict in await self._integrations.list_conflicts(work_item.id):
+            if (
+                conflict.provider_field == "status"
+                and conflict.provider_value == snapshot.state
+                and not conflict.resolved
+            ):
+                return 0
+        await self._integrations.save_conflict(
+            SyncConflict(
+                work_item_id=work_item.id,
+                provider="openproject",
+                external_id=snapshot.external_id,
+                provider_field="status",
+                provider_value=snapshot.state or "",
+                brain_value="verification_pending",
+            )
+        )
+        return 1
 
     async def _sweep_missing(
         self,

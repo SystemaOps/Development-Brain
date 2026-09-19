@@ -7,10 +7,14 @@ import uuid
 import pytest
 
 from brain.adapters.in_memory.code_graph import InMemoryCodeGraphRepository
+from brain.adapters.in_memory.openproject_snapshot import InMemoryOpenProjectSnapshotStore
 from brain.adapters.in_memory.planning import InMemoryPlanRepository
 from brain.adapters.in_memory.repositories import (
     InMemoryActorRepository,
     InMemoryArtifactRepository,
+    InMemoryAttachmentRepository,
+    InMemoryBootstrapStateRepository,
+    InMemoryCommentRepository,
     InMemoryDecisionRepository,
     InMemoryDocumentRepository,
     InMemoryEvidenceRepository,
@@ -19,7 +23,9 @@ from brain.adapters.in_memory.repositories import (
     InMemoryRepositoryRepository,
     InMemoryRequirementRepository,
     InMemorySoftwareCatalogRepository,
+    InMemorySyncWatermarkRepository,
     InMemoryVerificationResultRepository,
+    InMemoryWorkItemRelationRepository,
     InMemoryWorkItemRepository,
 )
 from brain.domain.actors import Actor
@@ -32,11 +38,15 @@ from brain.domain.projects import Project
 from brain.domain.repositories import Repository
 from brain.domain.verification import VerificationResult
 from brain.domain.work_items import WorkItem
+from brain.ports.bootstrap_state import BootstrapStateRepository
 from brain.ports.code_intelligence import CodeGraphRepository
+from brain.ports.openproject_snapshot import OpenProjectSnapshotStore
 from brain.ports.planning import PlanRepository
 from brain.ports.repositories import (
     ActorRepository,
     ArtifactRepository,
+    AttachmentRepository,
+    CommentRepository,
     DecisionRepository,
     DocumentRepository,
     EvidenceRepository,
@@ -45,16 +55,24 @@ from brain.ports.repositories import (
     RepositoryRepository,
     RequirementRepository,
     VerificationResultRepository,
+    WorkItemRelationRepository,
     WorkItemRepository,
 )
+from brain.ports.sync_watermark import SyncWatermarkRepository
 from brain.ports.topology import SoftwareCatalogRepository
+from tests.contracts.attachments import AttachmentRepositoryContract
+from tests.contracts.bootstrap_state import BootstrapStateRepositoryContract
 from tests.contracts.code_graph import CodeGraphRepositoryContract
+from tests.contracts.comments import CommentRepositoryContract
 from tests.contracts.document_repository import DocumentRepositoryContract
 from tests.contracts.execution_repository import ExecutionRepositoryContract
+from tests.contracts.openproject_snapshot import OpenProjectSnapshotStoreContract
 from tests.contracts.plan_repository import PlanRepositoryContract
 from tests.contracts.project_repository import ProjectRepositoryContract
 from tests.contracts.requirement_repository import RequirementRepositoryContract
 from tests.contracts.software_catalog import SoftwareCatalogRepositoryContract
+from tests.contracts.sync_watermark import SyncWatermarkRepositoryContract
+from tests.contracts.work_item_relations import WorkItemRelationRepositoryContract
 from tests.contracts.work_item_repository import WorkItemRepositoryContract
 
 
@@ -172,3 +190,39 @@ async def test_verification_result_repository_round_trip() -> None:
     created = await repo.create(VerificationResult(execution_id=execution_id, verdict="pass"))
     assert (await repo.get(created.id)).verdict == "pass"
     assert [v.id for v in await repo.list_by_execution(execution_id)] == [created.id]
+
+
+class TestInMemorySyncWatermarkRepository(SyncWatermarkRepositoryContract):
+    @pytest.fixture
+    def watermarks(self) -> SyncWatermarkRepository:
+        return InMemorySyncWatermarkRepository()
+
+
+class TestInMemoryBootstrapStateRepository(BootstrapStateRepositoryContract):
+    @pytest.fixture
+    def bootstrap_states(self) -> BootstrapStateRepository:
+        return InMemoryBootstrapStateRepository()
+
+
+class TestInMemoryCommentRepository(CommentRepositoryContract):
+    @pytest.fixture
+    def comments(self) -> CommentRepository:
+        return InMemoryCommentRepository()
+
+
+class TestInMemoryAttachmentRepository(AttachmentRepositoryContract):
+    @pytest.fixture
+    def attachments(self) -> AttachmentRepository:
+        return InMemoryAttachmentRepository()
+
+
+class TestInMemoryWorkItemRelationRepository(WorkItemRelationRepositoryContract):
+    @pytest.fixture
+    def relations(self) -> WorkItemRelationRepository:
+        return InMemoryWorkItemRelationRepository()
+
+
+class TestInMemoryOpenProjectSnapshotStore(OpenProjectSnapshotStoreContract):
+    @pytest.fixture
+    def snapshots(self) -> OpenProjectSnapshotStore:
+        return InMemoryOpenProjectSnapshotStore()
