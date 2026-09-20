@@ -95,6 +95,22 @@ class WorkerLoop:
     def stop(self) -> None:
         self._stop = True
 
+    async def _commit_if_needed(self) -> None:
+        """Persist command effects once a command completes successfully.
+
+        Handlers write through repositories bound to the container session
+        (flush-only); the worker owns the commit boundary so long-running
+        ingestion/bootstrap/pull results survive restarts.  The commit is a
+        no-op when no transaction is active.
+        """
+        session = self._container.session
+        if session is not None:
+            try:
+                await session.commit()
+            except Exception:  # noqa: BLE001
+                await session.rollback()
+                raise
+
     async def run(self, *, max_commands: int | None = None) -> int:
         """Consume and process commands until stopped or the queue drains.
 
@@ -126,6 +142,7 @@ class WorkerLoop:
                 attempt += 1
 
             if success:
+                await self._commit_if_needed()
                 await self._queue.acknowledge(command.command_id)
             processed += 1
         return processed

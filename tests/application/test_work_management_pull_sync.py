@@ -51,6 +51,7 @@ class _FakeChangedProvider:
         *,
         offset: int = 1,
         page_size: int = 100,
+        project_external_id: str | None = None,
     ) -> list[OpenProjectWorkItemSnapshot]:
         self.page_calls.append((since, offset))
         start = offset - 1

@@ -145,12 +145,20 @@ def build_semantic_index(settings: BrainSettings) -> SemanticIndex:
 
 
 def probe_http(url: str, timeout: float = 2.0) -> bool:
-    """Reachability probe used for optional providers (no provider SDK)."""
+    """Reachability probe used for optional providers (no provider SDK).
+
+    Any HTTP response (including 4xx/5xx) proves the endpoint is reachable;
+    only connection-level failures count as unavailable.
+    """
     if not url:
         return False
     try:
         with urllib.request.urlopen(url, timeout=timeout):  # noqa: S310
             return True
+    except urllib.error.HTTPError:
+        # The provider answered; capability availability is about
+        # connectivity, not about this particular response.
+        return True
     except (urllib.error.URLError, OSError, ValueError):
         return False
 
@@ -208,7 +216,13 @@ def _build_openproject(settings: BrainSettings) -> WorkManagementPort:
     from brain.domain.identity import ProjectId
 
     wm = settings.work_management
-    project_id = ProjectId(uuid.UUID(wm.project_id))
+    try:
+        project_id = ProjectId(uuid.UUID(wm.project_id))
+    except (ValueError, AttributeError):
+        # The adapter only uses this as a default; bootstrap and pull resolve
+        # the canonical project per provider project.  Derive a deterministic
+        # placeholder so a missing setting never blocks construction.
+        project_id = ProjectId(uuid.uuid5(uuid.NAMESPACE_URL, wm.base_url or "openproject"))
     transport = OpenProjectHTTPTransport(
         base_url=wm.base_url,
         api_key=wm.api_key,
@@ -436,6 +450,7 @@ def build_command_queue(settings: BrainSettings) -> object:
     in-memory queue serves tests and local development behind the same port.
     """
     if settings.storage_queue.provider == "redis":
+        logger.info("BRAIN_REDIS_PROVIDER=redis, Redis selected....")
         from redis.asyncio import from_url
 
         from brain.adapters.queue.redis import RedisCommandQueue
@@ -445,6 +460,8 @@ def build_command_queue(settings: BrainSettings) -> object:
             queue_name=settings.storage_queue.queue_name,
         )
     from brain.adapters.in_memory.commands import InMemoryCommandQueue
+
+    logger.info("BRAIN_REDIS_PROVIDER is not configured, In Memory queue selected....")
 
     return InMemoryCommandQueue()
 

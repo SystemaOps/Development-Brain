@@ -15,6 +15,13 @@ services:
       OPENPROJECT_SECRET_KEY_BASE: change-me
       OPENPROJECT_JOURNAL__AGGREGATION__TIME__TIMEOUT: "0"
       OPENPROJECT_DEFAULT__LANGUAGE: en
+      # OpenProject 16 disables API-key (basic-auth) authentication by
+      # default; the Brain's HTTP transport uses `Authorization: apikey <key>`.
+      OPENPROJECT_APIV3_ENABLE_BASIC_AUTH: "true"
+      # The Brain reaches OpenProject inside the compose network as
+      # `openproject:8080`; accept that Host header in addition to the
+      # browser-facing localhost:8081.
+      OPENPROJECT_ADDITIONAL__HOST__NAMES: openproject:8080
       #OPENPROJECT_AUTH__SOURCE__SSO: ""
     volumes:
       - brain-openprojectdata:/var/openproject/assets

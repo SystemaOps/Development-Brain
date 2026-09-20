@@ -7,6 +7,7 @@ shape; the core never does.
 
 from __future__ import annotations
 
+import base64
 import json
 import urllib.error
 import urllib.request
@@ -28,11 +29,20 @@ class OpenProjectHTTPTransport:
         self._api_key = api_key
         self._timeout = timeout_seconds
 
+    @property
+    def _auth_header(self) -> str:
+        # OpenProject 16 authenticates API keys through Warden basic auth with
+        # the literal user name "apikey" and the API key as the password
+        # (``Authorization: Basic base64(apikey:<key>)``).  The legacy
+        # ``Authorization: apikey <key>`` header is not accepted.
+        credentials = f"apikey:{self._api_key}"
+        return "Basic " + base64.b64encode(credentials.encode("utf-8")).decode("ascii")
+
     def _request(
         self, method: str, path: str, payload: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         url = f"{self._base_url}{path}"
-        headers = {"Authorization": f"apikey {self._api_key}"}
+        headers = {"Authorization": self._auth_header}
         data: bytes | None = None
         if payload is not None:
             headers["Content-Type"] = "application/json"
@@ -58,11 +68,28 @@ class OpenProjectHTTPTransport:
     async def get_work_package(self, external_id: str) -> dict[str, Any]:
         return self._request("GET", f"/api/v3/work_packages/{external_id}")
 
+    def _updated_since_filters(self, since: datetime, project_id: str | None = None) -> str:
+        """OpenProject ``updatedAt`` filter values.
+
+        The filter only accepts the ``<>d`` between-dates operator with date
+        (not datetime) values; a far-future upper bound makes it "updated
+        since".  Date granularity is fine because re-pulling items from the
+        same day is idempotent (snapshot diff).  When ``project_id`` is given,
+        the query is scoped to that provider project.
+        """
+        import json
+        import urllib.parse
+
+        start = since.strftime("%Y-%m-%d")
+        filters = [{"updatedAt": {"operator": "<>d", "values": [start, "2099-12-31"]}}]
+        if project_id:
+            filters.insert(0, {"project": {"operator": "=", "values": [project_id]}})
+        return urllib.parse.quote(json.dumps(filters), safe="")
+
     async def list_updated_work_packages(self, since: datetime) -> list[dict[str, Any]]:
-        since_iso = since.strftime("%Y-%m-%dT%H:%M:%SZ")
         result = self._request(
             "GET",
-            f'/api/v3/work_packages?filters=[{{"updatedAt":{{"operator":">d","values":["{since_iso}"]}}}}]',
+            f"/api/v3/work_packages?filters={self._updated_since_filters(since)}",
         )
         return list(result.get("_embedded", {}).get("elements", []))
 
@@ -72,11 +99,11 @@ class OpenProjectHTTPTransport:
         *,
         offset: int = 1,
         page_size: int = 100,
+        project_id: str | None = None,
     ) -> list[dict[str, Any]]:
-        since_iso = since.strftime("%Y-%m-%dT%H:%M:%SZ")
         result = self._request(
             "GET",
-            f'/api/v3/work_packages?filters=[{{"updatedAt":{{"operator":">d","values":["{since_iso}"]}}}}]'
+            f"/api/v3/work_packages?filters={self._updated_since_filters(since, project_id)}"
             f"&offset={offset}&pageSize={page_size}",
         )
         return list(result.get("_embedded", {}).get("elements", []))

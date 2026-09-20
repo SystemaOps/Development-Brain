@@ -8,6 +8,7 @@ package sees the provider's URL scheme; the ingestion service depends on the
 
 from __future__ import annotations
 
+import base64
 import urllib.request
 
 from brain.ports.attachment_content import AttachmentContentFetcher
@@ -21,10 +22,15 @@ class OpenProjectAttachmentContentFetcher(AttachmentContentFetcher):
         self._api_key = api_key
         self._timeout = timeout_seconds
 
+    @property
+    def _auth_header(self) -> str:
+        credentials = f"apikey:{self._api_key}"
+        return "Basic " + base64.b64encode(credentials.encode("utf-8")).decode("ascii")
+
     async def fetch(self, url: str) -> bytes:
         request = urllib.request.Request(
             url,
-            headers={"Authorization": f"apikey {self._api_key}"},
+            headers={"Authorization": self._auth_header},
         )
         try:
             with urllib.request.urlopen(request, timeout=self._timeout) as response:  # noqa: S310

@@ -131,7 +131,14 @@ async def test_gate_pull_recovers_missed_webhook_change() -> None:
     before = len(events.published)
 
     class _FakeChangedProvider:
-        async def list_changed_work_packages(self, since, *, offset=1, page_size=100):
+        async def list_changed_work_packages(
+            self,
+            since,
+            *,
+            offset=1,
+            page_size=100,
+            project_external_id=None,
+        ):
             return [_snapshot("43", summary="new title")]
 
         async def get_work_package_snapshot(self, external_id):
@@ -177,7 +184,14 @@ async def test_gate_pull_records_status_conflict() -> None:
     )
 
     class _FakeChangedProvider:
-        async def list_changed_work_packages(self, since, *, offset=1, page_size=100):
+        async def list_changed_work_packages(
+            self,
+            since,
+            *,
+            offset=1,
+            page_size=100,
+            project_external_id=None,
+        ):
             return [_snapshot("43", summary="t", state="Closed")]
 
         async def get_work_package_snapshot(self, external_id):

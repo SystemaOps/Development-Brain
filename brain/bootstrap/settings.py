@@ -97,7 +97,7 @@ class ProviderCapabilitySettings(BaseSettings):
 
 
 class WorkManagementSettings(ProviderCapabilitySettings):
-    model_config = SettingsConfigDict(extra="ignore", env_prefix="WORKMANAGEMENT_")
+    model_config = SettingsConfigDict(extra="ignore", env_prefix="BRAIN_WORK_MANAGEMENT_")
     provider: str = "internal"
     base_url: str = ""
     api_key: str = ""

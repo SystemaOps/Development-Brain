@@ -55,6 +55,7 @@ class WorkManagementBootstrapPort(Protocol):
         *,
         offset: int = 1,
         page_size: int = 100,
+        project_external_id: str | None = None,
     ) -> list[OpenProjectWorkItemSnapshot]: ...
 
     async def get_work_package_snapshot(

@@ -62,7 +62,14 @@ class _FakeChangedProvider:
     def __init__(self, snapshots: list[OpenProjectWorkItemSnapshot]) -> None:
         self._snapshots = snapshots
 
-    async def list_changed_work_packages(self, since, *, offset=1, page_size=100):
+    async def list_changed_work_packages(
+        self,
+        since,
+        *,
+        offset=1,
+        page_size=100,
+        project_external_id=None,
+    ):
         del since, offset, page_size
         return self._snapshots
 
@@ -83,20 +90,34 @@ class _FakeWorkManagement:
     pass
 
 
+async def _cleanup(container: object, *, project_id: object) -> None:
+    """Remove entities created by the test so repeated runs stay deterministic
+    (the worker now commits to the shared development database)."""
+    repos = container.repositories  # type: ignore[attr-defined]
+    for work_item in await repos.work_items.list_by_project(project_id):
+        await repos.work_items.delete(work_item.id)
+    project = await repos.projects.get(project_id)
+    if project is not None:
+        await repos.projects.delete(project_id)
+    session = container.session  # type: ignore[attr-defined]
+    if session is not None:
+        await session.commit()
+
+
 async def test_gate_pull_assignment_triggers_run_command() -> None:
     """A pull-discovered assignment flows to RUN_WORK_ITEM via the handler."""
     container = await create_brain_container(_settings(brain_actor_id="6"))
+    project = Project(
+        name="pull-project",
+        external_refs=[
+            ExternalReference(provider="openproject", external_id="8", external_type="project")
+        ],
+    )
     try:
-        project = Project(
-            name="pull-project",
-            external_refs=[
-                ExternalReference(provider="openproject", external_id="8", external_type="project")
-            ],
-        )
         await container.repositories.projects.create(project)
 
         snapshot = OpenProjectWorkItemSnapshot(
-            external_id="43",
+            external_id="1001",
             summary="new task",
             state="In progress",
             project_id="8",
@@ -133,7 +154,7 @@ async def test_gate_pull_assignment_triggers_run_command() -> None:
 
         # The work item was ingested canonically.
         work_item = await container.repositories.work_items.find_by_external_ref(
-            "openproject", "43", "work_package"
+            "openproject", "1001", "work_package"
         )
         assert work_item is not None
         assert work_item.title == "new task"
@@ -146,19 +167,20 @@ async def test_gate_pull_assignment_triggers_run_command() -> None:
         assert any(event.event_type.value == "work_item_assigned" for event in bus.published)
         assert await queue.pending_count() >= 1
     finally:
+        await _cleanup(container, project_id=project.id)
         await container.close()
 
 
 async def test_gate_webhook_and_pull_same_container_state() -> None:
     """Webhook and pull paths converge on one canonical work item."""
     container = await create_brain_container(_settings(brain_actor_id="6"))
+    project = Project(
+        name="converge-project",
+        external_refs=[
+            ExternalReference(provider="openproject", external_id="8", external_type="project")
+        ],
+    )
     try:
-        project = Project(
-            name="converge-project",
-            external_refs=[
-                ExternalReference(provider="openproject", external_id="8", external_type="project")
-            ],
-        )
         await container.repositories.projects.create(project)
 
         ingestion = container.services["openproject_ingestion"]
@@ -170,7 +192,7 @@ async def test_gate_webhook_and_pull_same_container_state() -> None:
         assert isinstance(ingestion, OpenProjectIngestionService)
         await ingestion.ingest_work_item_snapshot(
             OpenProjectWorkItemSnapshot(
-                external_id="43",
+                external_id="1002",
                 summary="task",
                 state="In progress",
                 project_id="8",
@@ -182,7 +204,7 @@ async def test_gate_webhook_and_pull_same_container_state() -> None:
         )
         await ingestion.ingest_work_item_snapshot(
             OpenProjectWorkItemSnapshot(
-                external_id="43",
+                external_id="1002",
                 summary="task",
                 state="In progress",
                 project_id="8",
@@ -197,4 +219,5 @@ async def test_gate_webhook_and_pull_same_container_state() -> None:
         assert len(work_items) == 1
         assert work_items[0].title == "task"
     finally:
+        await _cleanup(container, project_id=project.id)
         await container.close()

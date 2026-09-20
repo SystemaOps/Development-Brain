@@ -50,6 +50,7 @@ class OpenProjectTransport(Protocol):
         *,
         offset: int = 1,
         page_size: int = 100,
+        project_id: str | None = None,
     ) -> list[dict[str, Any]]: ...
 
     async def list_projects(self) -> list[dict[str, Any]]: ...
@@ -100,10 +101,14 @@ class OpenProjectAdapter(WorkManagementPort, WorkManagementBootstrapPort):
         *,
         offset: int = 1,
         page_size: int = 100,
+        project_external_id: str | None = None,
     ) -> list[OpenProjectWorkItemSnapshot]:
         snapshots: list[OpenProjectWorkItemSnapshot] = []
         for raw in await self._transport.list_updated_work_packages_page(
-            since, offset=offset, page_size=page_size
+            since,
+            offset=offset,
+            page_size=page_size,
+            project_id=project_external_id,
         ):
             snapshot = parse_work_item({"work_package": raw})
             if snapshot is not None:

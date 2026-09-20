@@ -210,6 +210,7 @@ class WorkManagementPullSyncService:
                 since,
                 offset=offset,
                 page_size=self._page_size,
+                project_external_id=ref.external_id,
             )
             result.pages_fetched += 1
             for snapshot in page:
