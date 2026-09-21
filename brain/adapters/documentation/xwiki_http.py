@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import datetime
 from typing import Any
@@ -58,6 +59,19 @@ class XWikiHTTPTransport:
             f"/rest/wikis/{self._wiki(page_id)}/spaces/{self._space(page_id)}/pages/{self._name(page_id)}",
         )
         return _flatten_page(result)
+
+    async def create_space(self, space: str) -> dict[str, Any]:
+        """Create a wiki space via ``PUT /rest/wikis/{wiki}/spaces/{space}``.
+
+        Requires authenticated access; the response is the created space.
+        """
+        result = self._request(
+            "PUT",
+            f"/rest/wikis/{self._wiki(space)}/spaces/{urllib.parse.quote(space, safe='')}",
+        )
+        if isinstance(result, dict):
+            return result
+        return {}
 
     async def get_page_version(self, page_id: str, version: str) -> dict[str, Any]:
         result = self._request(

@@ -595,28 +595,33 @@ class OpenProjectIngestionService:
         await self._attachments.create(attachment.model_copy(update={"content_ingested": True}))
 
     async def _upsert_attachment_edges(self, attachment: Attachment) -> None:
-        await self._graph.upsert_entities(
-            [
-                GraphEntity(
-                    id=attachment.id,
-                    label=GraphLabel.ATTACHMENT,
-                    project_id=None,
-                    properties={
-                        "file_name": attachment.file_name,
-                        "content_type": attachment.content_type,
-                    },
-                )
-            ]
-        )
-        await self._graph.upsert_relations(
-            [
-                GraphRelation(
-                    subject_id=attachment.work_item_id,
-                    relation_type=RelationType.HAS_ATTACHMENT,
-                    object_id=attachment.id,
-                )
-            ]
-        )
+        try:
+            await self._graph.upsert_entities(
+                [
+                    GraphEntity(
+                        id=attachment.id,
+                        label=GraphLabel.ATTACHMENT,
+                        project_id=None,
+                        properties={
+                            "file_name": attachment.file_name,
+                            "content_type": attachment.content_type,
+                        },
+                    )
+                ]
+            )
+            await self._graph.upsert_relations(
+                [
+                    GraphRelation(
+                        subject_id=attachment.work_item_id,
+                        relation_type=RelationType.HAS_ATTACHMENT,
+                        object_id=attachment.id,
+                    )
+                ]
+            )
+        except Exception:  # noqa: BLE001 - graph is a projection
+            logger.warning(
+                "attachment graph projection failed for %s", attachment.id, exc_info=True
+            )
 
     # --- comments (Phase 1.5) -----------------------------------------------
 
@@ -661,25 +666,28 @@ class OpenProjectIngestionService:
             )
             await self._comments.create(comment)
 
-            await self._graph.upsert_entities(
-                [
-                    GraphEntity(
-                        id=comment.id,
-                        label=GraphLabel.COMMENT,
-                        project_id=None,
-                        properties={"text": comment.text[:500]},
-                    )
-                ]
-            )
-            await self._graph.upsert_relations(
-                [
-                    GraphRelation(
-                        subject_id=comment.id,
-                        relation_type=RelationType.COMMENT_ON,
-                        object_id=work_item_id,
-                    )
-                ]
-            )
+            try:
+                await self._graph.upsert_entities(
+                    [
+                        GraphEntity(
+                            id=comment.id,
+                            label=GraphLabel.COMMENT,
+                            project_id=None,
+                            properties={"text": comment.text[:500]},
+                        )
+                    ]
+                )
+                await self._graph.upsert_relations(
+                    [
+                        GraphRelation(
+                            subject_id=comment.id,
+                            relation_type=RelationType.COMMENT_ON,
+                            object_id=work_item_id,
+                        )
+                    ]
+                )
+            except Exception:  # noqa: BLE001 - graph is a projection
+                logger.warning("comment graph projection failed for %s", comment.id, exc_info=True)
 
         if mode == IngestionMode.LIVE:
             await self._event_bus.publish(
@@ -780,6 +788,16 @@ class OpenProjectIngestionService:
     # --- graph projection (Phase 1.6) ---------------------------------------
 
     async def _project_subgraph(self, work_item: WorkItem) -> None:
+        """Best-effort graph projection: the graph is a rebuildable projection
+        and must never fail canonical ingestion."""
+        try:
+            await self._project_subgraph_inner(work_item)
+        except Exception:  # noqa: BLE001 - graph is a projection
+            logger.warning(
+                "work-item subgraph projection failed for %s", work_item.id, exc_info=True
+            )
+
+    async def _project_subgraph_inner(self, work_item: WorkItem) -> None:
         entities: list[GraphEntity] = []
         relations: list[GraphRelation] = []
 

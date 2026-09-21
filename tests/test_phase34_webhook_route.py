@@ -41,6 +41,23 @@ pytestmark = pytest.mark.skipif(
 FIXTURES = Path(__file__).parent / "fixtures" / "openproject"
 
 
+async def _clean_openproject_state(container: object) -> None:
+    """Remove committed provider state so fixtures diff against a clean base.
+
+    The shared development database accumulates committed rows from live
+    demos/worker runs; the webhook fixtures use fixed external ids (43, 40,
+    99) and must start from an empty snapshot baseline.
+    """
+    from sqlalchemy import delete
+
+    from brain.adapters.postgresql.tables import OpenProjectSnapshotRow
+
+    session = container.session  # type: ignore[attr-defined]
+    if session is not None:
+        await session.execute(delete(OpenProjectSnapshotRow))
+        await session.commit()
+
+
 def _load(name: str) -> dict[str, object]:
     return json.loads((FIXTURES / name).read_text(encoding="utf-8"))
 
@@ -89,6 +106,7 @@ async def test_created_work_package_accepted_and_snapshot_saved() -> None:
         app.router.lifespan_context(app),
     ):
         app_container = app.state.container
+        await _clean_openproject_state(app_container)
         await _create_project(app_container)
 
         response = await _post(client, _load("line30_work_package_created.json"))
@@ -127,6 +145,7 @@ async def test_updated_work_package_reports_semantic_changes() -> None:
         app.router.lifespan_context(app),
     ):
         app_container = app.state.container
+        await _clean_openproject_state(app_container)
         await _create_project(app_container)
 
         first = await _post(client, _load("line30_work_package_created.json"))
@@ -171,6 +190,7 @@ async def test_bare_update_without_assignee_change_triggers_nothing() -> None:
         app.router.lifespan_context(app),
     ):
         app_container = app.state.container
+        await _clean_openproject_state(app_container)
         await _create_project(app_container)
 
         # wp 40 is already assigned to brain (6); sending the same snapshot
@@ -194,6 +214,7 @@ async def test_project_created_publishes_project_changed() -> None:
         app.router.lifespan_context(app),
     ):
         app_container = app.state.container
+        await _clean_openproject_state(app_container)
         await _create_project(app_container)
 
         response = await _post(client, _load("line14_project_created.json"))
@@ -215,6 +236,7 @@ async def test_subproject_created_keeps_parent_id() -> None:
         app.router.lifespan_context(app),
     ):
         app_container = app.state.container
+        await _clean_openproject_state(app_container)
         await _create_project(app_container)
 
         response = await _post(client, _load("line17_project_created.json"))
@@ -232,6 +254,7 @@ async def test_attachment_created_publishes_attachment_event() -> None:
         app.router.lifespan_context(app),
     ):
         app_container = app.state.container
+        await _clean_openproject_state(app_container)
         await _create_project(app_container)
 
         response = await _post(client, _load("line20_attachment_created.json"))
@@ -283,6 +306,7 @@ async def test_comment_normalization_still_works() -> None:
         app.router.lifespan_context(app),
     ):
         app_container = app.state.container
+        await _clean_openproject_state(app_container)
         await _create_project(app_container)
 
         payload = {

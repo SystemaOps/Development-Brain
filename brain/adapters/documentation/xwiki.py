@@ -14,6 +14,7 @@ from typing import Any, Protocol
 from brain.domain.documents import SourceArtifact
 from brain.domain.external_reference import ExternalReference
 from brain.ports.documentation import DocumentationPort
+from brain.ports.provisioning import DocumentationProvisioningPort
 
 
 class XWikiTransport(Protocol):
@@ -33,9 +34,11 @@ class XWikiTransport(Protocol):
 
     async def list_changed_pages(self, since: datetime) -> list[str]: ...
 
+    async def create_space(self, space: str) -> dict[str, Any]: ...
 
-class XWikiDocumentationAdapter(DocumentationPort):
-    """XWiki as a documentation provider."""
+
+class XWikiDocumentationAdapter(DocumentationPort, DocumentationProvisioningPort):
+    """XWiki as a documentation provider + space provisioner."""
 
     def __init__(self, transport: XWikiTransport, wiki: str = "xwiki") -> None:
         self._transport = transport
@@ -46,6 +49,16 @@ class XWikiDocumentationAdapter(DocumentationPort):
             provider="xwiki",
             external_id=page_id,
             external_type="page",
+            namespace=self._wiki,
+        )
+
+    async def create_space(self, name: str) -> ExternalReference:
+        """Create a wiki space and return its external reference (Phase 2.3)."""
+        await self._transport.create_space(name)
+        return ExternalReference(
+            provider="xwiki",
+            external_id=name,
+            external_type="space",
             namespace=self._wiki,
         )
 

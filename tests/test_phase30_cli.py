@@ -27,6 +27,19 @@ def runner() -> CliRunner:
     return CliRunner()
 
 
+@pytest.fixture(autouse=True)
+def _disable_external_providers(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep CLI provisioning deterministic: no external provider configured.
+
+    ``brainctl project create`` provisions external systems only when they are
+    configured; tests disable them so creation is canonical + skip notes.
+    """
+    monkeypatch.setenv("BRAIN_WORK_MANAGEMENT_ENABLED", "false")
+    monkeypatch.setenv("BRAIN_WORK_MANAGEMENT_PROVIDER", "internal")
+    monkeypatch.setenv("BRAIN_PULL_REQUEST_PROVIDER", "fake")
+    monkeypatch.setenv("BRAIN_DOCUMENTATION_XWIKI_ENABLED", "false")
+
+
 def _invoke(runner: CliRunner, args: list[str]) -> Result:
     result = runner.invoke(build_cli(), args)
     assert result.exit_code == 0, f"command failed: {result.exception}\n{result.output}"
@@ -80,6 +93,42 @@ def test_project_crud_commands(runner: CliRunner) -> None:
 
     listed = _invoke(runner, ["project", "list"])
     assert "cli-test" in str(listed.output)
+
+
+def test_project_create_notes_unconfigured_externals(runner: CliRunner) -> None:
+    """``create`` makes a canonical project and reports external skips."""
+    created = _invoke(runner, ["project", "create", "cli-create-all"])
+    output = str(created.output)
+    assert "created" in output
+    assert "cli-create-all" in output
+    assert "work management: not configured, skipped" in output
+    assert "source control: not configured, skipped" in output
+    assert "documentation: not configured, skipped" in output
+
+
+def test_project_bootstrap_links_and_queues_openproject(runner: CliRunner) -> None:
+    """``bootstrap`` links existing externals and queues the import."""
+    created = _invoke(runner, ["project", "create", "cli-boot"])
+    project_id = str(created.output).strip().split()[1]
+
+    booted = _invoke(
+        runner,
+        ["project", "bootstrap", project_id, "--openproject", "42", "--gitlab", "grp/repo"],
+    )
+    output = str(booted.output)
+    assert "linked openproject/project 42" in output
+    assert "linked gitlab/project grp/repo" in output
+    assert "bootstrap queued" in output
+
+
+def test_project_bootstrap_legacy_positional(runner: CliRunner) -> None:
+    """The legacy ``bootstrap <id> <external-id>`` form still works."""
+    created = _invoke(runner, ["project", "create", "cli-boot-legacy"])
+    project_id = str(created.output).strip().split()[1]
+
+    booted = _invoke(runner, ["project", "bootstrap", project_id, "7"])
+    assert "linked openproject/project 7" in str(booted.output)
+    assert "bootstrap queued" in str(booted.output)
 
 
 def test_work_item_and_context_commands(runner: CliRunner) -> None:

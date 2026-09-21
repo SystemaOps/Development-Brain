@@ -29,3 +29,7 @@ class WorkManagementPort(Protocol):
     async def link_pull_request(
         self, work_item_id: WorkItemId, pr_ref: ExternalReference
     ) -> None: ...
+
+    async def create_project(
+        self, name: str, description: str | None = None
+    ) -> ExternalReference: ...

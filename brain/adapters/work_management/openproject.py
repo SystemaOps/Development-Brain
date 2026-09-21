@@ -67,6 +67,8 @@ class OpenProjectTransport(Protocol):
 
     async def create_work_package(self, payload: dict[str, Any]) -> dict[str, Any]: ...
 
+    async def create_project(self, name: str, description: str | None = None) -> dict[str, Any]: ...
+
     async def update_status(self, external_id: str, status: str) -> None: ...
 
     async def post_comment(self, external_id: str, body: str) -> Any: ...
@@ -188,6 +190,16 @@ class OpenProjectAdapter(WorkManagementPort, WorkManagementBootstrapPort):
             provider="openproject",
             external_id=external_id,
             external_type="work_package",
+        )
+
+    async def create_project(self, name: str, description: str | None = None) -> ExternalReference:
+        """Create a new OpenProject project (Phase 2.1)."""
+        created = await self._transport.create_project(name, description)
+        external_id = str(created.get("id") or created.get("_id") or "")
+        return ExternalReference(
+            provider="openproject",
+            external_id=external_id,
+            external_type="project",
         )
 
     async def publish_status(self, work_item_id: WorkItemId, status: str) -> None:

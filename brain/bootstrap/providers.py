@@ -247,7 +247,11 @@ def build_documentation(settings: BrainSettings) -> list[DocumentationPort]:
 
         ports.append(
             XWikiDocumentationAdapter(
-                transport=XWikiHTTPTransport(base_url=settings.documentation.xwiki_url),
+                transport=XWikiHTTPTransport(
+                    base_url=settings.documentation.xwiki_url,
+                    user=settings.documentation.xwiki_user or None,
+                    password=settings.documentation.xwiki_password or None,
+                ),
                 wiki="xwiki",
             )
         )
@@ -424,6 +428,45 @@ def _build_openproject_pull_sync(
         watermarks=repos.sync_watermarks,
         page_size=wm.page_size,
         since_days=wm.sync_since_days,
+    )
+
+
+def _build_project_provisioning(
+    settings: BrainSettings,
+    repos: PostgresRepositories,
+    bootstrap: object | None,
+    event_bus: object | None = None,
+) -> object:
+    """Build the project provisioning service (Phase 5)."""
+    from brain.adapters.documentation.xwiki import XWikiDocumentationAdapter
+    from brain.adapters.git.gitlab_provisioning import GitLabProjectProvisioningAdapter
+    from brain.adapters.work_management.openproject import OpenProjectAdapter
+    from brain.application.provisioning import ProjectProvisioningService
+    from brain.ports.provisioning import DocumentationProvisioningPort
+
+    wm = build_work_management(settings)[0]
+    work_management = wm if isinstance(wm, OpenProjectAdapter) else None
+
+    source_control: object | None = None
+    pr = settings.pull_requests
+    if pr.provider == "gitlab" and pr.gitlab_url:
+        source_control = GitLabProjectProvisioningAdapter(
+            base_url=pr.gitlab_url,
+            api_key=pr.gitlab_api_key,
+        )
+
+    documentation: DocumentationProvisioningPort | None = None
+    for port in build_documentation(settings):
+        if isinstance(port, XWikiDocumentationAdapter):
+            documentation = port
+
+    return ProjectProvisioningService(
+        projects=repos.projects,
+        work_management=work_management,
+        source_control=source_control,  # type: ignore[arg-type]
+        documentation=documentation,
+        bootstrap=bootstrap,  # type: ignore[arg-type]
+        event_bus=event_bus,  # type: ignore[arg-type]
     )
 
 
@@ -605,6 +648,9 @@ def build_services(
     )
     openproject_bootstrap = _build_openproject_bootstrap(settings, repos, openproject_ingestion)
     openproject_pull_sync = _build_openproject_pull_sync(settings, repos, openproject_ingestion)
+    project_provisioning = _build_project_provisioning(
+        settings, repos, openproject_bootstrap, events
+    )
 
     services: dict[str, object] = {
         "events": events,
@@ -637,6 +683,7 @@ def build_services(
         "openproject_ingestion": openproject_ingestion,
         "openproject_bootstrap": openproject_bootstrap,
         "openproject_pull_sync": openproject_pull_sync,
+        "project_provisioning": project_provisioning,
         "command_queue": build_command_queue(settings),
         "command_dispatcher": CommandDispatcher(),
     }

@@ -75,6 +75,10 @@ class JiraAdapter(WorkManagementPort):
         external_id = str(created.get("key") or created.get("id") or "")
         return ExternalReference(provider="jira", external_id=external_id, external_type="issue")
 
+    async def create_project(self, name: str, description: str | None = None) -> ExternalReference:
+        del name, description
+        raise NotImplementedError("jira project creation is not implemented")
+
     async def publish_status(self, work_item_id: WorkItemId, status: str) -> None:
         del work_item_id
         await self._transport.update_status(status, status)

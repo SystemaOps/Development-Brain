@@ -119,6 +119,8 @@ class DocumentationSettings(BaseSettings):
     xwiki_enabled: bool = False
     xwiki_url: str = ""
     xwiki_required: bool = False
+    xwiki_user: str = ""
+    xwiki_password: str = ""
 
 
 class DocumentConversionSettings(ProviderCapabilitySettings):

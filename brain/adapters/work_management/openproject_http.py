@@ -133,6 +133,15 @@ class OpenProjectHTTPTransport:
     async def create_work_package(self, payload: dict[str, Any]) -> dict[str, Any]:
         return self._request("POST", "/api/v3/work_packages", payload)
 
+    async def create_project(self, name: str, description: str | None = None) -> dict[str, Any]:
+        identifier = _project_identifier(name)
+        payload: dict[str, Any] = {
+            "name": name,
+            "identifier": identifier,
+            "description": {"raw": description or ""},
+        }
+        return self._request("POST", "/api/v3/projects", payload)
+
     async def update_status(self, external_id: str, status: str) -> None:
         self._request(
             "PATCH",
@@ -153,8 +162,21 @@ class OpenProjectHTTPTransport:
         return None
 
 
+def _project_identifier(name: str) -> str:
+    """Slugify a project name into an OpenProject identifier ([a-z0-9_])."""
+    lowered = name.strip().lower()
+    chars = []
+    for ch in lowered:
+        if ch.isalnum():
+            chars.append(ch)
+        elif chars and chars[-1] != "_":
+            chars.append("_")
+    identifier = "".join(chars).strip("_")
+    return identifier or "project"
+
+
 class OpenProjectHTTPError(RuntimeError):
     """Raised when the OpenProject REST API returns an error."""
 
 
-__all__ = ["OpenProjectHTTPError", "OpenProjectHTTPTransport"]
+__all__ = ["OpenProjectHTTPError", "OpenProjectHTTPTransport", "_project_identifier"]
