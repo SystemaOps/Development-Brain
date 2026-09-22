@@ -275,3 +275,35 @@ async def test_gate_pull_paginates() -> None:
     assert result.items_pulled == 11
     assert result.pages_fetched == 3
     assert [offset for _, offset in provider.page_calls] == [1, 6, 11]
+
+
+async def test_gate_pull_missing_provider_project_degrades_gracefully() -> None:
+    """A stale provider project ref must not error forever on every cycle."""
+
+    class _MissingProjectProvider(_FakeChangedProvider):
+        async def list_changed_work_packages(
+            self,
+            since: datetime,
+            *,
+            offset: int = 1,
+            page_size: int = 100,
+            project_external_id: str | None = None,
+        ) -> list[OpenProjectWorkItemSnapshot]:
+            raise RuntimeError(
+                "openproject GET /api/v3/work_packages -> 400: "
+                '{"_type":"Error","errorIdentifier":'
+                '"urn:openproject-org:api:v3:errors:InvalidQuery",'
+                '"message":"Project filter has invalid values."}'
+            )
+
+    service, _ = _build_pull_service(_MissingProjectProvider())
+    project = _project()
+    await service._projects.create(project)
+
+    result = await service.sync_project(project)
+    assert result.status == "provider_project_missing"
+    assert result.items_pulled == 0
+    assert any("does not exist" in detail for detail in result.details)
+    # The watermark advances so the cycle does not repeat.
+    watermark = await service._watermarks.get_or_create("openproject", "work_items:8")
+    assert watermark.last_synced_at is not None

@@ -47,7 +47,7 @@ from brain.domain.work_items import WorkItem
 
 pytestmark = pytest.mark.skipif(
     not __import__("tests.conftest", fromlist=["postgres_reachable"]).postgres_reachable(
-        "postgresql+asyncpg://postgres:postgres@localhost:5432/brain"
+        "postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/brain"
     ),
     reason="PostgreSQL is not available; start it with: docker compose up -d",
 )
@@ -56,11 +56,11 @@ pytestmark = pytest.mark.skipif(
 def _settings() -> BrainSettings:
     return BrainSettings(
         storage_state=PostgresSettings(
-            url="postgresql+asyncpg://postgres:postgres@localhost:5432/brain"
+            url="postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/brain"
         ),
-        storage_graph=Neo4jSettings(uri="bolt://localhost:7687"),
-        storage_semantic=WeaviateSettings(host="localhost"),
-        storage_queue=RedisSettings(url="redis://localhost:6379/0", provider="inmemory"),
+        storage_graph=Neo4jSettings(uri="bolt://127.0.0.1:7687"),
+        storage_semantic=WeaviateSettings(host="127.0.0.1"),
+        storage_queue=RedisSettings(url="redis://127.0.0.1:6379/0", provider="inmemory"),
         work_management=WorkManagementSettings(enabled=False),
         documentation=DocumentationSettings(git_enabled=False, xwiki_enabled=False),
         source_control=SourceControlSettings(enabled=False),

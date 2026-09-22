@@ -41,7 +41,7 @@ class PostgresSettings(BaseSettings):
         env_prefix="BRAIN_DATABASE_", env_file=ENV_FILES, extra="ignore"
     )
 
-    url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/brain"
+    url: str = "postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/brain"
     echo: bool = False
     pool_size: int = 5
     max_overflow: int = 10
@@ -51,7 +51,9 @@ class PostgresSettings(BaseSettings):
 class Neo4jSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="BRAIN_NEO4J_", env_file=ENV_FILES, extra="ignore")
 
-    uri: str = "bolt://localhost:7687"
+    # IPv4 loopback default: Windows Docker Desktop IPv6 (::1) port
+    # forwarding is unreliable; deployments override via env.
+    uri: str = "bolt://127.0.0.1:7687"
     user: str = "neo4j"
     password: str = "password"
     database: str = "neo4j"
@@ -62,7 +64,7 @@ class WeaviateSettings(BaseSettings):
         env_prefix="BRAIN_WEAVIATE_", env_file=ENV_FILES, extra="ignore"
     )
 
-    host: str = "localhost"
+    host: str = "127.0.0.1"
     port: int = 8080
     grpc_port: int = 50051
     scheme: str = "http"
@@ -72,7 +74,7 @@ class WeaviateSettings(BaseSettings):
 class RedisSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="BRAIN_REDIS_", env_file=ENV_FILES, extra="ignore")
 
-    url: str = "redis://localhost:6379/0"
+    url: str = "redis://127.0.0.1:6379/0"
     queue_name: str = "brain:commands"
     provider: str = "inmemory"
 
@@ -97,7 +99,9 @@ class ProviderCapabilitySettings(BaseSettings):
 
 
 class WorkManagementSettings(ProviderCapabilitySettings):
-    model_config = SettingsConfigDict(extra="ignore", env_prefix="BRAIN_WORK_MANAGEMENT_")
+    model_config = SettingsConfigDict(
+        extra="ignore", env_prefix="BRAIN_WORK_MANAGEMENT_", env_file=ENV_FILES
+    )
     provider: str = "internal"
     base_url: str = ""
     api_key: str = ""

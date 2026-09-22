@@ -30,12 +30,12 @@ from brain.adapters.postgresql.tables import Base
 
 TEST_DATABASE_URL = os.getenv(
     "BRAIN_TEST_DATABASE_URL",
-    "postgresql+asyncpg://postgres:postgres@localhost:5432/brain_test",
+    "postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/brain_test",
 )
 
 MIGRATION_TEST_DATABASE_URL = os.getenv(
     "BRAIN_MIGRATION_TEST_DATABASE_URL",
-    "postgresql+asyncpg://postgres:postgres@localhost:5432/brain_migration_test",
+    "postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/brain_migration_test",
 )
 
 

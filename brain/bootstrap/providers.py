@@ -251,6 +251,7 @@ def build_documentation(settings: BrainSettings) -> list[DocumentationPort]:
                     base_url=settings.documentation.xwiki_url,
                     user=settings.documentation.xwiki_user or None,
                     password=settings.documentation.xwiki_password or None,
+                    wiki="xwiki",
                 ),
                 wiki="xwiki",
             )

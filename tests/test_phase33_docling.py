@@ -149,11 +149,11 @@ async def test_container_core_only_reports_conversion_disabled() -> None:
     container = await create_brain_container(
         BrainSettings(
             storage_state=PostgresSettings(
-                url="postgresql+asyncpg://postgres:postgres@localhost:5432/brain"
+                url="postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/brain"
             ),
-            storage_graph=Neo4jSettings(uri="bolt://localhost:7687"),
-            storage_semantic=WeaviateSettings(host="localhost"),
-            storage_queue=RedisSettings(url="redis://localhost:6379/0", provider="inmemory"),
+            storage_graph=Neo4jSettings(uri="bolt://127.0.0.1:7687"),
+            storage_semantic=WeaviateSettings(host="127.0.0.1"),
+            storage_queue=RedisSettings(url="redis://127.0.0.1:6379/0", provider="inmemory"),
             work_management=WorkManagementSettings(enabled=False),
             documentation=DocumentationSettings(git_enabled=False, xwiki_enabled=False),
             source_control=SourceControlSettings(enabled=False),
@@ -175,11 +175,11 @@ async def test_container_conversion_configured_reports_available() -> None:
     container = await create_brain_container(
         BrainSettings(
             storage_state=PostgresSettings(
-                url="postgresql+asyncpg://postgres:postgres@localhost:5432/brain"
+                url="postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/brain"
             ),
-            storage_graph=Neo4jSettings(uri="bolt://localhost:7687"),
-            storage_semantic=WeaviateSettings(host="localhost"),
-            storage_queue=RedisSettings(url="redis://localhost:6379/0", provider="inmemory"),
+            storage_graph=Neo4jSettings(uri="bolt://127.0.0.1:7687"),
+            storage_semantic=WeaviateSettings(host="127.0.0.1"),
+            storage_queue=RedisSettings(url="redis://127.0.0.1:6379/0", provider="inmemory"),
             work_management=WorkManagementSettings(enabled=False),
             documentation=DocumentationSettings(git_enabled=False, xwiki_enabled=False),
             source_control=SourceControlSettings(enabled=False),

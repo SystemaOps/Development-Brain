@@ -15,7 +15,7 @@ from dataclasses import dataclass
 class WeaviateSettings:
     """Immutable settings used to connect to Weaviate."""
 
-    host: str = "localhost"
+    host: str = "127.0.0.1"
     port: int = 8080
     grpc_port: int = 50051
     scheme: str = "http"

@@ -206,12 +206,25 @@ class WorkManagementPullSyncService:
         seen: list[str] = []
         offset = 1
         while True:
-            page = await self._provider.list_changed_work_packages(
-                since,
-                offset=offset,
-                page_size=self._page_size,
-                project_external_id=ref.external_id,
-            )
+            try:
+                page = await self._provider.list_changed_work_packages(
+                    since,
+                    offset=offset,
+                    page_size=self._page_size,
+                    project_external_id=ref.external_id,
+                )
+            except Exception as exc:  # noqa: BLE001
+                if _is_missing_provider_project(exc):
+                    # The provider project no longer exists (or is not
+                    # visible): stop pulling, advance the watermark, and keep
+                    # the canonical state untouched instead of erroring
+                    # forever on every scheduler cycle.
+                    result.status = "provider_project_missing"
+                    result.details.append(
+                        f"provider project {ref.external_id} does not exist or is not accessible"
+                    )
+                    break
+                raise
             result.pages_fetched += 1
             for snapshot in page:
                 ingested = await self._ingestion.ingest_work_item_snapshot(
@@ -325,6 +338,18 @@ class WorkManagementPullSyncService:
             )
             swept += 1
         return swept
+
+
+def _is_missing_provider_project(exc: Exception) -> bool:
+    """Detect OpenProject's ``Project filter has invalid values`` response.
+
+    Raised when the project id in the filter does not exist or is not visible
+    to the API user; the pull must degrade gracefully instead of retrying.
+    """
+    message = str(exc)
+    return "Project filter has invalid values" in message or (
+        "InvalidQuery" in message and "project" in message.lower()
+    )
 
 
 def _provider_project_ref(project: Project) -> ExternalReference | None:

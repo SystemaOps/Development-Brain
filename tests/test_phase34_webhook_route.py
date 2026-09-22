@@ -34,7 +34,7 @@ from brain.domain.projects import Project
 from tests.conftest import postgres_reachable
 
 pytestmark = pytest.mark.skipif(
-    not postgres_reachable("postgresql+asyncpg://postgres:postgres@localhost:5432/brain"),
+    not postgres_reachable("postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/brain"),
     reason="PostgreSQL is not available; start it with: docker compose up -d",
 )
 
@@ -74,11 +74,11 @@ def _settings(
 ) -> BrainSettings:
     return BrainSettings(
         storage_state=PostgresSettings(
-            url="postgresql+asyncpg://postgres:postgres@localhost:5432/brain"
+            url="postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/brain"
         ),
-        storage_graph=Neo4jSettings(uri="bolt://localhost:7687"),
-        storage_semantic=WeaviateSettings(host="localhost"),
-        storage_queue=RedisSettings(url="redis://localhost:6379/0", provider="inmemory"),
+        storage_graph=Neo4jSettings(uri="bolt://127.0.0.1:7687"),
+        storage_semantic=WeaviateSettings(host="127.0.0.1"),
+        storage_queue=RedisSettings(url="redis://127.0.0.1:6379/0", provider="inmemory"),
         work_management=work_management or WorkManagementSettings(enabled=False),
         documentation=DocumentationSettings(git_enabled=False, xwiki_enabled=False),
         source_control=SourceControlSettings(enabled=False),
@@ -132,7 +132,7 @@ async def test_updated_work_package_reports_semantic_changes() -> None:
         WorkManagementSettings(
             enabled=False,
             provider="openproject",
-            base_url="http://localhost:8081",
+            base_url="http://127.0.0.1:8081",
             api_key="key",
             project_id=str(uuid.uuid4()),
             brain_actor_id=brain_actor,
@@ -177,7 +177,7 @@ async def test_bare_update_without_assignee_change_triggers_nothing() -> None:
         WorkManagementSettings(
             enabled=False,
             provider="openproject",
-            base_url="http://localhost:8081",
+            base_url="http://127.0.0.1:8081",
             api_key="key",
             project_id=str(uuid.uuid4()),
             brain_actor_id="6",

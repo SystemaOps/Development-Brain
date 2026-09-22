@@ -24,9 +24,11 @@ class XWikiHTTPTransport:
         *,
         user: str | None = None,
         password: str | None = None,
+        wiki: str = "xwiki",
         timeout_seconds: int = 30,
     ) -> None:
         self._base_url = base_url.rstrip("/")
+        self._wiki_name = wiki
         self._timeout = timeout_seconds
         import base64
 
@@ -61,17 +63,52 @@ class XWikiHTTPTransport:
         return _flatten_page(result)
 
     async def create_space(self, space: str) -> dict[str, Any]:
-        """Create a wiki space via ``PUT /rest/wikis/{wiki}/spaces/{space}``.
+        """Create a wiki space by creating its ``WebHome`` page.
 
-        Requires authenticated access; the response is the created space.
+        The XWiki REST API does not accept PUT on the spaces collection; a
+        page PUT into a non-existent space creates the space implicitly.
+        Requires authenticated access.  A freshly created space can transiently
+        fail to read back, so the request is retried once.
         """
-        result = self._request(
-            "PUT",
-            f"/rest/wikis/{self._wiki(space)}/spaces/{urllib.parse.quote(space, safe='')}",
+        import time
+
+        payload = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<page xmlns="http://www.xwiki.org">'
+            f"<title>{space}</title><content>Welcome to {space}</content>"
+            "</page>"
         )
-        if isinstance(result, dict):
-            return result
-        return {}
+        url = (
+            f"{self._base_url}/rest/wikis/{self._wiki_name}"
+            f"/spaces/{urllib.parse.quote(space, safe='')}/pages/WebHome"
+        )
+        last_error: Exception | None = None
+        for attempt in range(2):
+            request = urllib.request.Request(
+                url,
+                data=payload.encode("utf-8"),
+                headers={"Content-Type": "application/xml", **self._headers},
+                method="PUT",
+            )
+            try:
+                with urllib.request.urlopen(request, timeout=self._timeout) as response:  # noqa: S310
+                    raw = response.read().decode("utf-8")
+                    if not raw:
+                        return {}
+                    return dict(json.loads(raw)) if raw.lstrip().startswith("{") else {}
+            except urllib.error.HTTPError as exc:
+                last_error = XWikiHTTPError(
+                    f"xwiki PUT space {space} -> {exc.code}: "
+                    f"{exc.read().decode('utf-8', errors='replace')}"
+                )
+                if exc.code < 500:
+                    raise last_error from exc
+            except (urllib.error.URLError, OSError) as exc:
+                last_error = XWikiHTTPError(f"xwiki unreachable: {exc}")
+            if attempt == 0:
+                time.sleep(2)
+        assert last_error is not None
+        raise last_error
 
     async def get_page_version(self, page_id: str, version: str) -> dict[str, Any]:
         result = self._request(

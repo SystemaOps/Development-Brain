@@ -17,7 +17,7 @@ from brain.cli.commands import build_cli
 from tests.conftest import postgres_reachable
 
 pytestmark = pytest.mark.skipif(
-    not postgres_reachable("postgresql+asyncpg://postgres:postgres@localhost:5432/brain"),
+    not postgres_reachable("postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/brain"),
     reason="PostgreSQL is not available; start it with: docker compose up -d",
 )
 

@@ -39,11 +39,11 @@ from brain.domain.work_items import HumanWorkStatus, WorkItem, WorkItemType
 from tests.conftest import postgres_reachable
 
 pytestmark = pytest.mark.skipif(
-    not postgres_reachable("postgresql+asyncpg://postgres:postgres@localhost:5432/brain_test"),
+    not postgres_reachable("postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/brain_test"),
     reason="PostgreSQL is not available; start it with: docker compose up -d",
 )
 
-POSTGRES_URL = "postgresql+asyncpg://postgres:postgres@localhost:5432/brain_test"
+POSTGRES_URL = "postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/brain_test"
 
 
 # --- Project hierarchy (0.2) ----------------------------------------------

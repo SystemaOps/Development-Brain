@@ -14,7 +14,7 @@ from brain.adapters.neo4j import Neo4jKnowledgeGraph, Neo4jSettings, neo4j_reach
 from brain.ports.knowledge_graph import KnowledgeGraphRepository
 from tests.contracts.knowledge_graph import KnowledgeGraphRepositoryContract
 
-NEO4J_URI = "bolt://localhost:7687"
+NEO4J_URI = "bolt://127.0.0.1:7687"
 pytestmark = pytest.mark.skipif(
     not neo4j_reachable(NEO4J_URI),
     reason="Neo4j is not available; start it with: docker compose up -d",
@@ -24,7 +24,7 @@ pytestmark = pytest.mark.skipif(
 @pytest.fixture
 def neo4j_settings() -> Neo4jSettings:
     return Neo4jSettings(
-        uri="bolt://localhost:7687",
+        uri="bolt://127.0.0.1:7687",
         user="neo4j",
         password="password",
         database="neo4j",

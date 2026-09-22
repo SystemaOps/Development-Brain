@@ -19,9 +19,9 @@ services:
       # default; the Brain's HTTP transport uses `Authorization: apikey <key>`.
       OPENPROJECT_APIV3_ENABLE_BASIC_AUTH: "true"
       # The Brain reaches OpenProject inside the compose network as
-      # `openproject:8080`; accept that Host header in addition to the
-      # browser-facing localhost:8081.
-      OPENPROJECT_ADDITIONAL__HOST__NAMES: openproject:8080
+      # `openproject:8080` and from the host via both localhost and the IPv4
+      # loopback (Windows Docker Desktop IPv6 forwarding is unreliable).
+      OPENPROJECT_ADDITIONAL__HOST__NAMES: '["openproject:8080","localhost:8081","127.0.0.1:8081"]'
       #OPENPROJECT_AUTH__SOURCE__SSO: ""
     volumes:
       - brain-openprojectdata:/var/openproject/assets

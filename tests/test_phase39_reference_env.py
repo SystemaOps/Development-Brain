@@ -39,6 +39,7 @@ from brain.bootstrap.settings import (
     DocumentationSettings,
     Neo4jSettings,
     PostgresSettings,
+    PullRequestSettings,
     RedisSettings,
     SourceControlSettings,
     VerificationSettings,
@@ -66,7 +67,7 @@ from brain.domain.work_items import WorkItem
 from tests.conftest import postgres_reachable
 
 pytestmark = pytest.mark.skipif(
-    not postgres_reachable("postgresql+asyncpg://postgres:postgres@localhost:5432/brain"),
+    not postgres_reachable("postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/brain"),
     reason="PostgreSQL is not available; start it with: docker compose up -d",
 )
 
@@ -78,16 +79,17 @@ MERGED_REVISION = "merged-def456"
 def _settings() -> BrainSettings:
     return BrainSettings(
         storage_state=PostgresSettings(
-            url="postgresql+asyncpg://postgres:postgres@localhost:5432/brain"
+            url="postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/brain"
         ),
-        storage_graph=Neo4jSettings(uri="bolt://localhost:7687"),
-        storage_semantic=WeaviateSettings(host="localhost"),
-        storage_queue=RedisSettings(url="redis://localhost:6379/0", provider="inmemory"),
+        storage_graph=Neo4jSettings(uri="bolt://127.0.0.1:7687"),
+        storage_semantic=WeaviateSettings(host="127.0.0.1"),
+        storage_queue=RedisSettings(url="redis://127.0.0.1:6379/0", provider="inmemory"),
         work_management=WorkManagementSettings(enabled=False),
         documentation=DocumentationSettings(git_enabled=False, xwiki_enabled=False),
         source_control=SourceControlSettings(enabled=False),
         verification=VerificationSettings(require_pass_before_pr=True),
         automation=AutomationPolicySettings(auto_create_pr=True),
+        pull_requests=PullRequestSettings(provider="fake"),
     )
 
 
