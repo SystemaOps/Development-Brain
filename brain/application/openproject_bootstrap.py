@@ -112,6 +112,12 @@ class OpenProjectProjectBootstrapService:
             )
             await self._bootstrap_states.save(state)
             projects = await self._provider.list_projects()
+            if not any(p.external_id == external_project_id for p in projects):
+                return await self._fail_definitive(
+                    state,
+                    result,
+                    f"provider project {external_project_id} does not exist or is not visible",
+                )
             result.projects_ingested = await self._ingest_projects(
                 projects, target_external_id=external_project_id, target_project_id=project_id
             )
@@ -197,6 +203,29 @@ class OpenProjectProjectBootstrapService:
             result.status = BootstrapStatus.FAILED
             result.details.append(f"bootstrap failed: {exc}")
             raise
+
+    async def _fail_definitive(
+        self,
+        state: ProviderBootstrapState,
+        result: BootstrapResult,
+        message: str,
+    ) -> BootstrapResult:
+        """Mark the bootstrap FAILED with a definitive error (no retry).
+
+        A provider project that does not exist will never succeed; failing
+        with a clear status instead of raising keeps the worker from retrying
+        the command forever.
+        """
+        failed = state.model_copy(
+            update={
+                "status": BootstrapStatus.FAILED,
+                "last_error": message,
+            }
+        )
+        await self._bootstrap_states.save(failed)
+        result.status = BootstrapStatus.FAILED
+        result.details.append(message)
+        return result
 
     async def _ingest_projects(
         self,

@@ -46,6 +46,113 @@ async def create_project(name: str, description: str | None = None) -> None:
                 typer.echo(f"  {detail}")
 
 
+@project_app.command("delete")
+@async_command
+async def delete_project(
+    project_id: str, yes: bool = typer.Option(False, "--yes", "-y", help="skip confirmation")
+) -> None:
+    """Delete a project and its imported state (cascade).
+
+    Removes the canonical project plus linked work items, comments,
+    attachments, relations, provider mappings/snapshots, sync watermarks and
+    bootstrap state.  External systems (OpenProject/GitLab/XWiki) are NOT
+    touched.
+    """
+    import uuid
+
+    from sqlalchemy import delete as sql_delete
+
+    from brain.domain.identity import ProjectId
+
+    async with cli_container() as container:
+        project = await container.repositories.projects.get(ProjectId(uuid.UUID(project_id)))
+        if project is None:
+            typer.echo("project not found")
+            raise typer.Exit(code=1)
+        if not yes:
+            confirm = typer.confirm(
+                f"Delete project {project.name!r} ({project.id}) and all its imported state?"
+            )
+            if not confirm:
+                typer.echo("aborted")
+                return
+
+        session = container.session
+        if session is None:
+            typer.echo("no database session available")
+            raise typer.Exit(code=1)
+
+        from brain.adapters.postgresql.tables import (
+            AttachmentRow,
+            CommentRow,
+            ExternalReferenceRow,
+            OpenProjectSnapshotRow,
+            ProviderBootstrapStateRow,
+            ProviderSyncWatermarkRow,
+            SyncConflictRow,
+            WorkItemRelationRow,
+            WorkManagementMappingRow,
+        )
+
+        provider_external_ids = [
+            ref.external_id
+            for ref in project.external_refs
+            if ref.provider == "openproject" and ref.external_type == "project"
+        ]
+
+        work_items = await container.repositories.work_items.list_by_project(project.id)
+        work_item_ids = [w.id for w in work_items]
+        work_item_external_ids = [
+            ref.external_id
+            for w in work_items
+            for ref in w.external_refs
+            if ref.provider == "openproject" and ref.external_type == "work_package"
+        ]
+
+        for table, column in (
+            (CommentRow, "work_item_id"),
+            (AttachmentRow, "work_item_id"),
+            (WorkItemRelationRow, "source_work_item_id"),
+            (WorkManagementMappingRow, "work_item_id"),
+            (SyncConflictRow, "work_item_id"),
+        ):
+            await session.execute(
+                sql_delete(table).where(getattr(table, column).in_(work_item_ids))
+            )
+        if work_item_external_ids:
+            await session.execute(
+                sql_delete(OpenProjectSnapshotRow).where(
+                    OpenProjectSnapshotRow.external_id.in_(work_item_external_ids)
+                )
+            )
+        for work_item_id in work_item_ids:
+            await container.repositories.work_items.delete(work_item_id)
+        await session.execute(
+            sql_delete(ExternalReferenceRow).where(
+                ExternalReferenceRow.owner_type == "work_item",
+                ExternalReferenceRow.owner_id.in_(work_item_ids),
+            )
+        )
+        if provider_external_ids:
+            await session.execute(
+                sql_delete(ProviderSyncWatermarkRow).where(
+                    ProviderSyncWatermarkRow.sync_key.in_(
+                        f"work_items:{external_id}" for external_id in provider_external_ids
+                    )
+                )
+            )
+        await session.execute(
+            sql_delete(ProviderBootstrapStateRow).where(
+                ProviderBootstrapStateRow.project_id == project.id
+            )
+        )
+        await container.repositories.projects.delete(project.id)
+        typer.echo(
+            f"deleted {project.name} ({len(work_items)} work items, "
+            f"{len(work_item_external_ids)} snapshots removed)"
+        )
+
+
 @project_app.command("show")
 @async_command
 async def show_project(project_id: str) -> None:

@@ -9,6 +9,7 @@ services.
 from __future__ import annotations
 
 import uuid
+from collections.abc import Iterator
 
 import pytest
 from typer.testing import CliRunner, Result
@@ -38,6 +39,87 @@ def _disable_external_providers(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("BRAIN_WORK_MANAGEMENT_PROVIDER", "internal")
     monkeypatch.setenv("BRAIN_PULL_REQUEST_PROVIDER", "fake")
     monkeypatch.setenv("BRAIN_DOCUMENTATION_XWIKI_ENABLED", "false")
+    # Enqueue into a per-process queue so test commands never reach the live
+    # worker/Redis (they would otherwise be executed against the real stack).
+    monkeypatch.setenv("BRAIN_REDIS_PROVIDER", "inmemory")
+
+
+@pytest.fixture(autouse=True)
+def _cleanup_created_projects() -> Iterator[None]:
+    """Remove projects created by CLI tests from the shared development DB.
+
+    ``brainctl`` commits to the shared database; without cleanup every suite
+    run would accumulate one project per test (the duplicates seen in
+    ``brainctl project list``).
+    """
+    import asyncio
+
+    from sqlalchemy import delete, select
+
+    from brain.adapters.postgresql.tables import (
+        AttachmentRow,
+        CommentRow,
+        ExternalReferenceRow,
+        ProjectRow,
+        WorkItemRow,
+    )
+    from brain.cli.helpers import cli_container
+
+    TEST_PROJECT_NAMES = (
+        "cli-test",
+        "cli-wi",
+        "cli-ctx",
+        "cli-repo",
+        "cli-obs",
+        "cli-exec",
+        "cli-create-all",
+        "cli-boot",
+        "cli-boot-legacy",
+        "e2e",
+        "worker-demo",
+    )
+
+    async def _clean() -> None:
+        async with cli_container() as container:
+            session = container.session
+            if session is None:
+                return
+            rows = (
+                (
+                    await session.execute(
+                        select(ProjectRow.id).where(ProjectRow.name.in_(TEST_PROJECT_NAMES))
+                    )
+                )
+                .scalars()
+                .all()
+            )
+            project_ids = list(rows)
+            if not project_ids:
+                return
+            work_items = (
+                (
+                    await session.execute(
+                        select(WorkItemRow.id).where(WorkItemRow.project_id.in_(project_ids))
+                    )
+                )
+                .scalars()
+                .all()
+            )
+            work_item_ids = list(work_items)
+            for table, column in ((CommentRow, "work_item_id"), (AttachmentRow, "work_item_id")):
+                await session.execute(
+                    delete(table).where(getattr(table, column).in_(work_item_ids))
+                )
+            await session.execute(
+                delete(ExternalReferenceRow).where(
+                    ExternalReferenceRow.owner_id.in_(project_ids + work_item_ids)
+                )
+            )
+            await session.execute(delete(WorkItemRow).where(WorkItemRow.id.in_(work_item_ids)))
+            await session.execute(delete(ProjectRow).where(ProjectRow.id.in_(project_ids)))
+
+    yield
+    asyncio.run(_clean())
 
 
 def _invoke(runner: CliRunner, args: list[str]) -> Result:
