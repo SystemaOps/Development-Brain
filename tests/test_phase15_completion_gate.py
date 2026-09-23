@@ -55,7 +55,7 @@ class _FakeXWiki:
     async def get_links(self, page_id: str) -> list[str]:
         return []
 
-    async def list_changed_pages(self, since) -> list[str]:
+    async def list_changed_pages(self, spaces, since=None, *, page_size=50):
         return ["Space.Home"]
 
 

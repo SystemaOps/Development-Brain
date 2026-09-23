@@ -43,13 +43,15 @@ class SchedulerLoop:
         report = await self._service.reconcile()
         logger.info(
             "reconciled: repos=%d stale=%d synced=%d "
-            "wm_checked=%d wm_synced=%d docs=%d stuck=%d recovered=%d projections_retried=%d",
+            "wm_checked=%d wm_synced=%d docs_checked=%d docs_synced=%d "
+            "stuck=%d recovered=%d projections_retried=%d",
             report.repositories_checked,
             report.repositories_stale,
             report.repositories_synced,
             report.work_management_checked,
             report.work_management_synced,
             report.documentation_checked,
+            report.documentation_synced,
             report.stuck_executions,
             report.stuck_recovered,
             report.projections_retried,

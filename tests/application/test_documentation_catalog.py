@@ -2,15 +2,24 @@
 
 from __future__ import annotations
 
-from datetime import datetime
-
 from brain.adapters.catalog.backstage import BackstageCatalogAdapter
 from brain.adapters.catalog.derived import DerivedCatalogPortAdapter
 from brain.adapters.in_memory.event_bus import InMemoryEventBus
 from brain.adapters.in_memory.repositories import (
+    InMemoryDecisionRepository,
+    InMemoryDocumentRepository,
     InMemorySoftwareCatalogRepository,
 )
+from brain.adapters.parsers.adr import AdrParser
+from brain.adapters.parsers.entity import NoopEntityExtractor
+from brain.adapters.parsers.markdown import MarkdownParser
+from brain.adapters.parsers.references import ReferenceExtractor
+from brain.adapters.parsers.registry import (
+    DefaultParserRegistry,
+    DefaultParserSelectionPolicy,
+)
 from brain.adapters.topology.catalog import DerivedSoftwareCatalog
+from brain.application.document_ingestion import DocumentIngestionService
 from brain.application.documentation_catalog_sync import (
     DocumentationCatalogSyncService,
 )
@@ -33,11 +42,28 @@ class _FakeDocumentation(DocumentationPort):
             content=b"# doc\n",
         )
 
-    async def list_changed_documents(self, since: datetime) -> list[ExternalReference]:
+    async def list_changed_documents(self, since=None, *, spaces=None):
         return []
 
     async def search(self, query: str) -> list[ExternalReference]:
         return []
+
+
+def _build_ingestion(
+    documents: InMemoryDocumentRepository,
+    bus: InMemoryEventBus,
+) -> DocumentIngestionService:
+    registry = DefaultParserRegistry(selection_policy=DefaultParserSelectionPolicy())
+    registry.register(AdrParser(MarkdownParser()))
+    registry.register(MarkdownParser())
+    return DocumentIngestionService(
+        documents=documents,
+        parser_registry=registry,
+        entity_extractor=NoopEntityExtractor(),
+        reference_extractor=ReferenceExtractor(),
+        decisions=InMemoryDecisionRepository(),
+        event_bus=bus,
+    )
 
 
 class _FakeBackstage:
@@ -53,6 +79,9 @@ class _FakeBackstage:
             return [{"metadata": {"name": "auth-db"}, "spec": {"type": "database"}}]
         return []
 
+    async def list_dependencies(self) -> list[tuple[str, str]]:
+        return []
+
 
 async def test_document_sync_publishes_changed_event() -> None:
     bus = InMemoryEventBus()
@@ -63,6 +92,58 @@ async def test_document_sync_publishes_changed_event() -> None:
     assert result.event_published is True
     assert result.artifact.provider == "git_markdown"
     assert bus.published  # an event was published
+
+
+async def test_document_sync_delegates_to_canonical_ingestion() -> None:
+    """Step 7: with a DocumentIngestionService wired, ingest_document must
+    produce a real Document/Version/nodes instead of a bare event shell."""
+    documents = InMemoryDocumentRepository()
+    bus = InMemoryEventBus()
+    ingestion = _build_ingestion(documents, bus)
+    service = DocumentationCatalogSyncService(
+        documentation=_FakeDocumentation(),
+        event_bus=bus,
+        ingestion=ingestion,
+    )
+    project_id = new_project_id()
+    ref = ExternalReference(provider="git_markdown", external_id="README.md")
+    result = await service.ingest_document(ref, project_id)
+
+    assert result.document_id is not None
+    assert result.version_id is not None
+    assert result.event_published is True
+
+    doc = await documents.get(result.document_id)
+    assert doc is not None
+    assert doc.project_id == project_id
+    assert doc.source.uri == "README.md"
+    versions = await documents.list_versions(doc.id)
+    assert len(versions) == 1
+    assert versions[0].id == result.version_id
+    nodes = await documents.list_nodes(result.version_id)
+    assert any(n.node_type == "section" for n in nodes)
+    assert bus.published  # DocumentChanged fired by the ingestion pipeline
+
+
+async def test_document_sync_delegation_is_idempotent() -> None:
+    documents = InMemoryDocumentRepository()
+    bus = InMemoryEventBus()
+    ingestion = _build_ingestion(documents, bus)
+    service = DocumentationCatalogSyncService(
+        documentation=_FakeDocumentation(),
+        event_bus=bus,
+        ingestion=ingestion,
+    )
+    project_id = new_project_id()
+    ref = ExternalReference(provider="git_markdown", external_id="README.md")
+    first = await service.ingest_document(ref, project_id)
+    second = await service.ingest_document(ref, project_id)
+    # Same document, same version (unchanged content) — no duplicate versions.
+    assert second.document_id == first.document_id
+    assert second.version_id == first.version_id
+    assert first.document_id is not None
+    versions = await documents.list_versions(first.document_id)
+    assert len(versions) == 1
 
 
 async def test_backstage_adapter_reads_components() -> None:

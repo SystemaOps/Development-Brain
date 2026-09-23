@@ -61,8 +61,13 @@ class GitMarkdownDocumentationAdapter(DocumentationPort):
             metadata={"repository": self._repository.name},
         )
 
-    async def list_changed_documents(self, since: datetime) -> list[ExternalReference]:
-        del since
+    async def list_changed_documents(
+        self,
+        since: datetime | None = None,
+        *,
+        spaces: list[str] | None = None,
+    ) -> list[ExternalReference]:
+        del since, spaces
         paths = await self._transport.tree(self._repository, self._revision)
         refs: list[ExternalReference] = []
         for path in paths:

@@ -14,6 +14,8 @@ import urllib.request
 from datetime import datetime
 from typing import Any
 
+XWIKI_SOLR_PAGE_SIZE = 50
+
 
 class XWikiHTTPTransport:
     """HTTP transport for the XWiki REST API (versioned pages)."""
@@ -42,7 +44,11 @@ class XWikiHTTPTransport:
         url = f"{self._base_url}{path}"
         if params:
             url = f"{url}?{params}"
-        request = urllib.request.Request(url, method=method, headers=self._headers)
+        request = urllib.request.Request(
+            url,
+            method=method,
+            headers={**self._headers, "Accept": "application/json"},
+        )
         try:
             with urllib.request.urlopen(request, timeout=self._timeout) as response:  # noqa: S310
                 body = response.read().decode("utf-8")
@@ -136,37 +142,125 @@ class XWikiHTTPTransport:
         del page_id
         return []
 
-    async def list_changed_pages(self, since: datetime) -> list[str]:
-        # XWiki REST provides `modified` filters per space; the scheduler polls
-        # changed pages through the normalizer.  A best-effort approach: query
-        # all pages in the configured space and filter by version date here.
-        del since
-        result = self._request(
-            "GET",
-            "/rest/wikis/xwiki/spaces/Main/pages?limit=200",
-        )
-        pages = result.get("searchResults") or result.get("pages") or []
-        ids: list[str] = []
-        for page in pages:
-            page_ref = page.get("pageFullReference") or page.get("reference") or ""
-            ids.append(page_ref)
-        return ids
+    async def list_changed_pages(
+        self,
+        spaces: list[str],
+        since: datetime | None = None,
+        *,
+        page_size: int = XWIKI_SOLR_PAGE_SIZE,
+    ) -> list[dict[str, Any]]:
+        """List pages in the given spaces modified after ``since``.
+
+        Uses the Solr query endpoint ordered by modification date descending.
+        Because results arrive newest-first, pagination stops as soon as a
+        page older than ``since`` is seen (no full-space scans).  Returns
+        normalized page metadata sorted by (space, page reference).
+        """
+        import urllib.parse
+
+        results: list[dict[str, Any]] = []
+        for space in spaces:
+            start = 0
+            while True:
+                params = urllib.parse.urlencode(
+                    {
+                        "q": f"space:{space}",
+                        "type": "solr",
+                        "start": start,
+                        "number": page_size,
+                        "orderField": "date",
+                        "order": "desc",
+                    }
+                )
+                payload = self._request(
+                    "GET", f"/rest/wikis/{self._wiki_name}/query", params=params
+                )
+                elements = list(payload.get("searchResults") or [])
+                if not elements:
+                    break
+                stop = False
+                for element in elements:
+                    normalized = _normalize_query_page(element)
+                    modified_dt = _parse_modified(normalized["modified"])
+                    if since is not None and modified_dt is not None and modified_dt < since:
+                        stop = True
+                        break
+                    results.append(normalized)
+                if stop or len(elements) < page_size:
+                    break
+                start += page_size
+        results.sort(key=lambda page: (str(page["space"]), str(page["id"])))
+        return results
+
+    def _parts(self, page_id: str) -> list[str]:
+        """Split a page reference on both ``/`` and ``.`` separators.
+
+        References arrive either dotted (``Main.WebHome``,
+        ``ADAS.Requirements.Braking``) or slash-form (``xwiki/Main/WebHome``).
+        """
+        import re as _re
+
+        return [p for p in _re.split(r"[/.]", page_id) if p]
 
     def _wiki(self, page_id: str) -> str:
-        parts = page_id.split("/")
-        return parts[0] if parts and parts[0] else "xwiki"
+        # The wiki name is configured, never derived from a page reference.
+        del page_id
+        return self._wiki_name
 
     def _space(self, page_id: str) -> str:
-        parts = page_id.split("/")
-        return parts[1] if len(parts) > 1 else "Main"
+        parts = self._parts(page_id)
+        if len(parts) >= 3 and (parts[0] == self._wiki_name or "/" in page_id):
+            return parts[1]
+        return parts[0] if parts else "Main"
 
     def _name(self, page_id: str) -> str:
-        parts = page_id.split("/")
+        parts = self._parts(page_id)
         return parts[-1] if parts else page_id
 
 
+def _to_iso(modified: object) -> str:
+    """Normalize an XWiki ``modified`` value (epoch millis) to ISO text."""
+    if isinstance(modified, (int, float)):
+        from datetime import UTC, datetime
+
+        return datetime.fromtimestamp(modified / 1000, tz=UTC).isoformat()
+    if isinstance(modified, dict):
+        return str(modified.get("value") or "")
+    return str(modified) if modified else ""
+
+
+def _parse_modified(value: object) -> datetime | None:
+    """Parse a normalized modified value back into an aware UTC datetime."""
+    from datetime import UTC, datetime
+
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(str(value))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=UTC)
+    return parsed
+
+
+def _normalize_query_page(element: dict[str, Any]) -> dict[str, Any]:
+    """Normalize a Solr query search result into page metadata."""
+    return {
+        "id": str(element.get("pageFullName") or element.get("id") or ""),
+        "space": str(element.get("space") or ""),
+        "title": str(element.get("title") or ""),
+        "version": str(element.get("version") or ""),
+        "modified": _to_iso(element.get("modified")),
+    }
+
+
 def _flatten_page(result: dict[str, Any]) -> dict[str, Any]:
-    """Flatten XWiki REST links into simple fields the adapter expects."""
+    """Flatten XWiki REST JSON page fields into the shape the adapter expects.
+
+    ``modified`` arrives as epoch milliseconds; ``version``/``syntax`` are
+    plain strings in the JSON representation.
+    """
     title = result.get("title") or result.get("name") or ""
     content = result.get("content") or ""
     if isinstance(content, dict):
@@ -177,12 +271,25 @@ def _flatten_page(result: dict[str, Any]) -> dict[str, Any]:
     parent = result.get("parent") or ""
     if isinstance(parent, dict):
         parent = parent.get("pageFullReference") or parent.get("reference") or ""
+    syntax = result.get("syntax") or ""
+    if isinstance(syntax, dict):
+        syntax = syntax.get("id") or syntax.get("value") or ""
+    modified = result.get("modified")
+    if isinstance(modified, dict):
+        modified = modified.get("value") or ""
+    if isinstance(modified, (int, float)):
+        from datetime import UTC, datetime
+
+        modified = datetime.fromtimestamp(modified / 1000, tz=UTC).isoformat()
     return {
         "title": title,
         "content": content,
-        "version": version,
-        "parent": parent,
-        "id": result.get("id") or result.get("pageFullReference") or "",
+        "version": str(version),
+        "parent": str(parent),
+        "id": result.get("fullName") or result.get("id") or result.get("pageFullReference") or "",
+        "syntax": str(syntax),
+        "modified": str(modified) if modified else "",
+        "space": result.get("space") or "",
     }
 
 
@@ -190,4 +297,4 @@ class XWikiHTTPError(RuntimeError):
     """Raised when the XWiki REST API returns an error."""
 
 
-__all__ = ["XWikiHTTPError", "XWikiHTTPTransport"]
+__all__ = ["XWikiHTTPError", "XWikiHTTPTransport", "XWIKI_SOLR_PAGE_SIZE"]

@@ -33,6 +33,7 @@ class ReconciliationReport:
     work_management_checked: int = 0
     work_management_synced: int = 0
     documentation_checked: int = 0
+    documentation_synced: int = 0
     projections_stale: int = 0
     stuck_executions: int = 0
     stuck_recovered: int = 0
@@ -172,10 +173,57 @@ class ReconciliationService:
     # --- 29.4 Documentation reconciliation ---------------------------------
 
     async def reconcile_documentation(self, report: ReconciliationReport) -> None:
-        for _port in self._container.documentation_ports:
+        """Reconcile mapped XWiki spaces (Step 6).
+
+        For every project with a mapped XWiki space reference, run one
+        reconciliation cycle per space: watermark -> changed pages -> fetch ->
+        canonical ingestion -> advance (only on zero failures).  One broken
+        page never aborts the cycle.
+        """
+        if not self._container.documentation_ports:
+            return
+        sync_service = self._container.services.get("xwiki_documentation_sync")
+        if sync_service is None:
+            return
+        from brain.ports.documentation import DocumentationPort
+
+        projects = await self._container.repositories.projects.list()
+        for project in projects:
+            if not any(
+                ref.provider == "xwiki" and ref.external_type == "space"
+                for ref in project.external_refs
+            ):
+                continue
             report.documentation_checked += 1
-            # Changes are fetched via DocumentationPort.list_changed_documents
-            # in the ingestion pipeline; presence here means they are tracked.
+            for port in self._container.documentation_ports:
+                if not isinstance(port, DocumentationPort):
+                    continue
+                sync_project_spaces = getattr(sync_service, "sync_project_spaces", None)
+                if sync_project_spaces is None:
+                    continue
+                results = await sync_project_spaces(port, project)
+                for result in results:
+                    report.documentation_synced += 1
+                    logger.info(
+                        "xwiki reconciled project=%s space=%s since=%s discovered=%d "
+                        "ingested=%d unchanged=%d failed=%d",
+                        result.project_id,
+                        result.space,
+                        result.since,
+                        result.discovered,
+                        result.ingested,
+                        result.unchanged,
+                        result.failed,
+                    )
+                    report.details.append(
+                        f"xwiki {result.space}: discovered={result.discovered} "
+                        f"ingested={result.ingested} failed={result.failed}"
+                    )
+            # The scheduler runs reconciliation inline; commit the session so
+            # ingested documents and advanced watermarks survive restarts.
+            session = self._container.session
+            if session is not None:
+                await session.commit()
 
     # --- 29.5 Projection freshness -----------------------------------------
 

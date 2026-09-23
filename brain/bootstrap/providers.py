@@ -32,7 +32,11 @@ from brain.adapters.in_memory.observability import InMemoryLogSink
 from brain.adapters.in_memory.policies import DefaultPolicyProvider
 from brain.adapters.in_memory.semantic_index import InMemorySemanticIndex
 from brain.adapters.neo4j.knowledge_graph import Neo4jKnowledgeGraph
+from brain.adapters.parsers.adr import AdrParser
 from brain.adapters.parsers.entity import NoopEntityExtractor
+from brain.adapters.parsers.html import HtmlParser
+from brain.adapters.parsers.markdown import MarkdownParser
+from brain.adapters.parsers.pdf import PdfParser
 from brain.adapters.parsers.references import ReferenceExtractor
 from brain.adapters.parsers.registry import DefaultParserRegistry
 from brain.adapters.postgresql.config import DatabaseSettings as PostgresAdapterSettings
@@ -432,6 +436,24 @@ def _build_openproject_pull_sync(
     )
 
 
+def _build_parser_registry() -> DefaultParserRegistry:
+    """Register every production document parser (Step 1/2).
+
+    The selection policy is first-match, so specific parsers (ADR, which
+    requires Markdown) are registered before generic ones.
+    """
+    registry = DefaultParserRegistry()
+    markdown = MarkdownParser()
+    registry.register(AdrParser(markdown))
+    registry.register(markdown)
+    registry.register(HtmlParser())
+    registry.register(PdfParser())
+    from brain.adapters.parsers.xwiki_syntax import XWikiSyntaxParser
+
+    registry.register(XWikiSyntaxParser())
+    return registry
+
+
 def _build_project_provisioning(
     settings: BrainSettings,
     repos: PostgresRepositories,
@@ -571,9 +593,10 @@ def build_services(
         decisions=repos.decisions,
         retrieval=hybrid,
     )
+    parser_registry = _build_parser_registry()
     ingestion = DocumentIngestionService(
         documents=repos.documents,
-        parser_registry=DefaultParserRegistry(),
+        parser_registry=parser_registry,
         entity_extractor=NoopEntityExtractor(),
         reference_extractor=ReferenceExtractor(),
         decisions=repos.decisions,
@@ -631,6 +654,36 @@ def build_services(
     workspace_manager = WorkspaceManager(source_control=source_control)
     document_conversion = build_document_conversion(settings)
     xwiki_mapping = XWikiMappingService(event_bus=events)
+    from brain.application.xwiki_ingestion import (
+        XWikiDocumentationSyncService,
+        XWikiProjectResolver,
+        XWikiWatermarks,
+    )
+
+    xwiki_resolver = XWikiProjectResolver(projects=repos.projects)
+    xwiki_watermarks = XWikiWatermarks(watermarks=repos.sync_watermarks)
+    xwiki_documentation_sync = XWikiDocumentationSyncService(
+        resolver=xwiki_resolver,
+        watermarks=xwiki_watermarks,
+        ingestion=ingestion,
+        mapping=xwiki_mapping,
+    )
+    from brain.application.documentation_catalog_sync import (
+        DocumentationCatalogSyncService,
+    )
+
+    documentation_port: DocumentationPort | None = None
+    for port in build_documentation(settings):
+        documentation_port = port
+    documentation_sync = (
+        DocumentationCatalogSyncService(
+            documentation=documentation_port,
+            event_bus=events,
+            ingestion=ingestion,
+        )
+        if documentation_port is not None
+        else None
+    )
     openproject_snapshots = PostgresOpenProjectSnapshotStore(session=repos.session)
     openproject_ingestion = OpenProjectIngestionService(
         projects=repos.projects,
@@ -680,6 +733,10 @@ def build_services(
         "workspace_manager": workspace_manager,
         "document_conversion": document_conversion,
         "xwiki_mapping": xwiki_mapping,
+        "xwiki_resolver": xwiki_resolver,
+        "xwiki_watermarks": xwiki_watermarks,
+        "xwiki_documentation_sync": xwiki_documentation_sync,
+        "documentation_sync": documentation_sync,
         "openproject_snapshots": openproject_snapshots,
         "openproject_ingestion": openproject_ingestion,
         "openproject_bootstrap": openproject_bootstrap,

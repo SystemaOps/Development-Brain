@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import datetime
-
 import pytest
 
 from brain.adapters.documentation.git_markdown import (
@@ -63,7 +61,7 @@ class _FakeXWiki:
     async def get_links(self, page_id: str) -> list[str]:
         return []
 
-    async def list_changed_pages(self, since: datetime) -> list[str]:
+    async def list_changed_pages(self, spaces, since=None, *, page_size=50):
         return ["Space.Home", "Space.Architecture"]
 
 

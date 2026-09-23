@@ -85,6 +85,9 @@ async def delete_project(
         from brain.adapters.postgresql.tables import (
             AttachmentRow,
             CommentRow,
+            DocumentNodeRow,
+            DocumentRow,
+            DocumentVersionRow,
             ExternalReferenceRow,
             OpenProjectSnapshotRow,
             ProviderBootstrapStateRow,
@@ -93,6 +96,25 @@ async def delete_project(
             WorkItemRelationRow,
             WorkManagementMappingRow,
         )
+
+        # Cascade documents (and their versions/nodes) into the deletion.
+        document_ids = [
+            d.id for d in await container.repositories.documents.list_by_project(project.id)
+        ]
+        if document_ids:
+            version_ids = [
+                v.id
+                for document_id in document_ids
+                for v in await container.repositories.documents.list_versions(document_id)
+            ]
+            if version_ids:
+                await session.execute(
+                    sql_delete(DocumentNodeRow).where(DocumentNodeRow.version_id.in_(version_ids))
+                )
+                await session.execute(
+                    sql_delete(DocumentVersionRow).where(DocumentVersionRow.id.in_(version_ids))
+                )
+            await session.execute(sql_delete(DocumentRow).where(DocumentRow.id.in_(document_ids)))
 
         provider_external_ids = [
             ref.external_id

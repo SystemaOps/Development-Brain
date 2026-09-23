@@ -6,6 +6,9 @@
 # RUNTIME_PHASE_BY_PHASE_PLAN.md
 # PHASE_BY_PHASE_CODING_PLAN.md
 
+.env
+.env.brain
+
 # Dependencies
 node_modules/
 .pnp
