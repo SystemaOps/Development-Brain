@@ -61,10 +61,20 @@ class XWikiHTTPTransport:
         except (urllib.error.URLError, OSError) as exc:
             raise XWikiHTTPError(f"xwiki unreachable: {exc}") from exc
 
+    def _space_url_path(self, space: str) -> str:
+        """REST path segments for a (possibly nested) space.
+
+        XWiki's REST API addresses nested spaces with repeated ``/spaces/{child}``
+        segments (``odoogarageeu.Architecture`` -> ``/spaces/odoogarageeu/spaces/Architecture``);
+        the dotted form returns 404.
+        """
+        parts = [p for p in space.split(".") if p]
+        return "/".join(f"spaces/{urllib.parse.quote(p, safe='')}" for p in parts)
+
     async def get_page(self, page_id: str) -> dict[str, Any]:
         result = self._request(
             "GET",
-            f"/rest/wikis/{self._wiki(page_id)}/spaces/{self._space(page_id)}/pages/{self._name(page_id)}",
+            f"/rest/wikis/{self._wiki(page_id)}/{self._space_url_path(self._space(page_id))}/pages/{self._name(page_id)}",
         )
         return _flatten_page(result)
 
@@ -119,14 +129,14 @@ class XWikiHTTPTransport:
     async def get_page_version(self, page_id: str, version: str) -> dict[str, Any]:
         result = self._request(
             "GET",
-            f"/rest/wikis/{self._wiki(page_id)}/spaces/{self._space(page_id)}/pages/{self._name(page_id)}/history/{version}",
+            f"/rest/wikis/{self._wiki(page_id)}/{self._space_url_path(self._space(page_id))}/pages/{self._name(page_id)}/history/{version}",
         )
         return _flatten_page(result)
 
     async def list_page_changes(self, page_id: str) -> list[dict[str, Any]]:
         result = self._request(
             "GET",
-            f"/rest/wikis/{self._wiki(page_id)}/spaces/{self._space(page_id)}/pages/{self._name(page_id)}/history",
+            f"/rest/wikis/{self._wiki(page_id)}/{self._space_url_path(self._space(page_id))}/pages/{self._name(page_id)}/history",
         )
         return list(result.get("pageHistorySummary", []))
 
@@ -149,58 +159,60 @@ class XWikiHTTPTransport:
         *,
         page_size: int = XWIKI_SOLR_PAGE_SIZE,
     ) -> list[dict[str, Any]]:
-        """List pages in the given spaces modified after ``since``.
+        """List pages in the given spaces (including nested spaces) modified after ``since``.
 
         Uses the Solr query endpoint ordered by modification date descending.
-        Because results arrive newest-first, pagination stops as soon as a
-        page older than ``since`` is seen (no full-space scans).  Returns
-        normalized page metadata sorted by (space, page reference).
+        Each mapped space is queried twice — ``space:X`` for its direct pages
+        and ``space:X.*`` for pages in nested spaces (e.g.
+        ``odoogarageeu.Architecture.WebHome``).  Because results arrive
+        newest-first, pagination stops as soon as a page older than ``since``
+        is seen (no full-space scans).  Returns normalized page metadata
+        sorted by (space, page reference).
         """
         import urllib.parse
 
         results: list[dict[str, Any]] = []
         for space in spaces:
-            start = 0
-            while True:
-                params = urllib.parse.urlencode(
-                    {
-                        "q": f"space:{space}",
-                        "type": "solr",
-                        "start": start,
-                        "number": page_size,
-                        "orderField": "date",
-                        "order": "desc",
-                    }
-                )
-                payload = self._request(
-                    "GET", f"/rest/wikis/{self._wiki_name}/query", params=params
-                )
-                elements = list(payload.get("searchResults") or [])
-                if not elements:
-                    break
-                stop = False
-                for element in elements:
-                    normalized = _normalize_query_page(element)
-                    modified_dt = _parse_modified(normalized["modified"])
-                    if since is not None and modified_dt is not None and modified_dt < since:
-                        stop = True
+            for query_space in (space, f"{space}.*"):
+                start = 0
+                while True:
+                    params = urllib.parse.urlencode(
+                        {
+                            "q": f"space:{query_space}",
+                            "type": "solr",
+                            "start": start,
+                            "number": page_size,
+                            "orderField": "date",
+                            "order": "desc",
+                        }
+                    )
+                    payload = self._request(
+                        "GET", f"/rest/wikis/{self._wiki_name}/query", params=params
+                    )
+                    elements = list(payload.get("searchResults") or [])
+                    if not elements:
                         break
-                    results.append(normalized)
-                if stop or len(elements) < page_size:
-                    break
-                start += page_size
-        results.sort(key=lambda page: (str(page["space"]), str(page["id"])))
-        return results
-
-    def _parts(self, page_id: str) -> list[str]:
-        """Split a page reference on both ``/`` and ``.`` separators.
-
-        References arrive either dotted (``Main.WebHome``,
-        ``ADAS.Requirements.Braking``) or slash-form (``xwiki/Main/WebHome``).
-        """
-        import re as _re
-
-        return [p for p in _re.split(r"[/.]", page_id) if p]
+                    stop = False
+                    for element in elements:
+                        normalized = _normalize_query_page(element)
+                        modified_dt = _parse_modified(normalized["modified"])
+                        if since is not None and modified_dt is not None and modified_dt < since:
+                            stop = True
+                            break
+                        results.append(normalized)
+                    if stop or len(elements) < page_size:
+                        break
+                    start += page_size
+        # A page lives in exactly one space, so direct and nested queries never
+        # overlap; dedupe defensively (mirrors Solr's tokenized matching).
+        seen: set[str] = set()
+        deduped: list[dict[str, Any]] = []
+        for page in sorted(results, key=lambda p: (str(p["space"]), str(p["id"]))):
+            if page["id"] in seen:
+                continue
+            seen.add(page["id"])
+            deduped.append(page)
+        return deduped
 
     def _wiki(self, page_id: str) -> str:
         # The wiki name is configured, never derived from a page reference.
@@ -208,14 +220,28 @@ class XWikiHTTPTransport:
         return self._wiki_name
 
     def _space(self, page_id: str) -> str:
-        parts = self._parts(page_id)
-        if len(parts) >= 3 and (parts[0] == self._wiki_name or "/" in page_id):
-            return parts[1]
-        return parts[0] if parts else "Main"
+        """Extract the space path from a page reference.
+
+        References arrive dotted (``Main.WebHome``, ``odoogarage.Requirements.WebHome``)
+        or slash-form (``xwiki/Main/WebHome``).  In both forms the last segment is
+        the page name and everything before it is the (possibly nested) space.
+        """
+        if "/" in page_id:
+            segments = [s for s in page_id.split("/") if s]
+            rest = segments[1:] if segments and segments[0] == self._wiki_name else segments
+            if not rest:
+                return "Main"
+            return ".".join(rest[:-1]) if len(rest) > 1 else rest[0]
+        if "." in page_id:
+            return page_id.rsplit(".", 1)[0] or "Main"
+        return "Main"
 
     def _name(self, page_id: str) -> str:
-        parts = self._parts(page_id)
-        return parts[-1] if parts else page_id
+        if "/" in page_id:
+            return page_id.rstrip("/").rsplit("/", 1)[-1]
+        if "." in page_id:
+            return page_id.rsplit(".", 1)[-1]
+        return page_id
 
 
 def _to_iso(modified: object) -> str:
@@ -245,14 +271,23 @@ def _parse_modified(value: object) -> datetime | None:
 
 
 def _normalize_query_page(element: dict[str, Any]) -> dict[str, Any]:
-    """Normalize a Solr query search result into page metadata."""
+    """Normalize a Solr query search result into page metadata.
+
+    XWiki's Solr JSON escapes special characters (notably ``.``) in
+    ``pageFullName`` and ``space`` (e.g. ``hierarchy-test\\.Child.WebHome``);
+    unescape them so the reference round-trips into REST URLs.
+    """
     return {
-        "id": str(element.get("pageFullName") or element.get("id") or ""),
-        "space": str(element.get("space") or ""),
+        "id": _unescape_solr(str(element.get("pageFullName") or element.get("id") or "")),
+        "space": _unescape_solr(str(element.get("space") or "")),
         "title": str(element.get("title") or ""),
         "version": str(element.get("version") or ""),
         "modified": _to_iso(element.get("modified")),
     }
+
+
+def _unescape_solr(value: str) -> str:
+    return value.replace("\\.", ".")
 
 
 def _flatten_page(result: dict[str, Any]) -> dict[str, Any]:
